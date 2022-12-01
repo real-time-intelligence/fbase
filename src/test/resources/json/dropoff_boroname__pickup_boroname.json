@@ -1,0 +1,68 @@
+[
+  {
+    "key": "Manhattan",
+    "gantt": {
+      "": 142487,
+      "Queens": 2486475,
+      "Staten Island": 121,
+      "Brooklyn": 889780,
+      "Manhattan": 59987825,
+      "Bronx": 119255
+    }
+  },
+  {
+    "key": "Queens",
+    "gantt": {
+      "": 20548,
+      "Queens": 3169751,
+      "Staten Island": 45,
+      "Brooklyn": 269585,
+      "Manhattan": 2487152,
+      "Bronx": 9338
+    }
+  },
+  {
+    "key": "Brooklyn",
+    "gantt": {
+      "": 13596,
+      "Queens": 631265,
+      "Staten Island": 253,
+      "Brooklyn": 3571380,
+      "Manhattan": 2297121,
+      "Bronx": 2979
+    }
+  },
+  {
+    "key": "Bronx",
+    "gantt": {
+      "": 4319,
+      "Queens": 71806,
+      "Staten Island": 6,
+      "Brooklyn": 7912,
+      "Manhattan": 563756,
+      "Bronx": 387090
+    }
+  },
+  {
+    "key": "",
+    "gantt": {
+      "": 886758,
+      "Queens": 82344,
+      "Staten Island": 104,
+      "Brooklyn": 14504,
+      "Manhattan": 278949,
+      "Bronx": 7441
+    }
+  },
+  {
+    "key": "Staten Island",
+    "gantt": {
+      "": 132,
+      "Queens": 3768,
+      "Staten Island": 4663,
+      "Brooklyn": 2157,
+      "Manhattan": 9826,
+      "Bronx": 59
+    }
+  }
+]

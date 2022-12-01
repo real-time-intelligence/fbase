@@ -1,0 +1,28 @@
+[
+  {
+    "key": " ",
+    "gantt": {
+      "": 1067840
+    }
+  },
+  {
+    "key": "E",
+    "gantt": {
+      "Queens": 1872219,
+      "Staten Island": 2053,
+      "Brooklyn": 2059670,
+      "Manhattan": 8874751,
+      "Bronx": 503213
+    }
+  },
+  {
+    "key": "I",
+    "gantt": {
+      "Queens": 4573190,
+      "Staten Island": 3139,
+      "Brooklyn": 2695648,
+      "Manhattan": 56749878,
+      "Bronx": 22949
+    }
+  }
+]

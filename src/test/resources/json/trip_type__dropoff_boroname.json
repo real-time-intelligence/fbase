@@ -1,0 +1,35 @@
+[
+  {
+    "key": "0",
+    "gantt": {
+      "": 1228686,
+      "Queens": 3580527,
+      "Staten Island": 17012,
+      "Manhattan": 60501408,
+      "Brooklyn": 3643002,
+      "Bronx": 436329
+    }
+  },
+  {
+    "key": "1",
+    "gantt": {
+      "": 36343,
+      "Queens": 2341407,
+      "Staten Island": 2554,
+      "Manhattan": 3077782,
+      "Brooklyn": 2843267,
+      "Bronx": 520152
+    }
+  },
+  {
+    "key": "2",
+    "gantt": {
+      "": 5071,
+      "Queens": 34485,
+      "Staten Island": 1039,
+      "Manhattan": 46753,
+      "Brooklyn": 30325,
+      "Bronx": 78408
+    }
+  }
+]
