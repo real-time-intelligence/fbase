@@ -2,11 +2,7 @@ package org.fbase.service.impl;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
@@ -423,6 +419,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     Map<Integer, Map<Integer, Integer>> mapOfHistograms = new HashMap<>(colCount);
     cProfiles.stream().filter(isHistogram).forEach(e -> mapOfHistograms.put(e.getColId(), new LinkedHashMap<>()));
 
+    Object prevHistObject = null;
+
     try {
       final AtomicInteger iRow = new AtomicInteger(0);
 
@@ -544,8 +542,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
               int currInt = this.converter.convertRawToInt(currObject, cProfile);
 
               if (iR != 0) {
-                Integer prevObject = mapOfHistograms.get(cProfile.getColId()).get(iR - 1);
-                int prevInt = prevObject == null ?  Integer.MIN_VALUE : prevObject;
+                int prevInt = this.converter.convertRawToInt(prevHistObject, cProfile);
 
                 if (prevInt != currInt) {
                   mapOfHistograms.get(cProfile.getColId()).put(iR, currInt);
@@ -553,6 +550,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
               } else {
                 mapOfHistograms.get(cProfile.getColId()).put(iR, currInt);
               }
+
+              prevHistObject = currObject;
             }
 
           } catch (SQLException e) {

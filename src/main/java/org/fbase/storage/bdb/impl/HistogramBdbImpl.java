@@ -10,11 +10,9 @@ import org.fbase.storage.bdb.entity.Histogram;
 @Log4j2
 public class HistogramBdbImpl implements HistogramDAO {
 
-  private EntityStore store;
   private PrimaryIndex<Integer, Histogram> primaryIndex;
 
   public HistogramBdbImpl(EntityStore store) {
-    this.store = store;
     this.primaryIndex = store.getPrimaryIndex(Integer.class, Histogram.class);
   }
 

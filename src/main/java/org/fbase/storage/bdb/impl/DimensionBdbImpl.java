@@ -10,15 +10,12 @@ import org.fbase.storage.bdb.entity.dictionary.DIntString;
 
 @Log4j2
 public class DimensionBdbImpl implements DimensionDAO {
-
   public SecondaryIndex<Double, Integer, DIntDouble> secondaryIndexDouble;
   public SecondaryIndex<String, Integer, DIntString> secondaryIndexString;
-  private EntityStore store;
   private PrimaryIndex<Integer, DIntDouble> primaryIndexDouble;
   private PrimaryIndex<Integer, DIntString> primaryIndexString;
 
   public DimensionBdbImpl(EntityStore store) {
-    this.store = store;
     this.primaryIndexDouble = store.getPrimaryIndex(Integer.class, DIntDouble.class);
     this.secondaryIndexDouble = store.getSecondaryIndex(primaryIndexDouble, Double.class, "value");
 

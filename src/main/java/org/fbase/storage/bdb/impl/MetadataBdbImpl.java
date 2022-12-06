@@ -16,12 +16,9 @@ import org.fbase.storage.dto.MetadataDto;
 
 @Log4j2
 public class MetadataBdbImpl extends QueryBdbApi implements MetadataDAO {
-
-  private EntityStore store;
   private PrimaryIndex<ColumnKey, Metadata> primaryIndex;
 
   public MetadataBdbImpl(EntityStore store) {
-    this.store = store;
     this.primaryIndex = store.getPrimaryIndex(ColumnKey.class, Metadata.class);
   }
 

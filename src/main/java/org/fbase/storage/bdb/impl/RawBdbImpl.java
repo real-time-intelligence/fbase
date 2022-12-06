@@ -16,17 +16,12 @@ import org.fbase.storage.dto.RawDto;
 
 @Log4j2
 public class RawBdbImpl extends QueryBdbApi implements RawDAO {
-
-  private EntityStore store;
   private PrimaryIndex<ColumnKey, RMapping> primaryIndex;
   private PrimaryIndex<ColumnKey, RColumn> primaryIndexDataColumn;
-  private PrimaryIndex<ColumnKey, EColumn> primaryIndexEnumColumn;
 
   public RawBdbImpl(EntityStore store) {
-    this.store = store;
     this.primaryIndex = store.getPrimaryIndex(ColumnKey.class, RMapping.class);
     this.primaryIndexDataColumn = store.getPrimaryIndex(ColumnKey.class, RColumn.class);
-    this.primaryIndexEnumColumn = store.getPrimaryIndex(ColumnKey.class, EColumn.class);
   }
 
   @Override
