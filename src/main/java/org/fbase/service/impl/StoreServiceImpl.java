@@ -416,10 +416,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     fillEnumMapping(tableId, cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
 
     // Fill histogram data
-    Map<Integer, Map<Integer, Integer>> mapOfHistograms = new HashMap<>(colCount);
-    cProfiles.stream().filter(isHistogram).forEach(e -> mapOfHistograms.put(e.getColId(), new LinkedHashMap<>()));
-
-    Object prevHistObject = null;
+    Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms = new HashMap<>(colCount);
+    cProfiles.stream().filter(isHistogram).forEach(e -> mapOfHistograms.put(e.getColId(),
+        new CachedLastLinkedHashMap<>()));
 
     try {
       final AtomicInteger iRow = new AtomicInteger(0);
@@ -429,7 +428,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
         // Reinitialize
         if (iR == fBaseBatchSize) {
-          int[] histograms = getHistograms(colCount, mapOfHistograms);
+          int[] histograms = getHistogramsCachedLast(colCount, mapOfHistograms);
 
           long key = rawDataTimestamp[0][0];
 
@@ -485,7 +484,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
           fillEnumMapping(tableId, cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
 
           // Fill histogram data
-          mapOfHistograms.replaceAll((k,v) -> new LinkedHashMap<>());
+          mapOfHistograms.replaceAll((k,v) -> new CachedLastLinkedHashMap<>());
         }
 
         for (int iC = 0; iC < colCount; iC++) {
@@ -542,7 +541,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
               int currInt = this.converter.convertRawToInt(currObject, cProfile);
 
               if (iR != 0) {
-                int prevInt = this.converter.convertRawToInt(prevHistObject, cProfile);
+                Integer prevObject = mapOfHistograms.get(cProfile.getColId()).getLast();
+                int prevInt = prevObject == null ?  Integer.MIN_VALUE : prevObject;
 
                 if (prevInt != currInt) {
                   mapOfHistograms.get(cProfile.getColId()).put(iR, currInt);
@@ -550,8 +550,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
               } else {
                 mapOfHistograms.get(cProfile.getColId()).put(iR, currInt);
               }
-
-              prevHistObject = currObject;
             }
 
           } catch (SQLException e) {
@@ -563,7 +561,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       }
 
       if (iRow.get() <= fBaseBatchSize) {
-        int[] histograms = getHistograms(colCount, mapOfHistograms);
+        int[] histograms = getHistogramsCachedLast(colCount, mapOfHistograms);
 
         long key = rawDataTimestamp[0][0];
 
@@ -630,6 +628,21 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     return histograms;
   }
 
+  private int[] getHistogramsCachedLast(int colCount, Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms) {
+    int[] histograms = new int[colCount];
+
+    mapOfHistograms.forEach((k, v) -> {
+      if (!v.isEmpty()) {
+        int indexValue = this.histogramDAO.put(getArrayFromMap(v));
+        histograms[k] = indexValue;
+      } else {
+        histograms[k] = -1;
+      }
+    });
+
+    return histograms;
+  }
+
   private void storeData(byte tableId, List<CProfile> cProfiles, long key,
       List<Integer> rawDataTimeStampMapping, long[][] rawDataTimestamp,
       int colRawDataIntCount, List<Integer> rawDataIntMapping, int[][] rawDataInt,
@@ -670,6 +683,20 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
     /* Store metadata entity */
     this.metadataDAO.put(tableId, key, getByteFromList(new ArrayList<>()), getByteFromList(new ArrayList<>()), histograms);
+  }
+
+  static class CachedLastLinkedHashMap<K,V> extends LinkedHashMap<K, V> {
+    private V last = null;
+
+    @Override
+    public V put(K key, V value) {
+      last = value;
+      return super.put(key, value);
+    }
+
+    public V getLast() {
+      return last;
+    }
   }
 
 }
