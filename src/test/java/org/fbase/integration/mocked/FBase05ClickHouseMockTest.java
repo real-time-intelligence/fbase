@@ -2,6 +2,7 @@ package org.fbase.integration.mocked;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.io.TempDir;
 
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
@@ -29,7 +31,9 @@ public class FBase05ClickHouseMockTest implements ClickHouse {
   private FStore fStore;
   private TProfile tProfile;
   private List<CProfile> cProfiles;
-  private String databaseDir = "C:\\Users\\.temp";
+  @TempDir
+  static File databaseDir;
+
   public final String FILE_SEPARATOR = System.getProperty("file.separator");
 
   private ClickHouseMock clickHouseMock;
@@ -39,7 +43,8 @@ public class FBase05ClickHouseMockTest implements ClickHouse {
   @BeforeAll
   public void initialLoading()
       throws EnumByteExceedException, SqlColMetadataException, IOException, ClassNotFoundException {
-    String dbDir = Paths.get(databaseDir).toAbsolutePath().normalize() + FILE_SEPARATOR + "clickhouse_mock";
+    String dbDir = databaseDir.getAbsolutePath() + FILE_SEPARATOR + "clickhouse_mock";
+
     this.berkleyDB = new BerkleyDB(dbDir, true);
 
     Path resourceDirectory = Paths.get("src","test", "resources", "clickhouse");
