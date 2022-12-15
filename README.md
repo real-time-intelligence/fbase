@@ -54,16 +54,17 @@ To build and install FBase artifact to local mvn repository run:
     mvn clean install
 
 ## Usage
-In pom.xml, add the following xml between `<dependencies> ... </dependencies>`
+Add FBase as dependency to your pom.xml:
 
 ```xml
-  <dependency>
-    <groupId>org.fbase</groupId>
+<dependency>
+    <groupId>ru.real-time-intelligence</groupId>
     <artifactId>fbase</artifactId>
-    <version>0.1.1</version>
-  </dependency>
+    <version>0.1.2</version>
+</dependency>
 ```
-Note: Do not forget install FBase jar file to local mvn repository as mention earlier
+
+Note: Library published on [Maven Central](https://search.maven.org/)
 
 How to use FBase in your Java code?
 - Start point is FStore interface - here the full list of API you can use

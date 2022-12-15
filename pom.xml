@@ -1,14 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.fbase</groupId>
+  <groupId>ru.real-time-intelligence</groupId>
   <artifactId>fbase</artifactId>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
   <packaging>jar</packaging>
-  <name>Hybrid time-series column storage database engine</name>
+
+  <name>FBase</name>
+  <description>Hybrid time-series column storage database engine</description>
+  <url>https://github.com/real-time-intelligence/fbase</url>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Alexander Kardapolov</name>
+      <email>akardapolov@yandex.ru</email>
+      <organization>Real time intelligence</organization>
+      <organizationUrl>https://real-time-intelligence.ru</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git://github.com/real-time-intelligence/fbase</connection>
+    <developerConnection>scm:git:ssh://github.com:real-time-intelligence/fbase</developerConnection>
+    <url>http://github.com/real-time-intelligence/fbase/tree/main</url>
+    <tag>fbase-0.1.2</tag>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub</system>
+    <url>http://github.com/real-time-intelligence/fbase/issues</url>
+  </issueManagement>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>ossrh</id>
+      <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
 
   <properties>
     <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
@@ -17,15 +57,23 @@
 
     <bdb-version>5.0.73</bdb-version>
     <lombok-version>1.18.20</lombok-version>
+    <slf4j.version>2.0.6</slf4j.version>
+    <log4j2.version>2.19.0</log4j2.version>
+
     <junit-version>5.7.0</junit-version>
     <querydsl.version>4.4.0</querydsl.version>
-    <slf4j.version>1.7.36</slf4j.version>
-    <log4j2.version>2.17.2</log4j2.version>
     <clickhouse.version>0.3.2</clickhouse.version>
     <h2.version>1.4.200</h2.version>
     <ojdbc10.version>19.15.0.0.1</ojdbc10.version>
     <jackson-databind.version>2.13.4.1</jackson-databind.version>
-    <maven.javadoc.plugin>3.4.0</maven.javadoc.plugin>
+
+    <maven.surefire.plugin.version>2.22.2</maven.surefire.plugin.version>
+    <maven.compile.plugin.version>3.8.1</maven.compile.plugin.version>
+    <maven.release.plugin.version>3.0.0-M7</maven.release.plugin.version>
+    <maven.source.plugin.version>3.2.1</maven.source.plugin.version>
+    <maven.javadoc.plugin.version>3.4.0</maven.javadoc.plugin.version>
+    <maven.gpg.plugin.version>1.5</maven.gpg.plugin.version>
+    <nexus.staging.maven.plugin.version>1.6.13</nexus.staging.maven.plugin.version>
   </properties>
 
   <dependencies>
@@ -122,24 +170,56 @@
 
   <build>
     <plugins>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.2</version>
+        <version>${maven.surefire.plugin.version}</version>
       </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
+        <version>${maven.compile.plugin.version}</version>
         <configuration>
           <source>17</source>
           <target>17</target>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>${maven.release.plugin.version}</version>
+        <configuration>
+          <goals>deploy nexus-staging:release</goals>
+          <checkModificationExcludes>
+            <tagNameFormat>@{project.version}</tagNameFormat>
+            <autoVersionSubmodules>true</autoVersionSubmodules>
+            <checkModificationExclude>pom.xml</checkModificationExclude>
+            <checkModificationExclude>**</checkModificationExclude>
+          </checkModificationExcludes>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>${maven.source.plugin.version}</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>${maven.javadoc.plugin}</version>
+        <version>${maven.javadoc.plugin.version}</version>
         <configuration>
           <doclint>all,-missing</doclint>
         </configuration>
@@ -152,6 +232,77 @@
           </execution>
         </executions>
       </plugin>
+
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>${nexus.staging.maven.plugin.version}</version>
+        <extensions>true</extensions>
+        <configuration>
+          <serverId>ossrh</serverId>
+          <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+          <autoReleaseAfterClose>false</autoReleaseAfterClose>
+        </configuration>
+      </plugin>
+
     </plugins>
   </build>
+
+  <profiles>
+    <!-- GPG Signature on release -->
+    <profile>
+      <id>release-sign-artifacts</id>
+      <activation>
+        <property>
+          <name>performRelease</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${maven.gpg.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>${maven.source.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>${maven.javadoc.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>
