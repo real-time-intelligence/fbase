@@ -94,7 +94,7 @@ public class H2Database {
     return listsColStore;
   }
 
-  public List<List<Object>> putDataDirect(FStore fStore, TProfile tProfile, String select) throws SQLException {
+  public List<List<Object>> putDataJdbc(FStore fStore, TProfile tProfile, String select) throws SQLException {
     List<List<Object>> listsColStore = new ArrayList<>();
 
     cProfileList.forEach(v -> listsColStore.add(v.getColId(), new ArrayList<>()));

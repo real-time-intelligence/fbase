@@ -163,7 +163,7 @@ public class BdbStore implements FStore {
       throw new SqlColMetadataException("Empty sql column metadata for FBase instance..");
     }
 
-    this.storeService.putData(tProfile, data);
+    this.storeService.putDataDirect(tProfile, data);
   }
 
   @Override
@@ -173,7 +173,7 @@ public class BdbStore implements FStore {
       throw new SqlColMetadataException("Empty sql column metadata for FBase instance..");
     }
 
-    return this.storeService.putDataDirect(tProfile, resultSet);
+    return this.storeService.putDataJdbc(tProfile, resultSet);
   }
   @Override
   public void putDataJdbcBatch(TProfile tProfile, ResultSet resultSet, Integer fBaseBatchSize) throws SqlColMetadataException, EnumByteExceedException {

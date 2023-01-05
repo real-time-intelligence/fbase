@@ -1,5 +1,7 @@
 package org.fbase.service;
 
+import java.nio.FloatBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -100,14 +102,85 @@ public abstract class CommonServiceApi {
     }
   }
 
+  protected <T> void fillArrayList(List<List<T>> array, int colCount) {
+    for (int i = 0; i < colCount; i++) {
+      array.add(new ArrayList<>());
+    }
+  }
+
+  protected int[][] getArrayInt(List<List<Integer>> rawDataInt) {
+    int[][] array = new int[rawDataInt.size()][];
+    for (int i = 0; i < rawDataInt.size(); i++) {
+      List<Integer> row = rawDataInt.get(i);
+      array[i] = row.stream().mapToInt(j -> j).toArray();
+    }
+    return array;
+  }
+
+  protected long[][] getArrayLong(List<List<Long>> rawDataLong) {
+    long[][] array = new long[rawDataLong.size()][];
+    for (int i = 0; i < rawDataLong.size(); i++) {
+      List<Long> row = rawDataLong.get(i);
+      array[i] = row.stream().mapToLong(j -> j).toArray();
+    }
+    return array;
+  }
+
+  protected double[][] getArrayDouble(List<List<Double>> rawDataDouble) {
+    double[][] array = new double[rawDataDouble.size()][];
+    for (int i = 0; i < rawDataDouble.size(); i++) {
+      List<Double> row = rawDataDouble.get(i);
+      array[i] = row.stream().mapToDouble(j -> j).toArray();
+    }
+    return array;
+  }
+
+  protected float[][] getArrayFloat(List<List<Float>> rawDataFloat) {
+    float[][] array = new float[rawDataFloat.size()][];
+    for (int i = 0; i < rawDataFloat.size(); i++) {
+      List<Float> row = rawDataFloat.get(i);
+      array[i] = row.stream().collect(
+          ()-> FloatBuffer.allocate(row.size()),
+          FloatBuffer::put,
+          (left, right) -> {throw new UnsupportedOperationException("Only called in parallel stream");}).array();
+    }
+    return array;
+  }
+
+  protected byte[][] getArrayByte(List<List<Byte>> rawDataByte) {
+    byte[][] array = new byte[rawDataByte.size()][];
+    for (int i = 0; i < rawDataByte.size(); i++) {
+      List<Byte> row = rawDataByte.get(i);
+      array[i] = getByteFromList(row);
+    }
+    return array;
+  }
+
+  protected String[][] getArrayString(List<List<String>> rawDataString) {
+    String[][] array = new String[rawDataString.size()][];
+    for (int i = 0; i < rawDataString.size(); i++) {
+      List<String> row = rawDataString.get(i);
+      array[i] = getStringFromList(row);
+    }
+    return array;
+  }
+
   public byte[] getByteFromList(List<Byte> list) {
     byte[] byteArray = new byte[list.size()];
     int index = 0;
     for (byte b : list) {
       byteArray[index++] = b;
     }
-
     return byteArray;
+  }
+
+  public String[] getStringFromList(List<String> list) {
+    String[] stringArray = new String[list.size()];
+    int index = 0;
+    for (String b : list) {
+      stringArray[index++] = b;
+    }
+    return stringArray;
   }
 
   public void fillTimestampMapping(List<CProfile> cProfiles, List<Integer> mapping) {

@@ -185,17 +185,17 @@ public abstract class AbstractH2Test implements JdbcSource {
 
       tProfile = fStore.getTableMetadata(dbConnection, select, sProfile);
 
-      h2Db.putDataDirect(fStore, tProfile,
+      h2Db.putDataJdbc(fStore, tProfile,
           "SELECT * FROM person WHERE id=1 OR id=2 OR id=3 OR id=4 OR id=5 OR id=6");
-      h2Db.putDataDirect(fStore, tProfile,
+      h2Db.putDataJdbc(fStore, tProfile,
           "SELECT * FROM person WHERE id=7");
-      h2Db.putDataDirect(fStore, tProfile,
+      h2Db.putDataJdbc(fStore, tProfile,
           "SELECT * FROM person WHERE id=10 OR id=8 OR id=9");
-      h2Db.putDataDirect(fStore, tProfile,
+      h2Db.putDataJdbc(fStore, tProfile,
           "SELECT * FROM person WHERE id=11");
-      h2Db.putDataDirect(fStore, tProfile,
+      h2Db.putDataJdbc(fStore, tProfile,
           "SELECT * FROM person WHERE id=12 OR id=13 OR id=14");
-      h2Db.putDataDirect(fStore, tProfile,
+      h2Db.putDataJdbc(fStore, tProfile,
           "SELECT * FROM person WHERE id=15 OR id=16 OR id=17 OR id=18 OR id=19 OR id=20"
               + " OR id=21 OR id=22 OR id=23 OR id=24 OR id=25");
 

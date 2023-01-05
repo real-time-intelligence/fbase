@@ -119,7 +119,7 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
       if (tail > end) {
         this.computeIndexedForStackedBeginEnd(cProfile, e, timestamps, begin, end, list);
       } else {
-        this.computeIndexedForStackedFull(tableId, cProfile, e, timestamps, list);
+        this.computeIndexedForStackedFull(cProfile, e, timestamps, list);
       }
     }
 
@@ -155,13 +155,12 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
 
       long[] timestamps = rawDAO.getRawLong(tableId, ganttDto.getKey(), tsProfile.getColId());
 
-      this.computeForGanttFull(tableId, ganttDto, timestamps, begin, end, map);
+      this.computeForGanttFull(ganttDto, timestamps, begin, end, map);
     }
 
-    for (GanttDto ganttDto : this.metadataDAO
-        .getListGanttDto(tableId, begin, end, firstGrpBy, secondGrpBy)) {
+    for (GanttDto ganttDto : this.metadataDAO.getListGanttDto(tableId, begin, end, firstGrpBy, secondGrpBy)) {
       long[] timestamps = rawDAO.getRawLong(tableId, ganttDto.getKey(), tsProfile.getColId());
-      this.computeForGanttFull(tableId, ganttDto, timestamps, begin, end, map);
+      this.computeForGanttFull(ganttDto, timestamps, begin, end, map);
     }
 
     this.convertMapToDto(firstGrpBy, secondGrpBy, map, list);
@@ -191,7 +190,7 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
     });
   }
 
-  private void computeIndexedForStackedFull(byte tableId, CProfile cProfile, MetadataDto mdto, long[] timestamps,
+  private void computeIndexedForStackedFull(CProfile cProfile, MetadataDto mdto, long[] timestamps,
       List<StackedColumn> list) {
 
     Map<Integer, Integer> map = new LinkedHashMap<>();
@@ -307,7 +306,7 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
         .keyCount(map).build());
   }
 
-  private void computeForGanttFull(byte tableId, GanttDto ganttDto, long[] timestamps, long begin, long end,
+  private void computeForGanttFull(GanttDto ganttDto, long[] timestamps, long begin, long end,
       Map<Integer, Map<Integer, Integer>> map) {
 
     int[][] f = histogramDAO.get(ganttDto.getFirstHKey());
@@ -372,12 +371,6 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
     }
 
     return nextIndex;
-  }
-
-  private int getPrevIndex(int i, int[][] array, long[] timestamps) {
-    int nextIndex;
-
-    return array[i - 1][0] - 1;
   }
 
   private void setMapValue(Map<Integer, Map<Integer, Integer>> map, int valueFirst, int valueSecond,
