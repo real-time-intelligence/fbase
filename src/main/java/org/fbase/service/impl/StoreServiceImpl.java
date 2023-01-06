@@ -335,7 +335,10 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
             throw new RuntimeException(e);
           }
         });
+      }
 
+      if (rawDataTimestamp.get(0).size() == 0) {
+        return -1;
       }
 
       int[] histograms = getHistograms(colCount, mapOfHistograms);

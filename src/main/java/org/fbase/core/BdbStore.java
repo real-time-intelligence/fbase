@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
+import java.util.Map.Entry;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.config.FBaseConfig;
 import org.fbase.config.FileConfig;
@@ -98,23 +99,49 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public TProfile getTableMetadata(Connection connection, String select, SProfile sProfile)
-      throws SQLException {
+  public TProfile getTableMetadata(Connection connection, String select, SProfile sProfile) {
     TProfile tProfile = getTProfile(select);
     String tableId = tProfile.getTableId();
 
     if (metaModel.getMetadataTables().isEmpty()) {
-      try {
-        fileConfig.saveObject(metaModel);
-      } catch (IOException e) {
-        log.catching(e);
-        throw new RuntimeException(e);
-      }
+      saveMetaModel();
     }
 
     if (!metaModel.getMetadataTables().isEmpty()
         && metaModel.getMetadataTables().get(tableId) != null
         && !metaModel.getMetadataTables().get(tableId).isEmpty()) {
+
+      Optional<CProfile> optionalTsCProfile = metaModel.getMetadataTables().get(tableId)
+          .entrySet()
+          .stream()
+          .findAny()
+          .orElseThrow()
+          .getValue()
+          .stream()
+          .filter(cProfile -> cProfile.getCsType().isTimeStamp())
+          .findAny();
+
+      Optional<Entry<String, CSType>> optionalTsEntry = sProfile.getCsTypeMap().entrySet()
+          .stream()
+          .filter(entry -> entry.getValue().isTimeStamp())
+          .findAny();
+
+      if (optionalTsCProfile.isEmpty() & optionalTsEntry.isPresent()) {
+        log.info("Update timestamp column in FBase metadata");
+        byte tableIdByte = metaModel.getMetadataTables().get(tableId).keySet().stream().findAny().orElseThrow();
+
+        for(CProfile cProfile : metaModel.getMetadataTables().get(tableId).get(tableIdByte)) {
+          if(cProfile != null && optionalTsEntry.get().getKey().equals(cProfile.getColName())) {
+            cProfile.getCsType().setTimeStamp(true);
+            break;
+          }
+        }
+      }
+
+      if (optionalTsCProfile.isEmpty() & optionalTsEntry.isEmpty()) {
+        log.warn("Timestamp column not defined");
+      }
+
       return tProfile;
     }
 
@@ -132,14 +159,18 @@ public class BdbStore implements FStore {
       log.catching(e);
     }
 
+    saveMetaModel();
+
+    return tProfile;
+  }
+
+  private void saveMetaModel() {
     try {
       fileConfig.saveObject(metaModel);
     } catch (IOException e) {
       log.catching(e);
       throw new RuntimeException(e);
     }
-
-    return tProfile;
   }
 
   @Override
