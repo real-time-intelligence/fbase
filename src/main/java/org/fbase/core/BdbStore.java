@@ -123,6 +123,7 @@ public class BdbStore implements FStore {
 
       Optional<Entry<String, CSType>> optionalTsEntry = sProfile.getCsTypeMap().entrySet()
           .stream()
+          .filter(entry -> Objects.nonNull(entry.getValue()))
           .filter(entry -> entry.getValue().isTimeStamp())
           .findAny();
 
