@@ -30,7 +30,7 @@ public class FBase05EnumTest extends AbstractH2Test {
     csTypeMap.put("HOUSE", SType.ENUM);
     csTypeMap.put("CITY", SType.ENUM);
 
-    putData(csTypeMap);
+    putDataDirect(csTypeMap);
   }
 
   @Test

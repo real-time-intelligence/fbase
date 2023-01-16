@@ -61,7 +61,7 @@ public class ClickHouseDatabase implements ClickHouse {
                 .build())
             .build()).toList();
 
-    tProfile = fStore.getTableMetadata(connection, select, getSProfile());
+    tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile());
 
     PreparedStatement ps = connection.prepareStatement(select);
     ResultSet r = ps.executeQuery();
@@ -91,8 +91,8 @@ public class ClickHouseDatabase implements ClickHouse {
             } else {
               previousValue[0] = gt;
             }
-          } catch (SQLException throwables) {
-            throwables.printStackTrace();
+          } catch (SQLException sqlException) {
+            sqlException.printStackTrace();
           }
         }
       });
@@ -142,7 +142,7 @@ public class ClickHouseDatabase implements ClickHouse {
                 .build())
             .build()).toList();
 
-    tProfile = fStore.getTableMetadata(connection, select, getSProfile());
+    tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile());
 
     PreparedStatement ps = connection.prepareStatement(select);
     ps.setFetchSize(resultSetFetchSize);

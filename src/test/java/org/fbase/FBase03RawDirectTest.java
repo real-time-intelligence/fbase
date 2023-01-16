@@ -14,7 +14,7 @@ import org.fbase.model.profile.cstype.SType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class FBase03RawTest extends AbstractH2Test {
+public class FBase03RawDirectTest extends AbstractH2Test {
 
   private List<List<Object>> expected = new ArrayList<>();
 
@@ -29,7 +29,7 @@ public class FBase03RawTest extends AbstractH2Test {
     csTypeMap.put("HOUSE", SType.HISTOGRAM);
     csTypeMap.put("CITY", SType.RAW);
 
-    putData(csTypeMap);
+    putDataDirect(csTypeMap);
   }
 
   @Test

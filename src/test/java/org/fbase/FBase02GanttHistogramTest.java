@@ -26,7 +26,7 @@ public class FBase02GanttHistogramTest extends AbstractH2Test {
     csTypeMap.put("HOUSE", SType.HISTOGRAM);
     csTypeMap.put("CITY", SType.HISTOGRAM);
 
-    putData(csTypeMap);
+    putDataDirect(csTypeMap);
   }
 
   @Test

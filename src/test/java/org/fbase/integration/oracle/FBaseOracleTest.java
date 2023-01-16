@@ -42,7 +42,7 @@ public class FBaseOracleTest extends AbstractOracleTest {
   @Test
   public void selectRandomTest()
       throws SQLException, BeginEndWrongOrderException, SqlColMetadataException {
-    TProfile tProfile = fStore.getTableMetadata(dbConnection, selectRandom, getSProfileForRandom());
+    TProfile tProfile = fStore.loadJdbcTableMetadata(dbConnection, selectRandom, getSProfileForRandom());
     List<CProfile> cProfiles = fStore.getCProfileList(tProfile);
 
     CProfile cProfileHistogram = cProfiles.stream().filter(f -> f.getColName().equals("VALUE_HISTOGRAM")).findAny().get();
@@ -67,7 +67,7 @@ public class FBaseOracleTest extends AbstractOracleTest {
 
     SProfile sProfile = getSProfileForAsh(selectAsh);
 
-    TProfile tProfile = fStore.getTableMetadata(dbConnection, selectAsh, sProfile);
+    TProfile tProfile = fStore.loadJdbcTableMetadata(dbConnection, selectAsh, sProfile);
     List<CProfile> cProfiles = fStore.getCProfileList(tProfile);
 
     CProfile cProfileSampleTime = cProfiles.stream().filter(f -> f.getColName().equals("SAMPLE_ID")).findAny().get();

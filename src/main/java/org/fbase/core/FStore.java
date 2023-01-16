@@ -24,23 +24,31 @@ public interface FStore {
   /**
    * Get table profile
    * @param query - Query text
-   * @return TProfile - row source id
+   * @return TProfile - Table profile
    */
   TProfile getTProfile(String query);
 
   /**
-   * Get metadata for table
+   * Load metadata from connection using query
    * @param connection - JDBC connection
    * @param query - Query text
    * @param sProfile - Storage profile
-   * @return TProfile - row source id
+   * @return TProfile - Table profile
    */
-  TProfile getTableMetadata(Connection connection, String query, SProfile sProfile) throws SQLException;
+  TProfile loadJdbcTableMetadata(Connection connection, String query, SProfile sProfile) throws SQLException;
 
   /**
-   * Get list of table profile
+   * Load metadata from csv file
+   * @param fileName - CSV file name
+   * @param sProfile - Storage profile
+   * @return TProfile - Table profile
+   */
+  TProfile loadCsvTableMetadata(String fileName, String csvSplitBy, SProfile sProfile);
+
+  /**
+   * Get list of column metadata for table
    * @param tProfile - Table profile
-   * @return {@literal List<CProfile>} - list of column profile
+   * @return {@literal List<CProfile>} - list of column metadata
    */
   List<CProfile> getCProfileList(TProfile tProfile);
 
@@ -66,6 +74,13 @@ public interface FStore {
    * @param fBaseBatchSize - batch size
    */
   void putDataJdbcBatch(TProfile tProfile, ResultSet resultSet, Integer fBaseBatchSize) throws SqlColMetadataException, EnumByteExceedException;
+
+  /**
+   * Save data for csv file in batch mode
+   * @param tProfile - Table profile
+   * @param fileName - CSV file name
+   */
+  void putDataCsvBatch(TProfile tProfile, String fileName, String csvSplitBy, Integer fBaseBatchSize) throws SqlColMetadataException;
 
   /**
    * Get list stacked data by column
@@ -130,6 +145,13 @@ public interface FStore {
    * @return {@literal List<List<Object>>} - list raw data
    */
   List<List<Object>> getRawDataAll(TProfile tProfile, long begin, long end);
+
+  /**
+   * Get list of raw data
+   * @param tProfile - Table profile
+   * @return {@literal List<List<Object>>} - list raw data
+   */
+  List<List<Object>> getRawDataAll(TProfile tProfile);
 
   /**
    * Get last timestamp

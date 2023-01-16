@@ -1,6 +1,7 @@
 package org.fbase.storage;
 
 import java.util.List;
+import org.fbase.storage.bdb.entity.raw.RColumn;
 import org.fbase.storage.dto.RawDto;
 
 public interface RawDAO {
@@ -36,6 +37,8 @@ public interface RawDAO {
   RawDto getRawData(byte tableId, long key, int colIndex);
 
   List<Long> getListKeys(byte tableId, long begin, long end);
+
+  List<RColumn> getListRColumn(byte tableId);
 
   long getPreviousKey(byte tableId, long begin);
 }

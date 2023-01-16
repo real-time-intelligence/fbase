@@ -3,12 +3,16 @@ package org.fbase.storage.bdb.impl;
 import com.sleepycat.persist.EntityCursor;
 import com.sleepycat.persist.EntityStore;
 import com.sleepycat.persist.PrimaryIndex;
+import com.sleepycat.persist.SecondaryIndex;
+import java.rmi.server.RMIClassLoader;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.QueryBdbApi;
 import org.fbase.storage.bdb.entity.ColumnKey;
+import org.fbase.storage.bdb.entity.Metadata;
 import org.fbase.storage.bdb.entity.dictionary.EColumn;
 import org.fbase.storage.bdb.entity.raw.RColumn;
 import org.fbase.storage.bdb.entity.raw.RMapping;
@@ -154,6 +158,23 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
     }
 
     return list;
+  }
+
+  @Override
+  public List<RColumn> getListRColumn(byte tableId) {
+    List<RColumn> rColumns = new ArrayList<>();
+    EntityCursor<RColumn> cursor = this.primaryIndexDataColumn.entities();
+
+    if (cursor != null) {
+      for (RColumn rColumn : cursor) {
+        if (rColumn.getColumnKey().getTable() == tableId) {
+          rColumns.add(rColumn);
+        }
+      }
+      cursor.close();
+    }
+
+    return rColumns;
   }
 
   @Override

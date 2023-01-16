@@ -1,9 +1,13 @@
 package org.fbase.service.impl;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
@@ -365,7 +369,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   }
 
   @Override
-  public void putDataBatch(TProfile tProfile, ResultSet resultSet, Integer fBaseBatchSize) {
+  public void putDataJdbcBatch(TProfile tProfile, ResultSet resultSet, Integer fBaseBatchSize) {
     byte tableId = getTableId(tProfile, metaModel);
 
     List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
@@ -587,18 +591,119 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
   }
 
-  private int getResultSetSize(ResultSet resultSet) {
-    int size;
-    try {
-      resultSet.last();
-      size = resultSet.getRow();
-      resultSet.beforeFirst();
-    } catch(Exception e) {
+  @Override
+  public void putDataCsvBatch(TProfile tProfile, String fileName, String csvSplitBy, Integer fBaseBatchSize) {
+    byte tableId = getTableId(tProfile, metaModel);
+    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+
+    final AtomicLong counter = new AtomicLong(0);
+
+    /* Long */
+    int colRawDataLongCount = Mapper.getColumnCount(cProfiles, isRaw, isLong);
+    List<List<Long>> rawDataLong = new ArrayList<>(colRawDataLongCount);
+    fillArrayList(rawDataLong, colRawDataLongCount);
+    List<Integer> rawDataLongMapping = new ArrayList<>(colRawDataLongCount);
+    fillMapping(cProfiles, rawDataLongMapping, isRaw, isLong);
+
+    /* Double */
+    int colRawDataDoubleCount = Mapper.getColumnCount(cProfiles, isRaw, isDouble);
+    List<List<Double>> rawDataDouble = new ArrayList<>(colRawDataDoubleCount);
+    fillArrayList(rawDataDouble, colRawDataDoubleCount);
+    List<Integer> rawDataDoubleMapping = new ArrayList<>(colRawDataDoubleCount);
+    fillMapping(cProfiles, rawDataDoubleMapping, isRaw, isDouble);
+
+    /* String */
+    int colRawDataStringCount = Mapper.getColumnCount(cProfiles, isRaw, isString);
+    List<List<String>> rawDataString = new ArrayList<>(colRawDataStringCount);
+    fillArrayList(rawDataString, colRawDataStringCount);
+    List<Integer> rawDataStringMapping = new ArrayList<>(colRawDataStringCount);
+    fillMapping(cProfiles, rawDataStringMapping, isRaw, isString);
+
+    String line = "";
+    try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+      line = br.readLine();
+      String[] headers = line.split(csvSplitBy);
+      log.info("Header = " + Arrays.toString(headers));
+
+      final AtomicInteger iRow = new AtomicInteger(0);
+      while ((line = br.readLine()) != null) {
+
+        int iR = iRow.getAndAdd(1);
+
+        // Reinitialize
+        if (iR == fBaseBatchSize) {
+          long key = counter.getAndAdd(1);
+
+          this.storeData(tableId, key,
+              colRawDataLongCount, rawDataLongMapping, getArrayLong(rawDataLong),
+              colRawDataDoubleCount, rawDataDoubleMapping, getArrayDouble(rawDataDouble),
+              colRawDataStringCount, rawDataStringMapping, getArrayString(rawDataString));
+
+          log.info("Flush for iRow: " + iR);
+
+          iRow.set(0);
+          iRow.getAndAdd(1);
+
+          /* Long */
+          rawDataLong = new ArrayList<>(colRawDataLongCount);
+          fillArrayList(rawDataLong, colRawDataLongCount);
+          rawDataLongMapping = new ArrayList<>(colRawDataLongCount);
+          fillMapping(cProfiles, rawDataLongMapping, isRaw, isLong);
+
+          /* Double */
+          rawDataDouble = new ArrayList<>(colRawDataDoubleCount);
+          fillArrayList(rawDataDouble, colRawDataDoubleCount);
+          rawDataDoubleMapping = new ArrayList<>(colRawDataDoubleCount);
+          fillMapping(cProfiles, rawDataDoubleMapping, isRaw, isDouble);
+
+          /* String */
+          rawDataString = new ArrayList<>(colRawDataStringCount);
+          fillArrayList(rawDataString, colRawDataStringCount);
+          rawDataStringMapping = new ArrayList<>(colRawDataStringCount);
+          fillMapping(cProfiles, rawDataStringMapping, isRaw, isString);
+        }
+
+        String[] data = line.split(csvSplitBy);
+
+        for (int iC = 0; iC < headers.length; iC++) {
+          String header = headers[iC];
+          String colData = data[iC];
+
+          Optional<CProfile> optionalCProfile = cProfiles.stream()
+              .filter(f -> f.getColName().equals(header))
+              .findAny();
+
+          // Fill raw data
+          if (optionalCProfile.isPresent()) {
+            CProfile cProfile = optionalCProfile.get();
+            if (cProfile.getCsType().getSType() == SType.RAW) {
+              if (CType.LONG == Mapper.isCType(cProfile)) {
+                rawDataLong.get(rawDataLongMapping.indexOf(iC)).add(Long.valueOf(colData));
+              } else if (CType.DOUBLE == Mapper.isCType(cProfile)) {
+                rawDataDouble.get(rawDataDoubleMapping.indexOf(iC)).add(Double.valueOf(colData));
+              } else if (CType.STRING == Mapper.isCType(cProfile)) {
+                rawDataString.get(rawDataStringMapping.indexOf(iC)).add(colData);
+              }
+            }
+          }
+        }
+      }
+
+      if (iRow.get() <= fBaseBatchSize) {
+        long key = counter.getAndAdd(1);
+
+        this.storeData(tableId, key,
+            colRawDataLongCount, rawDataLongMapping, getArrayLong(rawDataLong),
+            colRawDataDoubleCount, rawDataDoubleMapping, getArrayDouble(rawDataDouble),
+            colRawDataStringCount, rawDataStringMapping, getArrayString(rawDataString));
+
+        log.info("Final flush for iRow: " + iRow.get());
+      }
+
+    } catch (IOException e) {
       log.catching(e);
-      throw new RuntimeException(e);
     }
 
-    return size;
   }
 
   public void fillEnumMapping(byte tableId, List<CProfile> cProfiles, List<Integer> mapping, List<int[]> rawDataEnumEColumn) {
@@ -683,6 +788,24 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
     /* Store metadata entity */
     this.metadataDAO.put(tableId, key, getByteFromList(new ArrayList<>()), getByteFromList(new ArrayList<>()), histograms);
+  }
+
+  private void storeData(byte tableId, long key,
+      int colRawDataLongCount, List<Integer> rawDataLongMapping, long[][] rawDataLong,
+      int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, double[][] rawDataDouble,
+      int colRawDataStringCount, List<Integer> rawDataStringMapping, String[][] rawDataString) {
+
+    /* Store data in RMapping entity */
+    this.rawDAO.putKey(tableId, key);
+
+    /* Store raw data entity */
+    if (colRawDataLongCount > 0)
+      this.rawDAO.putLong(tableId, key, rawDataLongMapping.stream().mapToInt(i -> i).toArray(), rawDataLong);
+    if (colRawDataDoubleCount > 0)
+      this.rawDAO.putDouble(tableId, key, rawDataDoubleMapping.stream().mapToInt(i -> i).toArray(), rawDataDouble);
+    if (colRawDataStringCount > 0)
+      this.rawDAO.putString(tableId, key, rawDataStringMapping.stream().mapToInt(i -> i).toArray(), rawDataString);
+
   }
 
   static class CachedLastLinkedHashMap<K,V> extends LinkedHashMap<K, V> {

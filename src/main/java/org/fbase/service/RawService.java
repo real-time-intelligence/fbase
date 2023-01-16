@@ -16,4 +16,6 @@ public interface RawService {
 
   List<List<Object>> getRawDataByColumn(TProfile tProfile, CProfile cProfile, long begin, long end);
 
+  List<List<Object>> getRawDataAll(TProfile tProfile);
+
 }

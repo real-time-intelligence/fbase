@@ -43,10 +43,12 @@ public class Mapper {
       case TIMESTAMPTZ:
       case DATETIME:
       case UINT32:
+      case LONG:
         return CType.LONG;
       case FLOAT32:
         return CType.FLOAT;
       case FLOAT64:
+      case DOUBLE:
         return CType.DOUBLE;
       case ENUM8:
       case ENUM16:
@@ -58,6 +60,7 @@ public class Mapper {
       case TEXT:
       case VARCHAR:
       case VARCHAR2:
+      case STRING:
         return CType.STRING;
       default:
         return CType.STRING;
@@ -172,6 +175,14 @@ public class Mapper {
 
     return (int) cProfiles.stream()
         .filter(isNotTimestamp)
+        .filter(isRaw)
+        .filter(isCustom)
+        .count();
+  }
+
+  public static int getColumnCount(List<CProfile> cProfiles, Predicate<CProfile> isRaw, Predicate<CProfile> isCustom) {
+
+    return (int) cProfiles.stream()
         .filter(isRaw)
         .filter(isCustom)
         .count();

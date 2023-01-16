@@ -26,7 +26,7 @@ public class FBase02GanttEnumTest extends AbstractH2Test {
     csTypeMap.put("HOUSE", SType.ENUM);
     csTypeMap.put("CITY", SType.ENUM);
 
-    putData(csTypeMap);
+    putDataDirect(csTypeMap);
   }
 
   @Test

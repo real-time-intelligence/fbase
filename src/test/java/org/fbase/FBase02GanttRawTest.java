@@ -26,7 +26,7 @@ public class FBase02GanttRawTest extends AbstractH2Test {
     csTypeMap.put("HOUSE", SType.RAW);
     csTypeMap.put("CITY", SType.RAW);
 
-    putData(csTypeMap);
+    putDataDirect(csTypeMap);
   }
 
   @Test

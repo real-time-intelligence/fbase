@@ -24,7 +24,7 @@ public interface JdbcSource {
   default void loadData(FStore fStore, Connection dbConnection, String sqlText,
       SProfile sProfile, Logger log, int fBaseBatchSize, int resultSetFetchSize) throws SQLException {
 
-    TProfile tProfile = fStore.getTableMetadata(dbConnection, sqlText, sProfile);
+    TProfile tProfile = fStore.loadJdbcTableMetadata(dbConnection, sqlText, sProfile);
 
     List<CProfile> cProfiles = fStore.getCProfileList(tProfile);
 

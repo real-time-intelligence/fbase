@@ -115,7 +115,7 @@ public abstract class AbstractH2Test implements JdbcSource {
         + " OR id=21 OR id=22 OR id=23 OR id=24 OR id=25");
   }
 
-  protected void putData(Map<String, SType> csTypeMap) {
+  protected void putDataDirect(Map<String, SType> csTypeMap) {
     fStore = fBase.getFStore();
 
     cProfiles = h2Db.getCProfileList().stream()
@@ -143,7 +143,7 @@ public abstract class AbstractH2Test implements JdbcSource {
         }
       });
 
-      tProfile = fStore.getTableMetadata(dbConnection, select, sProfile);
+      tProfile = fStore.loadJdbcTableMetadata(dbConnection, select, sProfile);
       fStore.putDataDirect(tProfile, data01);
       fStore.putDataDirect(tProfile, data02);
       fStore.putDataDirect(tProfile, data03);
@@ -155,7 +155,7 @@ public abstract class AbstractH2Test implements JdbcSource {
     }
   }
 
-  protected void putDataDirect(Map<String, SType> csTypeMap) {
+  protected void putDataJdbc(Map<String, SType> csTypeMap) {
     fStore = fBase.getFStore();
 
     cProfiles = h2Db.getCProfileList().stream()
@@ -183,7 +183,7 @@ public abstract class AbstractH2Test implements JdbcSource {
         }
       });
 
-      tProfile = fStore.getTableMetadata(dbConnection, select, sProfile);
+      tProfile = fStore.loadJdbcTableMetadata(dbConnection, select, sProfile);
 
       h2Db.putDataJdbc(fStore, tProfile,
           "SELECT * FROM person WHERE id=1 OR id=2 OR id=3 OR id=4 OR id=5 OR id=6");
@@ -232,7 +232,7 @@ public abstract class AbstractH2Test implements JdbcSource {
         }
       });
 
-      tProfile = fStore.getTableMetadata(dbConnection, select, sProfile);
+      tProfile = fStore.loadJdbcTableMetadata(dbConnection, select, sProfile);
 
       Integer fBaseBatchSize = 3;
       h2Db.putDataBatch(fStore, tProfile,

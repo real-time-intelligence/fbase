@@ -10,6 +10,8 @@ public interface StoreService {
 
   long putDataJdbc(TProfile tProfile, ResultSet resultSet);
 
-  void putDataBatch(TProfile tProfile, ResultSet resultSet, Integer fBaseBatchSize);
+  void putDataJdbcBatch(TProfile tProfile, ResultSet resultSet, Integer fBaseBatchSize);
+
+  void putDataCsvBatch(TProfile tProfile, String fileName, String csvSplitBy, Integer fBaseBatchSize);
 
 }

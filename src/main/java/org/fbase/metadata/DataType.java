@@ -26,7 +26,12 @@ public enum DataType {
   FIXEDSTRING(20, "FIXEDSTRING"),
   ENUM16(21, "ENUM16"),
   UINT16(22, "UINT16"),
-  RAW(23, "RAW");
+  RAW(23, "RAW"),
+
+  // CSV
+  LONG(24, "LONG"),
+  DOUBLE(25, "DOUBLE"),
+  STRING(26, "STRING");
 
   private final byte key;
   private final String value;

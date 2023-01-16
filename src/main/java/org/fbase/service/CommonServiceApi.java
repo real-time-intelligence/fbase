@@ -200,6 +200,15 @@ public abstract class CommonServiceApi {
         .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
   }
 
+  public void fillMapping(List<CProfile> cProfiles, List<Integer> mapping,
+      Predicate<CProfile> isRaw, Predicate<CProfile> isCustom) {
+    final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
+
+    cProfiles.stream()
+        .filter(isRaw).filter(isCustom)
+        .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
+  }
+
   public String[][] copyOfString(String[][] rawDataString, int row) {
     String[][] rawDataStringOut = new String[rawDataString.length][];
     for(int i = 0; i < rawDataString.length; i++) {

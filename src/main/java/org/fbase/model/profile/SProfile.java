@@ -17,4 +17,5 @@ import org.fbase.model.profile.cstype.SType;
 public class SProfile {
 
   private Map<String, CSType> csTypeMap;
+  private Boolean isTimestamp = Boolean.TRUE;
 }

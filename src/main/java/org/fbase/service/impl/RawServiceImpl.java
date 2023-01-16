@@ -1,25 +1,21 @@
 package org.fbase.service.impl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import javax.swing.plaf.synth.SynthOptionPaneUI;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.core.Converter;
-import org.fbase.core.Mapper;
-import org.fbase.exception.EnumByteExceedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.MetaModel;
-import org.fbase.model.output.GanttColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.TProfile;
-import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.model.output.StackedColumn;
@@ -30,7 +26,9 @@ import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
+import org.fbase.storage.bdb.entity.raw.RColumn;
 import org.fbase.storage.dto.MetadataDto;
+import org.fbase.storage.dto.RawDto;
 import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
@@ -95,6 +93,12 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     return getRawData(tProfile, cProfiles, begin, end);
   }
 
+  @Override
+  public List<List<Object>> getRawDataAll(TProfile tProfile) {
+    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+    return getRawData(tProfile, cProfiles);
+  }
+
   private List<List<Object>> getRawData(TProfile tProfile, List<CProfile> cProfiles, long begin, long end) {
     byte tableId = getTableId(tProfile, metaModel);
     CProfile tsProfile = getTsProfile(tProfile);
@@ -114,6 +118,50 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     return columnDataListOut;
   }
 
+  private List<List<Object>> getRawData(TProfile tProfile, List<CProfile> cProfiles) {
+    byte tableId = getTableId(tProfile, metaModel);
+    List<List<Object>> columnDataListLocal = new ArrayList<>();
+
+    cProfiles.stream()
+        .sorted(Comparator.comparing(CProfile::getColId))
+        .toList()
+        .forEach(cProfile -> {
+
+          List<Object> columnData = new ArrayList<>();
+
+          for (RColumn rColumn : this.rawDAO.getListRColumn(tableId)) {
+            if (rColumn.getColumnKey().getColIndex() == cProfile.getColId()) {
+              if (cProfile.getCsType().getSType() == SType.RAW) { // raw data
+
+                RawDto rawDto = this.rawDAO.getRawData(tableId, rColumn.getColumnKey().getKey(), cProfile.getColId());
+
+                RawContainer rawContainer =
+                    new RawContainer(rColumn.getColumnKey().getKey(), cProfile, rawDto);
+
+                IntStream iRow = IntStream.range(0, getLengthByColumn(cProfile, rawDto));
+                iRow.forEach(iR -> columnData.add(rawContainer.getStrValueForCell(iR)));
+              }
+            }
+          }
+
+          columnDataListLocal.add(cProfile.getColId(), columnData);
+        });
+
+    return transpose(columnDataListLocal);
+  }
+
+  private int getLengthByColumn(CProfile cProfile, RawDto rawDto) {
+    if (CType.LONG == cProfile.getCsType().getCType()) {
+      return rawDto.getDataLong().length;
+    } else if (CType.DOUBLE == cProfile.getCsType().getCType()) {
+      return rawDto.getDataDouble().length;
+    } else if (CType.STRING == cProfile.getCsType().getCType()) {
+      return rawDto.getDataString().length;
+    }
+
+    return rawDto.getDataString().length;
+  }
+
   private CProfile getTsProfile(TProfile tProfile) {
     return getCProfiles(tProfile, metaModel).stream()
         .filter(k -> k.getCsType().isTimeStamp())
@@ -121,7 +169,8 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         .orElseThrow();
   }
 
-  private void computeRawDataBeginEnd(byte tableId, CProfile tsProfile, List<CProfile> cProfiles, MetadataDto mdto,
+  private void computeRawDataBeginEnd(byte tableId, CProfile tsProfile, List<CProfile> cProfiles,
+      MetadataDto mdto,
       long begin, long end, List<List<Object>> columnDataListOut) {
     List<List<Object>> columnDataListLocal = new ArrayList<>();
 
@@ -130,32 +179,33 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     cProfiles.forEach(cProfile -> {
 
       if (cProfile.getCsType().isTimeStamp()) { // timestamp
-        List<Object> outVar = new ArrayList<>();
+        List<Object> columnData = new ArrayList<>();
 
         for (int i = 0; i < timestamps.length; i++) {
           if (timestamps[i] >= begin & timestamps[i] <= end) {
-            outVar.add(timestamps[i]);
+            columnData.add(timestamps[i]);
           }
         }
 
-        columnDataListLocal.add(cProfiles.size() == 2 ? 0 : cProfile.getColId(), outVar);
+        columnDataListLocal.add(cProfiles.size() == 2 ? 0 : cProfile.getColId(), columnData);
       }
 
-      List<Object> outVar = new ArrayList<>();
+      List<Object> columnData = new ArrayList<>();
 
       if (cProfile.getCsType().getSType() == SType.RAW & !cProfile.getCsType().isTimeStamp()) { // raw data
 
         RawContainer rawContainer =
-            new RawContainer(mdto.getKey(), cProfile, this.rawDAO.getRawData(tableId, mdto.getKey(), cProfile.getColId()));
+            new RawContainer(mdto.getKey(), cProfile,
+                this.rawDAO.getRawData(tableId, mdto.getKey(), cProfile.getColId()));
 
         IntStream iRow = IntStream.range(0, timestamps.length);
         iRow.forEach(iR -> {
           if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-            outVar.add(rawContainer.getStrValueForCell(iR));
+            columnData.add(rawContainer.getStrValueForCell(iR));
           }
         });
 
-        columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), outVar);
+        columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
       }
 
       if (cProfile.getCsType().getSType() == SType.HISTOGRAM) { // indexed data
@@ -163,17 +213,18 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
         for (int i = 0; i < timestamps.length; i++) {
           if (timestamps[i] >= begin & timestamps[i] <= end) {
-            outVar.add(this.converter.convertIntToRaw(getHistogramValue(i, h, timestamps), cProfile));
+            columnData.add(this.converter.convertIntToRaw(getHistogramValue(i, h, timestamps), cProfile));
           }
         }
 
-        columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), outVar);
+        columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
       }
 
       if (cProfile.getCsType().getSType() == SType.ENUM) { // enum data
 
         RawContainer rawContainer =
-            new RawContainer(mdto.getKey(), cProfile, this.rawDAO.getRawData(tableId, mdto.getKey(), cProfile.getColId()));
+            new RawContainer(mdto.getKey(), cProfile,
+                this.rawDAO.getRawData(tableId, mdto.getKey(), cProfile.getColId()));
 
         IntStream iRow = IntStream.range(0, timestamps.length);
 
@@ -182,10 +233,11 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         iRow.forEach(iR -> {
           if (timestamps[iR] >= begin & timestamps[iR] <= end) {
             byte var = rawContainer.getEnumValueForCell(iR);
-            outVar.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn, var), cProfile));}
+            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn, var), cProfile));
+          }
         });
 
-        columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), outVar);
+        columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
       }
 
     });
@@ -223,7 +275,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     final int N = table.stream().mapToInt(List::size).max().orElse(-1);
     Iterator[] iters = new Iterator[table.size()];
 
-    int i=0;
+    int i = 0;
     for (List<T> col : table) {
       iters[i++] = col.iterator();
     }

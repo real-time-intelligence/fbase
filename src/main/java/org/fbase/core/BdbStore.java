@@ -4,7 +4,6 @@ import com.sleepycat.persist.EntityStore;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.*;
 
 import java.util.Map.Entry;
@@ -90,16 +89,21 @@ public class BdbStore implements FStore {
     this.storeService = new StoreServiceImpl(metaModel, converter, rawDAO, enumDAO, histogramDAO, metadataDAO);
   }
 
+  /**
+   * Get table profile
+   * @param uniqueString - Query text or CSV file name
+   * @return TProfile - Table profile
+   */
   @Override
-  public TProfile getTProfile(String select) {
+  public TProfile getTProfile(String uniqueString) {
     TProfile tProfile = new TProfile();
-    String tableId = String.valueOf(select.hashCode());
+    String tableId = String.valueOf(uniqueString.hashCode());
     tProfile.setTableId(tableId);
     return tProfile;
   }
 
   @Override
-  public TProfile getTableMetadata(Connection connection, String select, SProfile sProfile) {
+  public TProfile loadJdbcTableMetadata(Connection connection, String select, SProfile sProfile) {
     TProfile tProfile = getTProfile(select);
     String tableId = tProfile.getTableId();
 
@@ -111,6 +115,77 @@ public class BdbStore implements FStore {
         && metaModel.getMetadataTables().get(tableId) != null
         && !metaModel.getMetadataTables().get(tableId).isEmpty()) {
 
+      updateTimestampMetadata(tableId, sProfile);
+
+      tProfile.setIsTimestamp(sProfile.getIsTimestamp());
+      tProfile.setCProfiles(getCProfileList(tProfile));
+
+      return tProfile;
+    }
+
+    byte tableIdByte = MetaModelHandler.getNextInternalTableId(metaModel);
+
+    try {
+      List<CProfile> cProfileList = MetadataHandler.getJdbcCProfileList(connection, select);
+
+      cProfileList.forEach(e -> e.setCsType(sProfile.getCsTypeMap().getOrDefault(e.getColName(),
+          new CSType().toBuilder().isTimeStamp(false).sType(SType.RAW).build())));
+
+      metaModel.getMetadataTables().put(tableId, new HashMap<>());
+      metaModel.getMetadataTables().get(tableId).putIfAbsent(tableIdByte, cProfileList);
+    } catch (Exception e) {
+      log.catching(e);
+    }
+
+    saveMetaModel();
+
+    return tProfile;
+  }
+
+  @Override
+  public TProfile loadCsvTableMetadata(String fileName, String csvSplitBy, SProfile sProfile) {
+    TProfile tProfile = getTProfile(fileName);
+    String tableId = tProfile.getTableId();
+
+    if (metaModel.getMetadataTables().isEmpty()) {
+      saveMetaModel();
+    }
+
+    if (!metaModel.getMetadataTables().isEmpty()
+        && metaModel.getMetadataTables().get(tableId) != null
+        && !metaModel.getMetadataTables().get(tableId).isEmpty()) {
+
+      updateTimestampMetadata(tableId, sProfile);
+
+      tProfile.setIsTimestamp(sProfile.getIsTimestamp());
+      tProfile.setCProfiles(getCProfileList(tProfile));
+
+      saveMetaModel();
+
+      return tProfile;
+    }
+
+    byte tableIdByte = MetaModelHandler.getNextInternalTableId(metaModel);
+
+    try {
+      if (sProfile.getCsTypeMap().isEmpty()) {
+        MetadataHandler.loadMetadataFromCsv(fileName, csvSplitBy, sProfile);
+      }
+
+      List<CProfile> cProfileList = MetadataHandler.getCsvCProfileList(sProfile);
+
+      metaModel.getMetadataTables().put(tableId, new HashMap<>());
+      metaModel.getMetadataTables().get(tableId).putIfAbsent(tableIdByte, cProfileList);
+    } catch (Exception e) {
+      log.catching(e);
+    }
+
+    saveMetaModel();
+
+    return tProfile;
+  }
+
+  private void updateTimestampMetadata(String tableId, SProfile sProfile) {
       Optional<CProfile> optionalTsCProfile = metaModel.getMetadataTables().get(tableId)
           .entrySet()
           .stream()
@@ -129,40 +204,20 @@ public class BdbStore implements FStore {
 
       if (optionalTsCProfile.isEmpty() & optionalTsEntry.isPresent()) {
         log.info("Update timestamp column in FBase metadata");
-        byte tableIdByte = metaModel.getMetadataTables().get(tableId).keySet().stream().findAny().orElseThrow();
+        byte tableIdByte = metaModel.getMetadataTables().get(tableId).keySet().stream().findAny()
+            .orElseThrow();
 
-        for(CProfile cProfile : metaModel.getMetadataTables().get(tableId).get(tableIdByte)) {
-          if(cProfile != null && optionalTsEntry.get().getKey().equals(cProfile.getColName())) {
+        for (CProfile cProfile : metaModel.getMetadataTables().get(tableId).get(tableIdByte)) {
+          if (cProfile != null && optionalTsEntry.get().getKey().equals(cProfile.getColName())) {
             cProfile.getCsType().setTimeStamp(true);
             break;
           }
         }
       }
 
-      if (optionalTsCProfile.isEmpty() & optionalTsEntry.isEmpty()) {
-        log.warn("Timestamp column not defined");
-      }
-
-      return tProfile;
+    if (optionalTsCProfile.isEmpty() & optionalTsEntry.isEmpty() & sProfile.getIsTimestamp()) {
+      throw new RuntimeException("Timestamp column not defined");
     }
-
-    byte tableIdByte = MetaModelHandler.getNextInternalTableId(metaModel);
-
-    try {
-      List<CProfile> cProfileList = MetadataHandler.getCProfileList(connection, select);
-
-      cProfileList.forEach(e -> e.setCsType(sProfile.getCsTypeMap().getOrDefault(e.getColName(),
-          new CSType().toBuilder().isTimeStamp(false).sType(SType.RAW).build())));
-
-      metaModel.getMetadataTables().put(tableId, new HashMap<>());
-      metaModel.getMetadataTables().get(tableId).putIfAbsent(tableIdByte, cProfileList);
-    } catch (Exception e) {
-      log.catching(e);
-    }
-
-    saveMetaModel();
-
-    return tProfile;
   }
 
   private void saveMetaModel() {
@@ -214,7 +269,17 @@ public class BdbStore implements FStore {
       throw new SqlColMetadataException("Empty sql column metadata for FBase instance..");
     }
 
-    this.storeService.putDataBatch(tProfile, resultSet, fBaseBatchSize);
+    this.storeService.putDataJdbcBatch(tProfile, resultSet, fBaseBatchSize);
+  }
+
+  @Override
+  public void putDataCsvBatch(TProfile tProfile, String fileName, String csvSplitBy, Integer fBaseBatchSize) throws SqlColMetadataException {
+
+    if (this.metaModel.getMetadataTables().get(tProfile.getTableId()).isEmpty()) {
+      throw new SqlColMetadataException("Empty sql column metadata for FBase instance..");
+    }
+
+    this.storeService.putDataCsvBatch(tProfile, fileName, csvSplitBy, fBaseBatchSize);
   }
 
   @Override
@@ -270,6 +335,11 @@ public class BdbStore implements FStore {
   @Override
   public List<List<Object>> getRawDataAll(TProfile tProfile, long begin, long end) {
     return rawService.getRawDataAll(tProfile, begin, end);
+  }
+
+  @Override
+  public List<List<Object>> getRawDataAll(TProfile tProfile) {
+    return rawService.getRawDataAll(tProfile);
   }
 
   @Override
