@@ -120,6 +120,8 @@ public class BdbStore implements FStore {
       tProfile.setIsTimestamp(sProfile.getIsTimestamp());
       tProfile.setCProfiles(getCProfileList(tProfile));
 
+      saveMetaModel();
+
       return tProfile;
     }
 
