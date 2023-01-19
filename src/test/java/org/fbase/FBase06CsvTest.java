@@ -85,7 +85,7 @@ public class FBase06CsvTest {
 
   static String readFile(String path, Charset encoding) throws IOException {
     byte[] encoded = Files.readAllBytes(Paths.get(path));
-    return new String(encoded, encoding).replace("\n", System.lineSeparator());
+    return new String(encoded, encoding).replace("\r", "");
   }
 
   private String toCsvFile(List<List<Object>> data, TProfile tProfile, String csvSplitBy) {
@@ -101,7 +101,7 @@ public class FBase06CsvTest {
           output.append(cProfile.getColName()).append(headerCounter.get() < cProfiles.size() ? csvSplitBy : "");
         });
 
-    output.append(System.lineSeparator());
+    output.append("\n");
 
     // data
     AtomicInteger counter = new AtomicInteger(0);
@@ -115,7 +115,7 @@ public class FBase06CsvTest {
       }
 
       if (counter.get() < data.size()) {
-        output.append(System.lineSeparator());
+        output.append("\n");
       }
     }
 
