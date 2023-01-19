@@ -85,7 +85,7 @@ public class FBase06CsvTest {
 
   static String readFile(String path, Charset encoding) throws IOException {
     byte[] encoded = Files.readAllBytes(Paths.get(path));
-    return new String(encoded, encoding);
+    return new String(encoded, encoding).replace("\n", System.lineSeparator());
   }
 
   private String toCsvFile(List<List<Object>> data, TProfile tProfile, String csvSplitBy) {
