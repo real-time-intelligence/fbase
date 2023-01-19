@@ -101,7 +101,7 @@ public class FBase06CsvTest {
           output.append(cProfile.getColName()).append(headerCounter.get() < cProfiles.size() ? csvSplitBy : "");
         });
 
-    output.append("\n");
+    output.append(System.lineSeparator());
 
     // data
     AtomicInteger counter = new AtomicInteger(0);
@@ -115,7 +115,7 @@ public class FBase06CsvTest {
       }
 
       if (counter.get() < data.size()) {
-        output.append("\n");
+        output.append(System.lineSeparator());
       }
     }
 
