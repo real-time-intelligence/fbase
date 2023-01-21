@@ -17,6 +17,7 @@ import org.fbase.core.FStore;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
+import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.TProfile;
@@ -51,8 +52,12 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     FBase fBase = new FBase(fBaseConfig, berkleyDB.getStore());
     fStore = fBase.getFStore();
 
-    tProfile = fBase.getFStore().getTProfile(select2016);
-    cProfiles = fBase.getFStore().getCProfileList(tProfile);
+    try {
+      tProfile = fBase.getFStore().getTProfile(tableName);
+    } catch (TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
+    cProfiles = tProfile.getCProfiles();
 
     objectMapper = new ObjectMapper();
   }
@@ -280,7 +285,7 @@ public class FBaseCHQueryDataTest implements ClickHouse {
   private List<GanttColumn> getListGanttColumnTwoLevelGrouping(FStore fStore,
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
       throws BeginEndWrongOrderException, GanttColumnNotSupportedException, SqlColMetadataException {
-    return fStore.getGColumnListTwoLevelGroupBy(tProfile, firstLevelGroupBy, secondLevelGroupBy, begin, end);
+    return fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), firstLevelGroupBy, secondLevelGroupBy, begin, end);
   }
 
   private String getTestData(String fileName) throws IOException {

@@ -5,7 +5,13 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
@@ -16,7 +22,6 @@ import org.fbase.core.Mapper;
 import org.fbase.exception.EnumByteExceedException;
 import org.fbase.model.MetaModel;
 import org.fbase.model.profile.CProfile;
-import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
@@ -66,11 +71,11 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   }
 
   @Override
-  public void putDataDirect(TProfile tProfile, List<List<Object>> data) {
-    byte tableId = getTableId(tProfile, metaModel);
+  public void putDataDirect(String tableName, List<List<Object>> data) {
+    byte tableId = getTableId(tableName, metaModel);
     int rowCount = data.get(0).size();
 
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
     int colCount = cProfiles.size();
 
     /* Timestamp */
@@ -207,10 +212,10 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   }
 
   @Override
-  public long putDataJdbc(TProfile tProfile, ResultSet resultSet) {
-    byte tableId = getTableId(tProfile, metaModel);
+  public long putDataJdbc(String tableName, ResultSet resultSet) {
+    byte tableId = getTableId(tableName, metaModel);
 
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
     int colCount = cProfiles.size();
 
     /* Timestamp */
@@ -369,10 +374,10 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   }
 
   @Override
-  public void putDataJdbcBatch(TProfile tProfile, ResultSet resultSet, Integer fBaseBatchSize) {
-    byte tableId = getTableId(tProfile, metaModel);
+  public void putDataJdbcBatch(String tableName, ResultSet resultSet, Integer fBaseBatchSize) {
+    byte tableId = getTableId(tableName, metaModel);
 
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
     int colCount = cProfiles.size();
     int rowCount = fBaseBatchSize;
 
@@ -592,9 +597,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   }
 
   @Override
-  public void putDataCsvBatch(TProfile tProfile, String fileName, String csvSplitBy, Integer fBaseBatchSize) {
-    byte tableId = getTableId(tProfile, metaModel);
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+  public void putDataCsvBatch(String tableName, String fileName, String csvSplitBy, Integer fBaseBatchSize) {
+    byte tableId = getTableId(tableName, metaModel);
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
 
     final AtomicLong counter = new AtomicLong(0);
 
@@ -706,7 +711,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
   }
 
-  public void fillEnumMapping(byte tableId, List<CProfile> cProfiles, List<Integer> mapping, List<int[]> rawDataEnumEColumn) {
+  private void fillEnumMapping(byte tableId, List<CProfile> cProfiles, List<Integer> mapping, List<int[]> rawDataEnumEColumn) {
     final AtomicInteger iRawDataEnumMapping = new AtomicInteger(0);
 
     cProfiles.stream()

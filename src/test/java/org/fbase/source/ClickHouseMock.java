@@ -8,6 +8,7 @@ import lombok.extern.log4j.Log4j2;
 import org.fbase.core.FStore;
 import org.fbase.exception.EnumByteExceedException;
 import org.fbase.exception.SqlColMetadataException;
+import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.TProfile;
 
 @Log4j2
@@ -16,7 +17,7 @@ public class ClickHouseMock implements ClickHouse {
 
   public ClickHouseMock() {}
 
-  public TProfile loadData(FStore fStore)
+  public TProfile loadData(FStore fStore, String tableName)
       throws IOException, ClassNotFoundException, EnumByteExceedException, SqlColMetadataException {
 
     Path resourceDirectory = Paths.get("src","test","resources","clickhouse");
@@ -24,10 +25,16 @@ public class ClickHouseMock implements ClickHouse {
     String absolutePath = resourceDirectory.toFile().getAbsolutePath();
 
     List<List<Object>> listsColStore =
-        ( List<List<Object>>) getObject(absolutePath + FILE_SEPARATOR + "listsColStore.obj");
+        (List<List<Object>>) getObject(absolutePath + FILE_SEPARATOR + "listsColStore.obj");
 
-    TProfile tProfile = fStore.getTProfile(select2016);
-    fStore.putDataDirect(tProfile, listsColStore);
+    TProfile tProfile;
+    try {
+      tProfile = fStore.getTProfile(tableName);
+    } catch (TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
+
+    fStore.putDataDirect(tProfile.getTableName(), listsColStore);
 
     return tProfile;
   }

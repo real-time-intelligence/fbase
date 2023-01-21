@@ -14,6 +14,7 @@ import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.SType;
 
 public interface ClickHouse {
+  String tableName = "ch_table_test";
   String select2016 = "SELECT * FROM datasets.trips_mergetree where toYear(pickup_date) = 2016";
 
   default Object getObject(String fullFileName) throws IOException, ClassNotFoundException {
@@ -63,11 +64,10 @@ public interface ClickHouse {
       return SType.RAW;
     }
   }
-
-
   
-  default SProfile getSProfile() {
+  default SProfile getSProfile(String tableName) {
     SProfile sProfile = new SProfile();
+    sProfile.setTableName(tableName);
     Map<String, CSType> csTypeMap = new HashMap<>();
 
     csTypeMap.put("PICKUP_DATETIME", new CSType().toBuilder().isTimeStamp(true).sType(SType.RAW).build());

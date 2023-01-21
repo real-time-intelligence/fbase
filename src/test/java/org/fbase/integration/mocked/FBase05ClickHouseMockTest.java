@@ -14,6 +14,7 @@ import org.fbase.config.FBaseConfig;
 import org.fbase.core.FStore;
 import org.fbase.exception.EnumByteExceedException;
 import org.fbase.exception.SqlColMetadataException;
+import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.TProfile;
 import org.fbase.source.ClickHouse;
@@ -38,7 +39,6 @@ public class FBase05ClickHouseMockTest implements ClickHouse {
 
   private ClickHouseMock clickHouseMock;
   private BerkleyDB berkleyDB;
-
   
   @BeforeAll
   public void initialLoading()
@@ -50,15 +50,20 @@ public class FBase05ClickHouseMockTest implements ClickHouse {
     Path resourceDirectory = Paths.get("src","test", "resources", "clickhouse");
     String absPath = resourceDirectory.toFile().getAbsolutePath();
 
+
     FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(absPath).setBlockSize(16);
     FBase fBase = new FBase(fBaseConfig, berkleyDB.getStore());
     fStore = fBase.getFStore();
 
     this.clickHouseMock = new ClickHouseMock();
-    this.clickHouseMock.loadData(fStore);
+    this.clickHouseMock.loadData(fStore, tableName);
 
-    tProfile = fBase.getFStore().getTProfile(select2016);
-    cProfiles = fBase.getFStore().getCProfileList(tProfile);
+    try {
+      tProfile = fBase.getFStore().getTProfile(tableName);
+    } catch (TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
+    cProfiles = tProfile.getCProfiles();
   }
 
   @Test
@@ -70,7 +75,7 @@ public class FBase05ClickHouseMockTest implements ClickHouse {
     List<List<Object>> expected =
         (List<List<Object>>) getObject(absolutePath + FILE_SEPARATOR + "listsColStore.obj");
     List<List<Object>> actual =
-        fStore.getRawDataAll(tProfile, Long.MIN_VALUE, Long.MAX_VALUE);
+        fStore.getRawDataAll(tProfile.getTableName(), Long.MIN_VALUE, Long.MAX_VALUE);
 
     log.info("expected:" + expected.get(0).size() + " actual:" + actual.size());
 

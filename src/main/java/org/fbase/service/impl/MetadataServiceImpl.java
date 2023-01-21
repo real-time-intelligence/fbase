@@ -17,17 +17,13 @@ import org.fbase.model.MetaModel;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
-import org.fbase.model.profile.TProfile;
-import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.MetadataService;
-import org.fbase.service.container.RawContainer;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.dto.GanttDto;
 import org.fbase.storage.dto.MetadataDto;
-import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
 public class MetadataServiceImpl extends CommonServiceApi implements MetadataService {
@@ -48,8 +44,8 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
   }
 
   @Override
-  public List<Byte> getDataType(TProfile tProfile) {
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+  public List<Byte> getDataType(String tableName) {
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
 
     return cProfiles.stream()
         .map(e -> {
@@ -65,8 +61,8 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
   }
 
   @Override
-  public List<Byte> getStorageType(TProfile tProfile) {
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+  public List<Byte> getStorageType(String tableName) {
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
 
     return cProfiles.stream()
         .map(e -> e.getCsType().getSType().getKey()).collect(Collectors.toList());
@@ -84,10 +80,10 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
   }
 
   @Override
-  public List<StackedColumn> getListStackedColumn(TProfile tProfile, CProfile cProfile,
-      long begin, long end) throws SqlColMetadataException {
-    byte tableId = getTableId(tProfile, metaModel);
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+  public List<StackedColumn> getListStackedColumn(String tableName, CProfile cProfile, long begin, long end)
+      throws SqlColMetadataException {
+    byte tableId = getTableId(tableName, metaModel);
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
 
     CProfile tsProfile = getTimestampProfile(cProfiles);
 
@@ -127,10 +123,10 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
   }
 
   @Override
-  public List<GanttColumn> getListGanttColumn(TProfile tProfile, CProfile firstGrpBy,
-      CProfile secondGrpBy, long begin, long end) throws SqlColMetadataException {
-    byte tableId = getTableId(tProfile, metaModel);
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+  public List<GanttColumn> getListGanttColumn(String tableName, CProfile firstGrpBy, CProfile secondGrpBy,
+      long begin, long end) throws SqlColMetadataException {
+    byte tableId = getTableId(tableName, metaModel);
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
 
     CProfile tsProfile = getTimestampProfile(cProfiles);
 
@@ -169,8 +165,8 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
   }
 
   @Override
-  public long getLastTimestamp(TProfile tProfile, long begin, long end) {
-    byte tableId = getTableId(tProfile, metaModel);
+  public long getLastTimestamp(String tableName, long begin, long end) {
+    byte tableId = getTableId(tableName, metaModel);
 
     return metadataDAO.getLastTimestamp(tableId, begin, end);
   }

@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 @Builder(toBuilder = true)
 public class TProfile {
 
-  private String tableId;
+  private String tableName;
   private Boolean isTimestamp;
   private List<CProfile> cProfiles;
 }

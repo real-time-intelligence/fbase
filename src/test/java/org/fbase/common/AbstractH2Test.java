@@ -20,6 +20,7 @@ import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.EnumByteExceedException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
+import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.Person;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
@@ -59,6 +60,8 @@ public abstract class AbstractH2Test implements JdbcSource {
   private TProfile tProfile;
   private List<CProfile> cProfiles;
   private String select = "SELECT * FROM person WHERE ROWNUM < 2";
+
+  private String tableName = "h2_table_test";
 
   @BeforeAll
   public void initBackendAndLoad() throws SQLException, IOException {
@@ -133,6 +136,7 @@ public abstract class AbstractH2Test implements JdbcSource {
 
     try {
       SProfile sProfile = new SProfile();
+      sProfile.setTableName(tableName);
       sProfile.setCsTypeMap(new HashMap<>());
 
       csTypeMap.forEach((k,v) -> {
@@ -143,13 +147,18 @@ public abstract class AbstractH2Test implements JdbcSource {
         }
       });
 
-      tProfile = fStore.loadJdbcTableMetadata(dbConnection, select, sProfile);
-      fStore.putDataDirect(tProfile, data01);
-      fStore.putDataDirect(tProfile, data02);
-      fStore.putDataDirect(tProfile, data03);
-      fStore.putDataDirect(tProfile, data04);
-      fStore.putDataDirect(tProfile, data05);
-      fStore.putDataDirect(tProfile, data06);
+      try {
+        tProfile = fStore.loadJdbcTableMetadata(dbConnection, select, sProfile);
+      } catch (TableNameEmptyException e) {
+        throw new RuntimeException(e);
+      }
+      String tableName = tProfile.getTableName();
+      fStore.putDataDirect(tableName, data01);
+      fStore.putDataDirect(tableName, data02);
+      fStore.putDataDirect(tableName, data03);
+      fStore.putDataDirect(tableName, data04);
+      fStore.putDataDirect(tableName, data05);
+      fStore.putDataDirect(tableName, data06);
     } catch (SqlColMetadataException | SQLException | EnumByteExceedException e) {
       throw new RuntimeException(e);
     }
@@ -173,6 +182,7 @@ public abstract class AbstractH2Test implements JdbcSource {
 
     try {
       SProfile sProfile = new SProfile();
+      sProfile.setTableName(tableName);
       sProfile.setCsTypeMap(new HashMap<>());
 
       csTypeMap.forEach((k,v) -> {
@@ -183,7 +193,11 @@ public abstract class AbstractH2Test implements JdbcSource {
         }
       });
 
-      tProfile = fStore.loadJdbcTableMetadata(dbConnection, select, sProfile);
+      try {
+        tProfile = fStore.loadJdbcTableMetadata(dbConnection, select, sProfile);
+      } catch (TableNameEmptyException e) {
+        throw new RuntimeException(e);
+      }
 
       h2Db.putDataJdbc(fStore, tProfile,
           "SELECT * FROM person WHERE id=1 OR id=2 OR id=3 OR id=4 OR id=5 OR id=6");
@@ -222,6 +236,7 @@ public abstract class AbstractH2Test implements JdbcSource {
 
     try {
       SProfile sProfile = new SProfile();
+      sProfile.setTableName(tableName);
       sProfile.setCsTypeMap(new HashMap<>());
 
       csTypeMap.forEach((k,v) -> {
@@ -232,7 +247,11 @@ public abstract class AbstractH2Test implements JdbcSource {
         }
       });
 
-      tProfile = fStore.loadJdbcTableMetadata(dbConnection, select, sProfile);
+      try {
+        tProfile = fStore.loadJdbcTableMetadata(dbConnection, select, sProfile);
+      } catch (TableNameEmptyException e) {
+        throw new RuntimeException(e);
+      }
 
       Integer fBaseBatchSize = 3;
       h2Db.putDataBatch(fStore, tProfile,
@@ -284,7 +303,7 @@ public abstract class AbstractH2Test implements JdbcSource {
   public List<GanttColumn> getListGanttColumnTwoLevelGrouping(FStore fStore, TProfile tProfile,
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
       throws BeginEndWrongOrderException, GanttColumnNotSupportedException, SqlColMetadataException {
-    return fStore.getGColumnListTwoLevelGroupBy(tProfile, firstLevelGroupBy, secondLevelGroupBy, begin, end);
+    return fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), firstLevelGroupBy, secondLevelGroupBy, begin, end);
   }
 
   protected void assertForGanttColumn(List<GanttColumn> expected, List<GanttColumn> actual) {
@@ -299,7 +318,7 @@ public abstract class AbstractH2Test implements JdbcSource {
   public List<StackedColumn> getListStackedDataBySqlCol(FStore fStore, TProfile tProfile,
       List<CProfile> cProfiles, String colName, int begin, int end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tProfile, cProfiles.stream()
+    return fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfiles.stream()
         .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow(),begin, end);
   }
 
@@ -324,11 +343,11 @@ public abstract class AbstractH2Test implements JdbcSource {
   }
 
   public List<List<Object>> getRawDataAll(int begin, int end) {
-    return fStore.getRawDataAll(tProfile, begin, end);
+    return fStore.getRawDataAll(tProfile.getTableName(), begin, end);
   }
 
   public List<List<Object>> getRawDataByColumn(CProfile cProfile, int begin, int end) {
-    return fStore.getRawDataByColumn(tProfile, cProfile,  begin, end);
+    return fStore.getRawDataByColumn(tProfile.getTableName(), cProfile,  begin, end);
   }
 
   public CProfile getCProfileByColumnName(String colName) {

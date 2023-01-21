@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.Logger;
 import org.fbase.core.FStore;
+import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
@@ -24,9 +25,14 @@ public interface JdbcSource {
   default void loadData(FStore fStore, Connection dbConnection, String sqlText,
       SProfile sProfile, Logger log, int fBaseBatchSize, int resultSetFetchSize) throws SQLException {
 
-    TProfile tProfile = fStore.loadJdbcTableMetadata(dbConnection, sqlText, sProfile);
+    TProfile tProfile;
+    try {
+      tProfile = fStore.loadJdbcTableMetadata(dbConnection, sqlText, sProfile);
+    } catch (TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
 
-    List<CProfile> cProfiles = fStore.getCProfileList(tProfile);
+    List<CProfile> cProfiles = tProfile.getCProfiles();
 
     List<List<Object>> listsColStore = new ArrayList<>();
     cProfiles.forEach(v -> listsColStore.add(v.getColId(), new ArrayList<>()));
@@ -67,7 +73,7 @@ public interface JdbcSource {
         log.info("Flush.. " + previousValue[0] + ":" + isTheSameKey[0]);
         if (isTheSameKey[0]) {
           try {
-            fStore.putDataDirect(tProfile, listsColStore);
+            fStore.putDataDirect(tProfile.getTableName(), listsColStore);
           } catch (Exception e) {
             log.catching(e);
           }
@@ -83,7 +89,7 @@ public interface JdbcSource {
 
     if (cnt.get() != 0) {
       try {
-        fStore.putDataDirect(tProfile, listsColStore);
+        fStore.putDataDirect(tProfile.getTableName(), listsColStore);
       } catch (Exception e) {
         log.catching(e);
       }

@@ -37,6 +37,8 @@ public abstract class AbstractOracleTest implements JdbcSource {
   protected FBase fBase;
   protected FStore fStore;
 
+  private String tableName = "oracle_table_test";
+
   @BeforeAll
   public void initBackendAndLoad() throws IOException {
     berkleyDB = new BerkleyDB(BERKLEY_DB_DIR, true);
@@ -64,7 +66,7 @@ public abstract class AbstractOracleTest implements JdbcSource {
     csTypeMap.put("VALUE_ENUM", new CSType().toBuilder().sType(SType.ENUM).build());
     csTypeMap.put("VALUE_RAW", new CSType().toBuilder().sType(SType.RAW).build());
 
-    return new SProfile().setCsTypeMap(csTypeMap);
+    return new SProfile().setTableName(tableName).setCsTypeMap(csTypeMap);
   }
 
   protected SProfile getSProfileForAsh(String select) throws SQLException {
@@ -80,7 +82,7 @@ public abstract class AbstractOracleTest implements JdbcSource {
       }
     });
 
-    return new SProfile().setCsTypeMap(csTypeMap);
+    return new SProfile().setTableName(tableName).setCsTypeMap(csTypeMap);
   }
 
   @AfterAll

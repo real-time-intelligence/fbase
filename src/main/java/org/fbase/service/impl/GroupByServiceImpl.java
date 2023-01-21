@@ -1,10 +1,15 @@
 package org.fbase.service.impl;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.fbase.core.Converter;
 import org.fbase.model.MetaModel;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.profile.CProfile;
-import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.GroupByService;
@@ -15,13 +20,6 @@ import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.dto.MetadataDto;
 import org.fbase.storage.helper.EnumHelper;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class GroupByServiceImpl extends CommonServiceApi implements GroupByService {
 
@@ -43,12 +41,12 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
   }
 
   @Override
-  public List<GanttColumn> getListGanttColumnUniversal(TProfile tProfile, CProfile firstLevelGroupBy,
+  public List<GanttColumn> getListGanttColumnUniversal(String tableName, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end) {
 
-    byte tableId = getTableId(tProfile, metaModel);
+    byte tableId = getTableId(tableName, metaModel);
 
-    int tsColId = getCProfiles(tProfile, metaModel).stream()
+    int tsColId = getCProfiles(tableName, metaModel).stream()
         .filter(k -> k.getCsType().isTimeStamp())
         .findFirst()
         .orElseThrow()

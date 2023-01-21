@@ -103,7 +103,7 @@ public class H2Database {
     ResultSet r = ps.executeQuery();
 
     try {
-      fStore.putDataJdbc(tProfile, r);
+      fStore.putDataJdbc(tProfile.getTableName(), r);
     } catch (SqlColMetadataException | EnumByteExceedException e) {
       throw new RuntimeException(e);
     }
@@ -123,7 +123,7 @@ public class H2Database {
     ResultSet r = ps.executeQuery();
 
     try {
-      fStore.putDataJdbcBatch(tProfile, r, fBaseBatchSize);
+      fStore.putDataJdbcBatch(tProfile.getTableName(), r, fBaseBatchSize);
     } catch (SqlColMetadataException | EnumByteExceedException e) {
       throw new RuntimeException(e);
     }

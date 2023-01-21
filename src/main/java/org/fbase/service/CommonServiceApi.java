@@ -11,7 +11,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.fbase.model.MetaModel;
 import org.fbase.model.profile.CProfile;
-import org.fbase.model.profile.TProfile;
 
 public abstract class CommonServiceApi {
 
@@ -65,12 +64,12 @@ public abstract class CommonServiceApi {
     return array;
   }
 
-  public byte getTableId(TProfile tProfile, MetaModel metaModel) {
-    return metaModel.getMetadataTables().get(tProfile.getTableId()).keySet().stream().findFirst().orElseThrow();
+  public byte getTableId(String tableName, MetaModel metaModel) {
+    return metaModel.getMetadataTables().get(tableName).keySet().stream().findFirst().orElseThrow();
   }
 
-  public List<CProfile> getCProfiles(TProfile tProfile, MetaModel metaModel) {
-    return metaModel.getMetadataTables().get(tProfile.getTableId()).values().stream().findFirst().orElseThrow();
+  public List<CProfile> getCProfiles(String tableName, MetaModel metaModel) {
+    return metaModel.getMetadataTables().get(tableName).values().stream().findFirst().orElseThrow();
   }
 
   public CProfile getTimestampProfile(List<CProfile> cProfileList) {

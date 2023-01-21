@@ -1,24 +1,20 @@
 package org.fbase.service.impl;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import javax.swing.plaf.synth.SynthOptionPaneUI;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.core.Converter;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.MetaModel;
+import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
-import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
-import org.fbase.model.output.StackedColumn;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.RawService;
 import org.fbase.service.container.RawContainer;
@@ -52,10 +48,10 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   @Override
-  public List<StackedColumn> getListStackedColumn(TProfile tProfile, CProfile cProfile, long begin, long end)
+  public List<StackedColumn> getListStackedColumn(String tableName, CProfile cProfile, long begin, long end)
       throws SqlColMetadataException {
-    byte tableId = getTableId(tProfile, metaModel);
-    CProfile tsProfile = getTimestampProfile(getCProfiles(tProfile, metaModel));
+    byte tableId = getTableId(tableName, metaModel);
+    CProfile tsProfile = getTimestampProfile(getCProfiles(tableName, metaModel));
 
     if (!tsProfile.getCsType().isTimeStamp()) {
       throw new SqlColMetadataException("Timestamp column not defined..");
@@ -81,27 +77,27 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   @Override
-  public List<List<Object>> getRawDataAll(TProfile tProfile, long begin, long end) {
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
-    return getRawData(tProfile, cProfiles, begin, end);
+  public List<List<Object>> getRawDataAll(String tableName, long begin, long end) {
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    return getRawData(tableName, cProfiles, begin, end);
   }
 
   @Override
-  public List<List<Object>> getRawDataByColumn(TProfile tProfile, CProfile cProfile, long begin, long end) {
-    CProfile tsProfile = getTsProfile(tProfile);
+  public List<List<Object>> getRawDataByColumn(String tableName, CProfile cProfile, long begin, long end) {
+    CProfile tsProfile = getTsProfile(tableName);
     List<CProfile> cProfiles = List.of(tsProfile, cProfile);
-    return getRawData(tProfile, cProfiles, begin, end);
+    return getRawData(tableName, cProfiles, begin, end);
   }
 
   @Override
-  public List<List<Object>> getRawDataAll(TProfile tProfile) {
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
-    return getRawData(tProfile, cProfiles);
+  public List<List<Object>> getRawDataAll(String tableName) {
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    return getRawData(tableName, cProfiles);
   }
 
-  private List<List<Object>> getRawData(TProfile tProfile, List<CProfile> cProfiles, long begin, long end) {
-    byte tableId = getTableId(tProfile, metaModel);
-    CProfile tsProfile = getTsProfile(tProfile);
+  private List<List<Object>> getRawData(String tableName, List<CProfile> cProfiles, long begin, long end) {
+    byte tableId = getTableId(tableName, metaModel);
+    CProfile tsProfile = getTsProfile(tableName);
 
     List<List<Object>> columnDataListOut = new ArrayList<>();
 
@@ -118,8 +114,8 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     return columnDataListOut;
   }
 
-  private List<List<Object>> getRawData(TProfile tProfile, List<CProfile> cProfiles) {
-    byte tableId = getTableId(tProfile, metaModel);
+  private List<List<Object>> getRawData(String tableName, List<CProfile> cProfiles) {
+    byte tableId = getTableId(tableName, metaModel);
     List<List<Object>> columnDataListLocal = new ArrayList<>();
 
     cProfiles.stream()
@@ -162,8 +158,8 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     return rawDto.getDataString().length;
   }
 
-  private CProfile getTsProfile(TProfile tProfile) {
-    return getCProfiles(tProfile, metaModel).stream()
+  private CProfile getTsProfile(String tableName) {
+    return getCProfiles(tableName, metaModel).stream()
         .filter(k -> k.getCsType().isTimeStamp())
         .findFirst()
         .orElseThrow();

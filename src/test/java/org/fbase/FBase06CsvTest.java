@@ -3,33 +3,24 @@ package org.fbase;
 import static org.fbase.config.FileConfig.FILE_SEPARATOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.backend.BerkleyDB;
-import org.fbase.common.AbstractH2Test;
 import org.fbase.config.FBaseConfig;
 import org.fbase.core.FStore;
-import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.SqlColMetadataException;
-import org.fbase.model.output.StackedColumn;
+import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
-import org.fbase.model.profile.cstype.SType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -40,10 +31,12 @@ import org.junit.jupiter.api.io.TempDir;
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 public class FBase06CsvTest {
-  private BerkleyDB berkleyDB;
-  private FStore fStore;
   @TempDir
   static File databaseDir;
+
+  private BerkleyDB berkleyDB;
+  private FStore fStore;
+  private String tableName = "csv_table_test";
 
   @BeforeAll
   public void init() throws IOException {
@@ -68,17 +61,24 @@ public class FBase06CsvTest {
     String fileName = new File("").getAbsolutePath()  + FILE_SEPARATOR +
         Paths.get("src","test", "resources", "csv", "file.csv");
 
-    TProfile tProfile = fStore.loadCsvTableMetadata(fileName, csvSplitBy,
-        SProfile.builder().isTimestamp(false).csTypeMap(new HashMap<>()).build());
+    TProfile tProfile;
+    try {
+      tProfile = fStore.loadCsvTableMetadata(fileName, csvSplitBy,
+          SProfile.builder().tableName(tableName).isTimestamp(false).csTypeMap(new HashMap<>()).build());
+    } catch (TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
 
-    fStore.putDataCsvBatch(tProfile, fileName, csvSplitBy, 1);
+    String tableName = tProfile.getTableName();
+
+    fStore.putDataCsvBatch(tableName, fileName, csvSplitBy, 1);
 
     String expected = readFile(fileName, Charset.defaultCharset());
 
-    List<List<Object>> rawDataAll = fStore.getRawDataAll(tProfile);
+    List<List<Object>> rawDataAll = fStore.getRawDataAll(tableName);
     String actual = toCsvFile(rawDataAll, tProfile, csvSplitBy);
 
-    log.info(fStore.getRawDataAll(tProfile));
+    log.info(fStore.getRawDataAll(tableName));
 
     assertEquals(expected, actual);
   }
@@ -93,7 +93,7 @@ public class FBase06CsvTest {
 
     // headers
     AtomicInteger headerCounter = new AtomicInteger(0);
-    List<CProfile> cProfiles = fStore.getCProfileList(tProfile);
+    List<CProfile> cProfiles = tProfile.getCProfiles();
     cProfiles.stream()
         .sorted(Comparator.comparing(CProfile::getColId))
         .forEach(cProfile -> {

@@ -1,7 +1,6 @@
 package org.fbase.integration.csv;
 
 import static org.fbase.config.FileConfig.FILE_SEPARATOR;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -13,6 +12,7 @@ import org.fbase.backend.BerkleyDB;
 import org.fbase.config.FBaseConfig;
 import org.fbase.core.FStore;
 import org.fbase.exception.SqlColMetadataException;
+import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.CSType;
@@ -34,6 +34,8 @@ public class FBaseCsvTest {
   private BerkleyDB berkleyDB;
   private String fileName;
   private String targetFBase;
+
+  private String tableName = "csv_table_test";
 
   @BeforeAll
   public void initialLoading() throws IOException {
@@ -57,15 +59,21 @@ public class FBaseCsvTest {
   public void loadData() throws SqlColMetadataException {
     String csvSplitBy = ",";
 
-    TProfile tProfile = fStore.loadCsvTableMetadata(fileName, csvSplitBy, getSProfile());
+    TProfile tProfile;
+    try {
+      tProfile = fStore.loadCsvTableMetadata(fileName, csvSplitBy, getSProfile());
+    } catch (TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
 
-    fStore.putDataCsvBatch(tProfile, fileName, csvSplitBy, 1);
+    fStore.putDataCsvBatch(tProfile.getTableName(), fileName, csvSplitBy, 1);
 
-    log.info(fStore.getRawDataAll(tProfile));
+    log.info(fStore.getRawDataAll(tProfile.getTableName()));
   }
 
   private SProfile getSProfile() {
     SProfile sProfile = new SProfile();
+    sProfile.setTableName(tableName);
     sProfile.setIsTimestamp(false);
 
     Map<String, CSType> csTypeMap = new HashMap<>();

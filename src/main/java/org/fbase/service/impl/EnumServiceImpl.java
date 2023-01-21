@@ -1,14 +1,16 @@
 package org.fbase.service.impl;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.core.Converter;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.MetaModel;
-import org.fbase.model.profile.CProfile;
 import org.fbase.model.output.StackedColumn;
-import org.fbase.model.profile.TProfile;
+import org.fbase.model.profile.CProfile;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.EnumService;
 import org.fbase.service.container.RawContainer;
@@ -32,10 +34,10 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
   }
 
   @Override
-  public List<StackedColumn> getListStackedColumn(TProfile tProfile, CProfile cProfile, long begin, long end)
+  public List<StackedColumn> getListStackedColumn(String tableName, CProfile cProfile, long begin, long end)
       throws SqlColMetadataException {
-    byte tableId = getTableId(tProfile, metaModel);
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+    byte tableId = getTableId(tableName, metaModel);
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
 
     if (!getTimestampProfile(cProfiles).getCsType().isTimeStamp()) {
       throw new SqlColMetadataException("Timestamp column not defined..");
@@ -50,20 +52,20 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
     long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
 
     if (prevKey != begin & prevKey != 0) {
-      this.computeNoIndexBeginEnd(tProfile, cProfile, prevKey, begin, end, list);
+      this.computeNoIndexBeginEnd(tableName, cProfile, prevKey, begin, end, list);
     }
 
     for (Long e : this.rawDAO.getListKeys(tableId, begin, end)) {
-      this.computeNoIndexBeginEnd(tProfile, cProfile, e, begin, end, list);
+      this.computeNoIndexBeginEnd(tableName, cProfile, e, begin, end, list);
     }
 
     return list;
   }
 
-  private void computeNoIndexBeginEnd(TProfile tProfile, CProfile cProfile,
+  private void computeNoIndexBeginEnd(String tableName, CProfile cProfile,
       long key, long begin, long end, List<StackedColumn> list) {
-    byte tableId = getTableId(tProfile, metaModel);
-    List<CProfile> cProfiles = getCProfiles(tProfile, metaModel);
+    byte tableId = getTableId(tableName, metaModel);
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
 
     CProfile tsProfile = getTimestampProfile(cProfiles);
 
@@ -95,5 +97,4 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
         .tail(tail)
         .keyCount(mapKeyCount).build());
   }
-
 }

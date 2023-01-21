@@ -22,6 +22,7 @@ import lombok.extern.log4j.Log4j2;
 import org.fbase.core.FStore;
 import org.fbase.exception.EnumByteExceedException;
 import org.fbase.exception.SqlColMetadataException;
+import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.CSType;
@@ -61,7 +62,11 @@ public class ClickHouseDatabase implements ClickHouse {
                 .build())
             .build()).toList();
 
-    tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile());
+    try {
+      tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile(tableName));
+    } catch (TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
 
     PreparedStatement ps = connection.prepareStatement(select);
     ResultSet r = ps.executeQuery();
@@ -100,7 +105,7 @@ public class ClickHouseDatabase implements ClickHouse {
       if (cnt.incrementAndGet() >= fBaseBatchSize) {
         log.info("Flush.. " + previousValue[0] + ":" + isTheSameKey[0]);
         if (isTheSameKey[0]) {
-          fStore.putDataDirect(tProfile, listsColStore);
+          fStore.putDataDirect(tProfile.getTableName(), listsColStore);
           listsColStore.clear();
           cProfileList.forEach(v -> listsColStore.add(v.getColId(), new ArrayList<>()));
           cnt.set(0);
@@ -111,9 +116,9 @@ public class ClickHouseDatabase implements ClickHouse {
     }
 
     if (cnt.get() != 0) {
-      // todo uncomment if you need to create test case for clickhouse
-      //storeResultSetToFile(cProfileList, listsColStore);
-      fStore.putDataDirect(tProfile, listsColStore);
+      // todo uncomment if you need to create test case for clickhouse FBase05ClickHouseMockTest
+      // storeResultSetToFile(cProfileList, listsColStore);
+      fStore.putDataDirect(tProfile.getTableName(), listsColStore);
     }
 
     r.close();
@@ -142,13 +147,17 @@ public class ClickHouseDatabase implements ClickHouse {
                 .build())
             .build()).toList();
 
-    tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile());
+    try {
+      tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile(tableName));
+    } catch (TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
 
     PreparedStatement ps = connection.prepareStatement(select);
     ps.setFetchSize(resultSetFetchSize);
     ResultSet r = ps.executeQuery();
 
-    fStore.putDataJdbcBatch(tProfile, r, fBaseBatchSize);
+    fStore.putDataJdbcBatch(tProfile.getTableName(), r, fBaseBatchSize);
 
     r.close();
     ps.close();
