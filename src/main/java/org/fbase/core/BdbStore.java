@@ -4,6 +4,7 @@ import com.sleepycat.persist.EntityStore;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -118,7 +119,11 @@ public class BdbStore implements FStore {
         .ifPresentOrElse((value) -> {
               tProfile.setIsTimestamp(true);
               tProfile.setCProfiles(cProfiles);
-              }, () -> tProfile.setIsTimestamp(false));
+            },
+            () -> {
+              tProfile.setIsTimestamp(false);
+              tProfile.setCProfiles(cProfiles);
+            });
 
     return tProfile;
   }
@@ -268,7 +273,7 @@ public class BdbStore implements FStore {
       }
 
     if (optionalTsCProfile.isEmpty() & optionalTsEntry.isEmpty() & sProfile.getIsTimestamp()) {
-      throw new RuntimeException("Timestamp column not defined");
+      log.warn("Timestamp column not defined");
     }
   }
 
@@ -281,7 +286,12 @@ public class BdbStore implements FStore {
     }
   }
 
-  public List<CProfile> getCProfileList(String tableName) throws TableNameEmptyException {
+  private List<CProfile> getCProfileList(String tableName) throws TableNameEmptyException {
+    if (Objects.isNull(metaModel.getMetadataTables().get(tableName))) {
+      log.warn("Metamodel for table name: " + tableName + " not found");
+      return Collections.emptyList();
+    }
+
     return metaModel.getMetadataTables().get(tableName)
         .entrySet().stream()
         .findAny()

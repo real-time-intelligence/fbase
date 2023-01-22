@@ -106,7 +106,6 @@ public interface FStore {
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
       throws SqlColMetadataException, BeginEndWrongOrderException, GanttColumnNotSupportedException;
 
-
   /**
    * Get result of group by function
    * @param tableName - Table name
