@@ -18,5 +18,16 @@ import org.fbase.model.profile.CProfile;
 @Builder(toBuilder = true)
 public class MetaModel implements Serializable {
 
-  private Map<String, Map<Byte, List<CProfile>>> metadataTables = new HashMap<>();
+  private Map<String, TableMetadata> metadata = new HashMap<>();
+
+  @AllArgsConstructor
+  @NoArgsConstructor
+  @Accessors(chain = true)
+  @Data
+  @Builder(toBuilder = true)
+  public static class TableMetadata implements Serializable {
+    private Byte tableId;
+    private Boolean compression = Boolean.FALSE;
+    private List<CProfile> cProfiles;
+  }
 }

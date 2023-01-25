@@ -7,12 +7,12 @@ import org.fbase.model.MetaModel;
 public class MetaModelHandler {
 
   public static byte getNextInternalTableId(MetaModel metaModel) {
-    return metaModel.getMetadataTables().entrySet().isEmpty() ? Byte.MIN_VALUE : (byte) (
-        metaModel.getMetadataTables().entrySet().stream()
+    return metaModel.getMetadata().entrySet().isEmpty() ? Byte.MIN_VALUE : (byte) (
+        metaModel.getMetadata().entrySet().stream()
                 .max((entry1, entry2) ->
-                    entry1.getValue().entrySet().stream().findFirst().get().getKey() >
-                        entry2.getValue().entrySet().stream().findFirst().get().getKey() ? 1 : -1)
+                    entry1.getValue().getTableId() >
+                        entry2.getValue().getTableId() ? 1 : -1)
                 .get()
-                .getValue().entrySet().stream().findFirst().get().getKey() + 1);
+                .getValue().getTableId() + 1);
   }
 }

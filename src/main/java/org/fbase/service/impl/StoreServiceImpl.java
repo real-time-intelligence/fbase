@@ -599,6 +599,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   @Override
   public void putDataCsvBatch(String tableName, String fileName, String csvSplitBy, Integer fBaseBatchSize) {
     byte tableId = getTableId(tableName, metaModel);
+    boolean compression = getTableCompression(tableName, metaModel);
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
 
     final AtomicLong counter = new AtomicLong(rawDAO.getMaxKey(tableId));
@@ -639,10 +640,10 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         if (iR == fBaseBatchSize) {
           long key = counter.getAndAdd(1);
 
-          this.storeData(tableId, key,
-              colRawDataLongCount, rawDataLongMapping, getArrayLong(rawDataLong),
-              colRawDataDoubleCount, rawDataDoubleMapping, getArrayDouble(rawDataDouble),
-              colRawDataStringCount, rawDataStringMapping, getArrayString(rawDataString));
+          this.storeData(tableId, compression, key,
+              colRawDataLongCount, rawDataLongMapping, rawDataLong,
+              colRawDataDoubleCount, rawDataDoubleMapping, rawDataDouble,
+              colRawDataStringCount, rawDataStringMapping, rawDataString);
 
           log.info("Flush for iRow: " + iR);
 
@@ -697,10 +698,10 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       if (iRow.get() <= fBaseBatchSize) {
         long key = counter.getAndAdd(1);
 
-        this.storeData(tableId, key,
-            colRawDataLongCount, rawDataLongMapping, getArrayLong(rawDataLong),
-            colRawDataDoubleCount, rawDataDoubleMapping, getArrayDouble(rawDataDouble),
-            colRawDataStringCount, rawDataStringMapping, getArrayString(rawDataString));
+        this.storeData(tableId, compression, key,
+            colRawDataLongCount, rawDataLongMapping, rawDataLong,
+            colRawDataDoubleCount, rawDataDoubleMapping, rawDataDouble,
+            colRawDataStringCount, rawDataStringMapping, rawDataString);
 
         log.info("Final flush for iRow: " + iRow.get());
       }
@@ -795,21 +796,34 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     this.metadataDAO.put(tableId, key, getByteFromList(new ArrayList<>()), getByteFromList(new ArrayList<>()), histograms);
   }
 
-  private void storeData(byte tableId, long key,
-      int colRawDataLongCount, List<Integer> rawDataLongMapping, long[][] rawDataLong,
-      int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, double[][] rawDataDouble,
-      int colRawDataStringCount, List<Integer> rawDataStringMapping, String[][] rawDataString) {
+  private void storeData(byte tableId, boolean compression, long key,
+      int colRawDataLongCount, List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
+      int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
+      int colRawDataStringCount, List<Integer> rawDataStringMapping, List<List<String>> rawDataString) {
 
     /* Store data in RMapping entity */
     this.rawDAO.putKey(tableId, key);
 
     /* Store raw data entity */
+    if (compression) {
+      try {
+        rawDAO.putCompressed(tableId, key,
+            colRawDataLongCount, rawDataLongMapping, rawDataLong,
+            colRawDataDoubleCount, rawDataDoubleMapping, rawDataDouble,
+            colRawDataStringCount, rawDataStringMapping, rawDataString);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+
+      return;
+    }
+
     if (colRawDataLongCount > 0)
-      this.rawDAO.putLong(tableId, key, rawDataLongMapping.stream().mapToInt(i -> i).toArray(), rawDataLong);
+      this.rawDAO.putLong(tableId, key, rawDataLongMapping.stream().mapToInt(i -> i).toArray(), getArrayLong(rawDataLong));
     if (colRawDataDoubleCount > 0)
-      this.rawDAO.putDouble(tableId, key, rawDataDoubleMapping.stream().mapToInt(i -> i).toArray(), rawDataDouble);
+      this.rawDAO.putDouble(tableId, key, rawDataDoubleMapping.stream().mapToInt(i -> i).toArray(), getArrayDouble(rawDataDouble));
     if (colRawDataStringCount > 0)
-      this.rawDAO.putString(tableId, key, rawDataStringMapping.stream().mapToInt(i -> i).toArray(), rawDataString);
+      this.rawDAO.putString(tableId, key, rawDataStringMapping.stream().mapToInt(i -> i).toArray(), getArrayString(rawDataString));
 
   }
 

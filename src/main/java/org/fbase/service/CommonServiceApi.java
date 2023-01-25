@@ -65,11 +65,15 @@ public abstract class CommonServiceApi {
   }
 
   public byte getTableId(String tableName, MetaModel metaModel) {
-    return metaModel.getMetadataTables().get(tableName).keySet().stream().findFirst().orElseThrow();
+    return metaModel.getMetadata().get(tableName).getTableId();
+  }
+
+  public Boolean getTableCompression(String tableName, MetaModel metaModel) {
+    return metaModel.getMetadata().get(tableName).getCompression();
   }
 
   public List<CProfile> getCProfiles(String tableName, MetaModel metaModel) {
-    return metaModel.getMetadataTables().get(tableName).values().stream().findFirst().orElseThrow();
+    return metaModel.getMetadata().get(tableName).getCProfiles();
   }
 
   public CProfile getTimestampProfile(List<CProfile> cProfileList) {

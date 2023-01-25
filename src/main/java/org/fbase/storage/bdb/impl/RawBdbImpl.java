@@ -3,15 +3,22 @@ package org.fbase.storage.bdb.impl;
 import com.sleepycat.persist.EntityCursor;
 import com.sleepycat.persist.EntityStore;
 import com.sleepycat.persist.PrimaryIndex;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
+import org.fbase.metadata.CompressType;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.QueryBdbApi;
 import org.fbase.storage.bdb.entity.ColumnKey;
 import org.fbase.storage.bdb.entity.raw.RColumn;
 import org.fbase.storage.bdb.entity.raw.RMapping;
 import org.fbase.storage.dto.RawDto;
+import org.xerial.snappy.Snappy;
 
 @Log4j2
 public class RawBdbImpl extends QueryBdbApi implements RawDAO {
@@ -92,6 +99,49 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
+  public <T> void putCompressed(byte tableId, long key,
+      int colRawDataLongCount, List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
+      int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
+      int colRawDataStringCount, List<Integer> rawDataStringMapping, List<List<String>> rawDataString)
+      throws IOException {
+
+    for (int i = 0; i < rawDataLongMapping.size(); i++) {
+      this.primaryIndexDataColumn.putNoOverwrite(
+          RColumn.builder().columnKey(ColumnKey.builder().table(tableId).key(key).colIndex(rawDataLongMapping.get(i)).build())
+              .compressionType(CompressType.LONG)
+              .dataByte(Snappy.compress(rawDataLong.get(i).stream().mapToLong(j -> j).toArray())).build());
+    }
+
+    for (int i = 0; i < rawDataDoubleMapping.size(); i++) {
+      this.primaryIndexDataColumn.putNoOverwrite(
+          RColumn.builder().columnKey(ColumnKey.builder().table(tableId).key(key).colIndex(rawDataDoubleMapping.get(i)).build())
+              .compressionType(CompressType.DOUBLE)
+              .dataByte(Snappy.compress(rawDataDouble.get(i).stream().mapToDouble(j -> j).toArray())).build());
+    }
+
+    for (int i = 0; i < rawDataStringMapping.size(); i++) {
+      int[] lengthArray = rawDataString.get(i).stream()
+              .mapToInt(s -> (int) s.codePoints().count())
+              .toArray();
+
+      this.primaryIndexDataColumn.putNoOverwrite(
+          RColumn.builder().columnKey(ColumnKey.builder().table(tableId).key(key).colIndex(rawDataStringMapping.get(i)).build())
+              .compressionType(CompressType.STRING)
+              .dataInt(lengthArray)
+              .dataByte(Snappy.compress(String.join("", rawDataString.get(i)))).build());
+    }
+  }
+
+  public String[] getStringFromList(List<String> list) {
+    String[] stringArray = new String[list.size()];
+    int index = 0;
+    for (String b : list) {
+      stringArray[index++] = b;
+    }
+    return stringArray;
+  }
+
+  @Override
   public byte[] getRawByte(byte tableId, long key, int colIndex) {
     return this.primaryIndexDataColumn.get(ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build()).getDataByte();
   }
@@ -134,6 +184,40 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
         .dataFloat(rColumn.getDataFloat())
         .dataDouble(rColumn.getDataDouble())
         .dataString(rColumn.getDataString()).build();
+  }
+
+  @Override
+  public RawDto getCompressRawData(byte tableId, long key, int colIndex) throws IOException {
+    RColumn rColumn =
+        this.primaryIndexDataColumn.get(ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build());
+
+    if (CompressType.LONG.equals(rColumn.getCompressionType())) {
+      return RawDto.builder()
+          .key(rColumn.getColumnKey().getKey())
+          .dataLong(Snappy.uncompressLongArray(rColumn.getDataByte()))
+          .build();
+    } else if (CompressType.DOUBLE.equals(rColumn.getCompressionType())) {
+      return RawDto.builder()
+          .key(rColumn.getColumnKey().getKey())
+          .dataDouble(Snappy.uncompressDoubleArray(rColumn.getDataByte()))
+          .build();
+    } else if (CompressType.STRING.equals(rColumn.getCompressionType())) {
+      int[] length = rColumn.getDataInt();
+      String uncompressString = Snappy.uncompressString(rColumn.getDataByte());
+      List<String> dataString = new ArrayList<>();
+      AtomicLong counter = new AtomicLong(0);
+      Arrays.stream(length)
+          .asLongStream()
+          .forEach(l -> dataString.add(uncompressString.substring((int) counter.get(), (int) (counter.addAndGet(l)))));
+
+      return RawDto.builder()
+          .key(rColumn.getColumnKey().getKey())
+          .dataString(getStringFromList(dataString))
+          .build();
+    }
+
+    return RawDto.builder()
+        .key(rColumn.getColumnKey().getKey()).build();
   }
 
   @Override

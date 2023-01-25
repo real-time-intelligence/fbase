@@ -1,5 +1,6 @@
 package org.fbase.storage;
 
+import java.io.IOException;
 import java.util.List;
 import org.fbase.storage.bdb.entity.raw.RColumn;
 import org.fbase.storage.dto.RawDto;
@@ -22,6 +23,12 @@ public interface RawDAO {
 
   void putEnum(byte tableId, long key, int[] mapping, byte[][] data);
 
+  <T> void putCompressed(byte tableId, long key,
+      int colRawDataLongCount, List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
+      int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
+      int colRawDataStringCount, List<Integer> rawDataStringMapping, List<List<String>> rawDataString)
+      throws IOException;
+
   byte[] getRawByte(byte tableId, long key, int colIndex);
 
   int[] getRawInt(byte tableId, long key, int colIndex);
@@ -35,6 +42,8 @@ public interface RawDAO {
   String[] getRawString(byte tableId, long key, int colIndex);
 
   RawDto getRawData(byte tableId, long key, int colIndex);
+
+  RawDto getCompressRawData(byte tableId, long key, int colIndex) throws IOException;
 
   List<Long> getListKeys(byte tableId, long begin, long end);
 

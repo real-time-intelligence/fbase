@@ -1,5 +1,6 @@
 package org.fbase.service.impl;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -116,6 +117,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
   private List<List<Object>> getRawData(String tableName, List<CProfile> cProfiles) {
     byte tableId = getTableId(tableName, metaModel);
+    boolean compression = getTableCompression(tableName, metaModel);
     List<List<Object>> columnDataListLocal = new ArrayList<>();
 
     cProfiles.stream()
@@ -129,7 +131,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
             if (rColumn.getColumnKey().getColIndex() == cProfile.getColId()) {
               if (cProfile.getCsType().getSType() == SType.RAW) { // raw data
 
-                RawDto rawDto = this.rawDAO.getRawData(tableId, rColumn.getColumnKey().getKey(), cProfile.getColId());
+                RawDto rawDto = getRawDto(tableId, compression, rColumn, cProfile);
 
                 RawContainer rawContainer =
                     new RawContainer(rColumn.getColumnKey().getKey(), cProfile, rawDto);
@@ -144,6 +146,18 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         });
 
     return transpose(columnDataListLocal);
+  }
+
+  private RawDto getRawDto(byte tableId, boolean compression, RColumn rColumn, CProfile cProfile) {
+    if (compression)  {
+      try {
+        return this.rawDAO.getCompressRawData(tableId, rColumn.getColumnKey().getKey(), cProfile.getColId());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    } else {
+      return this.rawDAO.getRawData(tableId, rColumn.getColumnKey().getKey(), cProfile.getColId());
+    }
   }
 
   private int getLengthByColumn(CProfile cProfile, RawDto rawDto) {

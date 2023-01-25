@@ -22,7 +22,9 @@ import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -38,7 +40,7 @@ public class FBase06CsvTest {
   private FStore fStore;
   private String tableName = "csv_table_test";
 
-  @BeforeAll
+  @BeforeEach
   public void init() throws IOException {
     String dbDir = databaseDir.getAbsolutePath() + FILE_SEPARATOR + "csv";
 
@@ -55,7 +57,16 @@ public class FBase06CsvTest {
   }
 
   @Test
-  public void putDataCsvBatchTest() throws SqlColMetadataException, IOException {
+  public void putDataCsvBatchCompressionTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchTest(true);
+  }
+
+  @Test
+  public void putDataCsvBatchNotCompressionTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchTest(false);
+  }
+
+  private void putDataCsvBatchTest(boolean compression) throws SqlColMetadataException, IOException {
     String csvSplitBy = ",";
 
     String fileName = new File("").getAbsolutePath()  + FILE_SEPARATOR +
@@ -64,7 +75,11 @@ public class FBase06CsvTest {
     TProfile tProfile;
     try {
       tProfile = fStore.loadCsvTableMetadata(fileName, csvSplitBy,
-          SProfile.builder().tableName(tableName).isTimestamp(false).csTypeMap(new HashMap<>()).build());
+          SProfile.builder()
+              .tableName(tableName)
+              .isTimestamp(false)
+              .compression(compression)
+              .csTypeMap(new HashMap<>()).build());
     } catch (TableNameEmptyException e) {
       throw new RuntimeException(e);
     }
@@ -122,8 +137,9 @@ public class FBase06CsvTest {
     return output.toString();
   }
 
-  @AfterAll
+  @AfterEach
   public void closeDb() {
     berkleyDB.closeDatabase();
+    databaseDir.deleteOnExit();
   }
 }

@@ -16,5 +16,6 @@ public class TProfile {
 
   private String tableName;
   private Boolean isTimestamp;
+  private Boolean compression;
   private List<CProfile> cProfiles;
 }
