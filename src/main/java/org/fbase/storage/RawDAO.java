@@ -41,4 +41,6 @@ public interface RawDAO {
   List<RColumn> getListRColumn(byte tableId);
 
   long getPreviousKey(byte tableId, long begin);
+
+  long getMaxKey(byte tableId);
 }

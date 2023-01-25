@@ -601,7 +601,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     byte tableId = getTableId(tableName, metaModel);
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
 
-    final AtomicLong counter = new AtomicLong(0);
+    final AtomicLong counter = new AtomicLong(rawDAO.getMaxKey(tableId));
 
     /* Long */
     int colRawDataLongCount = Mapper.getColumnCount(cProfiles, isRaw, isLong);

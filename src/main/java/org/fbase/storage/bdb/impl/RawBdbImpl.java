@@ -174,10 +174,19 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
 
   @Override
   public long getPreviousKey(byte tableId, long begin) {
-    long outPrev = 0L;
+    return getMaxValue(tableId, 0L, begin);
+  }
 
-    ColumnKey columnKeyBegin = ColumnKey.builder().table(tableId).key(0L).colIndex(0).build();
-    ColumnKey columnKeyEnd = ColumnKey.builder().table(tableId).key(begin).colIndex(0).build();
+  @Override
+  public long getMaxKey(byte tableId) {
+    return getMaxValue(tableId, 0L, Long.MAX_VALUE);
+  }
+
+  private long getMaxValue(byte tableId, long beginKey, long endKey) {
+    long maxKey = 0L;
+
+    ColumnKey columnKeyBegin = ColumnKey.builder().table(tableId).key(beginKey).colIndex(0).build();
+    ColumnKey columnKeyEnd = ColumnKey.builder().table(tableId).key(endKey).colIndex(0).build();
 
     EntityCursor<ColumnKey> cursor
         = this.primaryIndex.keys(columnKeyBegin, true, columnKeyEnd, true);
@@ -185,11 +194,11 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
     if (cursor != null) {
       try (cursor) {
         if (cursor.last() != null) {
-          outPrev = cursor.last().getKey();
+          maxKey = cursor.last().getKey();
         }
       }
     }
 
-    return outPrev;
+    return maxKey;
   }
 }
