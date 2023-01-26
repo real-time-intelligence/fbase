@@ -4,7 +4,7 @@
 
   <groupId>ru.real-time-intelligence</groupId>
   <artifactId>fbase</artifactId>
-  <version>0.1.2</version>
+  <version>0.1.3</version>
   <packaging>jar</packaging>
 
   <name>FBase</name>
