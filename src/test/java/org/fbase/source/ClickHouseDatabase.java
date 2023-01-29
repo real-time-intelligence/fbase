@@ -41,7 +41,7 @@ public class ClickHouseDatabase implements ClickHouse {
     connection = DriverManager.getConnection(url);
   }
 
-  public List<CProfile> loadData(String select, FStore fStore, int fBaseBatchSize,
+  public List<CProfile> loadDataDirect(String select, FStore fStore, int fBaseBatchSize,
       int resultSetFetchSize) throws SQLException, EnumByteExceedException, SqlColMetadataException {
 
     List<List<Object>> listsColStore = new ArrayList<>();
@@ -127,7 +127,7 @@ public class ClickHouseDatabase implements ClickHouse {
     return cProfiles;
   }
 
-  public List<CProfile> loadDataBatch(String select, FStore fStore, int fBaseBatchSize,
+  public List<CProfile> loadDataJdbcBatch(String select, FStore fStore, int fBaseBatchSize,
       int resultSetFetchSize) throws SQLException, EnumByteExceedException, SqlColMetadataException {
 
     log.info("Start time: " + LocalDateTime.now());

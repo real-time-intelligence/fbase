@@ -87,7 +87,7 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
     });
 
     Map<String, Integer> mapKeyCount = new LinkedHashMap<>();
-    int[] eColumn = enumDAO.getEColumnValues(tableId, cProfile.getColId());
+    int[] eColumn = enumDAO.getEColumnValues(tableId, key, cProfile.getColId());
 
     map.forEach((keyByte, value) -> mapKeyCount.put(converter.convertIntToRaw(
         EnumHelper.getIndexValue(eColumn, keyByte), cProfile), value));

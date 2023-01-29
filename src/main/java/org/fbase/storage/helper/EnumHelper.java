@@ -1,43 +1,44 @@
 package org.fbase.storage.helper;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.IntStream;
 import org.fbase.exception.EnumByteExceedException;
+import org.fbase.util.CachedLastLinkedHashMap;
 
 public class EnumHelper {
+
   public static int ENUM_INDEX_CAPACITY = 255;
 
-  public static int getByteValue(int[] values, int valueInt) throws EnumByteExceedException {
-    int valueByte = indexOf(values, valueInt);
+  public static byte getByteValue(CachedLastLinkedHashMap<Integer, Byte> values, int valueInt)
+      throws EnumByteExceedException {
+    if (values.isEmpty()) {
+      values.put(valueInt, Byte.MIN_VALUE);
+      return Byte.MIN_VALUE;
+    }
 
-    if (valueByte == Integer.MIN_VALUE) {
-      int setValue = indexOf(values, Integer.MAX_VALUE);
-
-      if (setValue == Integer.MIN_VALUE) {
+    if (values.get(valueInt) != null) {
+      return values.get(valueInt);
+    } else {
+      if (values.getLast() == Byte.MAX_VALUE) {
         throw new EnumByteExceedException("Exceed number of distinct values for column");
       }
 
-      values[setValue] = valueInt;
+      byte value = (byte) (values.getLast() + 1);
+      values.put(valueInt, value);
 
-      if (setValue > 127) {
-        valueByte = -(setValue - 127);
-      } else {
-        valueByte = setValue;
-      }
-    } else {
-      if (valueByte > 127) {
-        valueByte = -(valueByte - 127);
-      }
+      return value;
     }
 
-    return valueByte;
   }
 
   public static int getIndexValue(int[] values, byte valueByte) {
-    return values[valueByte < 0 ? (-valueByte + 127) : valueByte];
+    return values[valueByte < 0 ? (valueByte + 128) : valueByte];
   }
 
-  public static int indexOf(int[] arr, int value) {
-    return IntStream.range(0, arr.length).filter(i -> arr[i] == value).findFirst().orElse(Integer.MIN_VALUE);
+  public static int indexOf(List<Integer> arr, int value) {
+    return IntStream.range(0, arr.size()).filter(i -> arr.get(i) == value).findFirst()
+        .orElse(Integer.MIN_VALUE);
   }
 
 }

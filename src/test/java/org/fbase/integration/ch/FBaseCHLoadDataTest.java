@@ -47,9 +47,9 @@ public class FBaseCHLoadDataTest implements ClickHouse {
   }
 
   @Test
-  public void loadDataTest() {
+  public void loadDataDirect() {
     try {
-      cProfiles = clickHouseDB.loadData(ClickHouse.select2016, fStore, 20000, 20000);
+      cProfiles = clickHouseDB.loadDataDirect(ClickHouse.select2016, fStore, 20000, 20000);
     } catch (Exception e) {
       log.catching(e);
     }
@@ -59,7 +59,7 @@ public class FBaseCHLoadDataTest implements ClickHouse {
   @Test
   public void loadDataBatchTest() {
     try {
-     cProfiles = clickHouseDB.loadDataBatch(ClickHouse.select2016, fStore, 20000, 20000);
+     cProfiles = clickHouseDB.loadDataJdbcBatch(ClickHouse.select2016, fStore, 20000, 20000);
     } catch (Exception e) {
       log.catching(e);
     }

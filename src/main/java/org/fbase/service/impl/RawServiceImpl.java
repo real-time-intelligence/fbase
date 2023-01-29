@@ -180,8 +180,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   private void computeRawDataBeginEnd(byte tableId, CProfile tsProfile, List<CProfile> cProfiles,
-      MetadataDto mdto,
-      long begin, long end, List<List<Object>> columnDataListOut) {
+      MetadataDto mdto, long begin, long end, List<List<Object>> columnDataListOut) {
     List<List<Object>> columnDataListLocal = new ArrayList<>();
 
     long[] timestamps = rawDAO.getRawLong(tableId, mdto.getKey(), tsProfile.getColId());
@@ -238,12 +237,10 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
         IntStream iRow = IntStream.range(0, timestamps.length);
 
-        int[] eColumn = enumDAO.getEColumnValues(tableId, cProfile.getColId());
-
         iRow.forEach(iR -> {
           if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-            byte var = rawContainer.getEnumValueForCell(iR);
-            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn, var), cProfile));
+            int[] eColumn = enumDAO.getEColumnValues(tableId, mdto.getKey(), cProfile.getColId());
+            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn, rawContainer.getEnumValueForCell(iR)), cProfile));
           }
         });
 

@@ -39,7 +39,7 @@ public class FBaseCsvTest {
 
   @BeforeAll
   public void initialLoading() throws IOException {
-    fileName = getTestDbFolder("C:\\Users\\.benchmark\\git\\db-benchmark", "G1_1e7_1e2_0_0_example.csv");
+    fileName = getTestDbFolder("C:\\Users\\.benchmark\\git\\db-benchmark", "G1_1e9_1e2_0_0.csv");
 
     targetFBase = getTestDbFolder("C:\\Users\\.benchmark", "fbase-data");
 
@@ -66,7 +66,7 @@ public class FBaseCsvTest {
       throw new RuntimeException(e);
     }
 
-    fStore.putDataCsvBatch(tProfile.getTableName(), fileName, csvSplitBy, 1);
+    fStore.putDataCsvBatch(tProfile.getTableName(), fileName, csvSplitBy, 20000);
 
     log.info(fStore.getRawDataAll(tProfile.getTableName()));
   }
@@ -74,6 +74,7 @@ public class FBaseCsvTest {
   private SProfile getSProfile() {
     SProfile sProfile = new SProfile();
     sProfile.setTableName(tableName);
+    sProfile.setCompression(true);
     sProfile.setIsTimestamp(false);
 
     Map<String, CSType> csTypeMap = new HashMap<>();

@@ -105,6 +105,46 @@ public abstract class CommonServiceApi {
     }
   }
 
+  protected void setMapValueEnumBlock(Map<Integer, Map<Integer, Integer>> map, Integer vFirst, int vSecond, int sum) {
+    if (map.get(vFirst) == null) {
+      map.put(vFirst, new HashMap<>());
+      map.get(vFirst).putIfAbsent(vSecond, sum);
+    } else {
+      if (map.get(vFirst).get(vSecond) == null) {
+        map.get(vFirst).putIfAbsent(vSecond, sum);
+      } else {
+        map.get(vFirst).computeIfPresent(vSecond, (k, v) -> v + sum);
+      }
+    }
+  }
+
+  protected void setMapValueRawEnumBlock(Map<String, Map<Integer, Integer>> map, String vFirst, int vSecond, int sum) {
+    if (map.get(vFirst) == null) {
+      map.put(vFirst, new HashMap<>());
+      map.get(vFirst).putIfAbsent(vSecond, sum);
+    } else {
+      if (map.get(vFirst).get(vSecond) == null) {
+        map.get(vFirst).putIfAbsent(vSecond, sum);
+      } else {
+        map.get(vFirst).computeIfPresent(vSecond, (k, v) -> v + sum);
+      }
+    }
+  }
+
+  protected void setMapValueRawEnumBlock(Map<Integer, Map<String, Integer>> map, int vFirst, String vSecond, int sum) {
+    if (map.get(vFirst) == null) {
+      map.put(vFirst, new HashMap<>());
+      map.get(vFirst).putIfAbsent(vSecond, sum);
+    } else {
+      if (map.get(vFirst).get(vSecond) == null) {
+        map.get(vFirst).putIfAbsent(vSecond, sum);
+      } else {
+        map.get(vFirst).computeIfPresent(vSecond, (k, v) -> v + sum);
+      }
+    }
+  }
+
+
   protected <T> void fillArrayList(List<List<T>> array, int colCount) {
     for (int i = 0; i < colCount; i++) {
       array.add(new ArrayList<>());

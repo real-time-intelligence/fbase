@@ -55,71 +55,53 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     List<GanttColumn> list = new ArrayList<>();
 
     if (checkSType(firstLevelGroupBy, secondLevelGroupBy, SType.ENUM, SType.ENUM)) {
-      enumEnum(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
+      enumEnumBlock(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
     } else if (checkSType(firstLevelGroupBy, secondLevelGroupBy, SType.RAW, SType.RAW)) {
       rawRaw(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
     } else if (checkSType(firstLevelGroupBy, secondLevelGroupBy, SType.HISTOGRAM, SType.ENUM)) {
-      histEnum(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
+      histEnumBlock(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
     } else if (checkSType(firstLevelGroupBy, secondLevelGroupBy, SType.ENUM, SType.HISTOGRAM)) {
-      enumHist(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
+      enumHistBlock(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
     } else if (checkSType(firstLevelGroupBy, secondLevelGroupBy, SType.HISTOGRAM, SType.RAW)) {
       histRaw(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
     } else if (checkSType(firstLevelGroupBy, secondLevelGroupBy, SType.RAW, SType.HISTOGRAM)) {
       rawHist(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
     } else if (checkSType(firstLevelGroupBy, secondLevelGroupBy, SType.ENUM, SType.RAW)) {
-      enumRaw(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
+      enumRawBlock(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
     } else if (checkSType(firstLevelGroupBy, secondLevelGroupBy, SType.RAW, SType.ENUM)) {
-      rawEnum(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
+      rawEnumBlock(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, begin, end, list);
     }
 
     return list;
   }
 
-  public void enumEnum(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  public void enumEnumBlock(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
-    Map<Byte, Map<Byte, Integer>> map = new HashMap<>();
+    Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
 
     long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
-      this.computeEnumEnum(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy,
+      this.computeEnumEnumBlock(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy,
           this.metadataDAO.getMetadata(tableId, prevKey), begin, end, map);
     }
 
     for (MetadataDto md : this.metadataDAO.getListMetadata(tableId, begin, end)) {
-      this.computeEnumEnum(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy,
-          md, begin, end, map);
+      this.computeEnumEnumBlock(tableId, tsColId, firstLevelGroupBy, secondLevelGroupBy, md, begin, end, map);
     }
 
-    int[] eColumnFirst = enumDAO.getEColumnValues(tableId, firstLevelGroupBy.getColId());
-    int[] eColumnSecond = enumDAO.getEColumnValues(tableId, secondLevelGroupBy.getColId());
-
-    map.forEach((key, value) -> {
-      String keyStr = converter.convertIntToRaw(EnumHelper.getIndexValue(eColumnFirst, key),
-          firstLevelGroupBy);
-      list.add(
-          GanttColumn.builder().key(keyStr).gantt(getRawEnumMap(eColumnSecond, value, secondLevelGroupBy))
-              .build());
-    });
+    map.forEach((key, value) -> list.add(GanttColumn.builder()
+        .key(this.converter.convertIntToRaw(key, firstLevelGroupBy))
+        .gantt(getEnumBlockMap(value, secondLevelGroupBy)).build()));
   }
 
-  private void computeEnumEnum(byte tableId, int tsColId, CProfile firstLevelGroupBy, CProfile secondLevelGroupBy,
-      MetadataDto mdto, long begin, long end, Map<Byte, Map<Byte, Integer>> map) {
+  private void computeEnumEnumBlock(byte tableId, int tsColId, CProfile firstLevelGroupBy, CProfile secondLevelGroupBy,
+      MetadataDto mdto, long begin, long end, Map<Integer, Map<Integer, Integer>> map) {
 
-    long[] timestamps = rawDAO.getRawLong(tableId, mdto.getKey(), tsColId);
+    Map.Entry<int[], byte[]> listFirst = computeEnumEnumBlock(tableId, firstLevelGroupBy, tsColId, mdto, begin, end);
+    Map.Entry<int[], byte[]> listSecond = computeEnumEnumBlock(tableId, secondLevelGroupBy, tsColId, mdto, begin, end);
 
-    RawContainer rcFirst = new RawContainer(mdto.getKey(), firstLevelGroupBy,
-        this.rawDAO.getRawData(tableId, mdto.getKey(), firstLevelGroupBy.getColId()));
-    RawContainer rcSecond = new RawContainer(mdto.getKey(), secondLevelGroupBy,
-        this.rawDAO.getRawData(tableId, mdto.getKey(), secondLevelGroupBy.getColId()));
-
-    IntStream iRow = IntStream.range(0, timestamps.length);
-
-    iRow.forEach(iR -> {
-      if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-        setMapValue(map, rcFirst.getEnumValueForCell(iR), rcSecond.getEnumValueForCell(iR), 1);
-      }
-    });
+    setMapValueEnumEnumBlock(map, listFirst, listSecond, 1);
   }
 
   public void rawRaw(byte tableId, int tsColId, CProfile firstLevelGroupBy,
@@ -160,38 +142,35 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     });
   }
 
-  public void histEnum(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  public void histEnumBlock(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
-    Map<Integer, Map<Byte, Integer>> map = new HashMap<>();
+    Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
 
     long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
-      this.computeHistEnum(tableId, firstLevelGroupBy, secondLevelGroupBy,
+      this.computeHistEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, this.metadataDAO.getMetadata(tableId, prevKey), begin, end, map);
     }
 
     for (MetadataDto md : this.metadataDAO.getListMetadata(tableId, begin, end)) {
-      this.computeHistEnum(tableId, firstLevelGroupBy, secondLevelGroupBy,
+      this.computeHistEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, md, begin, end, map);
     }
 
-    int[] eColumnSecond = enumDAO.getEColumnValues(tableId, secondLevelGroupBy.getColId());
-
-    map.forEach((key, value) -> {
-      list.add(GanttColumn.builder().key(this.converter.convertIntToRaw(key, firstLevelGroupBy))
-          .gantt(getHistogramEnumMap(eColumnSecond, value, secondLevelGroupBy)).build());
-    });
+    map.forEach((key, value) -> list.add(GanttColumn.builder()
+        .key(this.converter.convertIntToRaw(key, firstLevelGroupBy))
+        .gantt(getEnumBlockMap(value, secondLevelGroupBy)).build()));
   }
 
-  private void computeHistEnum(byte tableId, CProfile firstLevelGroupBy,
+  private void computeHistEnumBlock(byte tableId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, int tsColId, MetadataDto mdto, long begin, long end,
-      Map<Integer, Map<Byte, Integer>> map) {
+      Map<Integer, Map<Integer, Integer>> map) {
 
     List<Integer> listFirst = computeHistogram(tableId, firstLevelGroupBy, tsColId, mdto, begin, end);
-    List<Byte> listSecond = computeEnum(tableId, secondLevelGroupBy, tsColId, mdto, begin, end);
+    Map.Entry<int[], byte[]> listSecond = computeEnumBlock(tableId, secondLevelGroupBy, tsColId, mdto, begin, end);
 
-    setMapValueCommon(map, listFirst, listSecond, 1);
+    setMapValueHistEnumBlock(map, listFirst, listSecond, 1);
   }
 
   private List<Integer> computeHistogram(byte tableId, CProfile cProfile,
@@ -224,12 +203,11 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     return list;
   }
 
-  private List<Byte> computeEnum(byte tableId, CProfile cProfile,
+  private Map.Entry<int[], byte[]> computeEnumBlock(byte tableId, CProfile cProfile,
       int tsColId, MetadataDto mdto, long begin, long end) {
 
-    List<Byte> list = new ArrayList<>();
-
     long[] tsSecond = rawDAO.getRawLong(tableId, mdto.getKey(), tsColId);
+    byte[] eBytes = new byte[tsSecond.length];
 
     RawContainer rawContainer =
         new RawContainer(mdto.getKey(), cProfile,
@@ -239,11 +217,36 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     iRow.forEach(iR -> {
       if (tsSecond[iR] >= begin & tsSecond[iR] <= end) {
-        list.add(rawContainer.getEnumValueForCell(iR));
+        eBytes[iR] = rawContainer.getEnumValueForCell(iR);
       }
     });
 
-    return list;
+    int[] eColumn = enumDAO.getEColumnValues(tableId, mdto.getKey(), cProfile.getColId());
+
+    return Map.entry(eColumn, eBytes);
+  }
+
+  private Map.Entry<int[], byte[]> computeEnumEnumBlock(byte tableId, CProfile cProfile,
+      int tsColId, MetadataDto mdto, long begin, long end) {
+
+    long[] tsSecond = rawDAO.getRawLong(tableId, mdto.getKey(), tsColId);
+    List<Byte> eBytes = new ArrayList<>();
+
+    RawContainer rawContainer =
+        new RawContainer(mdto.getKey(), cProfile,
+            this.rawDAO.getRawData(tableId, mdto.getKey(), cProfile.getColId()));
+
+    IntStream iRow = IntStream.range(0, tsSecond.length);
+
+    iRow.forEach(iR -> {
+      if (tsSecond[iR] >= begin & tsSecond[iR] <= end) {
+        eBytes.add(rawContainer.getEnumValueForCell(iR));
+      }
+    });
+
+    int[] eColumn = enumDAO.getEColumnValues(tableId, mdto.getKey(), cProfile.getColId());
+
+    return Map.entry(eColumn, getByteFromList(eBytes));
   }
 
   private List<String> computeRaw(byte tableId, CProfile cProfile,
@@ -266,39 +269,35 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     return list;
   }
 
-  public void enumHist(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  public void enumHistBlock(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
-    Map<Byte, Map<Integer, Integer>> map = new HashMap<>();
+    Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
 
     long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
-      this.computeEnumHist(tableId, firstLevelGroupBy, secondLevelGroupBy,
+      this.computeEnumHistBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, this.metadataDAO.getMetadata(tableId, prevKey), begin, end, map);
     }
 
     for (MetadataDto md : this.metadataDAO.getListMetadata(tableId, begin, end)) {
-      this.computeEnumHist(tableId, firstLevelGroupBy, secondLevelGroupBy,
+      this.computeEnumHistBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, md, begin, end, map);
     }
 
-    int[] eColumnFirst = enumDAO.getEColumnValues(tableId, firstLevelGroupBy.getColId());
-
-    map.forEach((key, value) -> {
-      list.add(GanttColumn.builder()
-          .key(this.converter.convertIntToRaw(EnumHelper.getIndexValue(eColumnFirst, key), firstLevelGroupBy))
-          .gantt(getHistogramGanttMap(value, secondLevelGroupBy)).build());
-    });
+    map.forEach((key, value) -> list.add(GanttColumn.builder()
+        .key(this.converter.convertIntToRaw(key, firstLevelGroupBy))
+        .gantt(getHistogramGanttMap(value, secondLevelGroupBy)).build()));
   }
 
-  private void computeEnumHist(byte tableId, CProfile firstLevelGroupBy,
+  private void computeEnumHistBlock(byte tableId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, int tsColId, MetadataDto mdto, long begin, long end,
-      Map<Byte, Map<Integer, Integer>> map) {
+      Map<Integer, Map<Integer, Integer>> map) {
 
-    List<Byte> listFirst = computeEnum(tableId, firstLevelGroupBy, tsColId, mdto, begin, end);
+    Map.Entry<int[], byte[]> listFirst = computeEnumEnumBlock(tableId, firstLevelGroupBy, tsColId, mdto, begin, end);
     List<Integer> listSecond = computeHistogram(tableId, secondLevelGroupBy, tsColId, mdto, begin, end);
 
-    setMapValueCommon(map, listFirst, listSecond, 1);
+    setMapValueCommonBlockLevel(map, listFirst, listSecond, 1);
   }
 
   public void histRaw(byte tableId, int tsColId, CProfile firstLevelGroupBy,
@@ -364,83 +363,66 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     setMapValueCommon(map, listFirst, listSecond, 1);
   }
 
-  public void enumRaw(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  public void enumRawBlock(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
-    Map<Byte, Map<String, Integer>> map = new HashMap<>();
+    Map<Integer, Map<String, Integer>> map = new HashMap<>();
 
     long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
-      this.computeEnumRaw(tableId, firstLevelGroupBy, secondLevelGroupBy,
+      this.computeEnumRawBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, this.metadataDAO.getMetadata(tableId, prevKey), begin, end, map);
     }
 
     for (MetadataDto md : this.metadataDAO.getListMetadata(tableId, begin, end)) {
-      this.computeEnumRaw(tableId, firstLevelGroupBy, secondLevelGroupBy,
+      this.computeEnumRawBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, md, begin, end, map);
     }
 
-    int[] eColumnFirst = enumDAO.getEColumnValues(tableId, firstLevelGroupBy.getColId());
-
-    map.forEach((key, value) -> {
-      String keyStr = converter.convertIntToRaw(EnumHelper.getIndexValue(eColumnFirst, key),
-          firstLevelGroupBy);
-      list.add(GanttColumn.builder().key(keyStr).gantt(value).build());
-    });
+    map.forEach((key, value) -> list.add(GanttColumn.builder()
+        .key(this.converter.convertIntToRaw(key, firstLevelGroupBy))
+        .gantt(value).build()));
   }
 
-  private void computeEnumRaw(byte tableId, CProfile firstLevelGroupBy,
+  private void computeEnumRawBlock(byte tableId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, int tsColId, MetadataDto mdto, long begin, long end,
-      Map<Byte, Map<String, Integer>> map) {
+      Map<Integer, Map<String, Integer>> map) {
 
-    List<Byte> listFirst = computeEnum(tableId, firstLevelGroupBy, tsColId, mdto, begin, end);
+    Map.Entry<int[], byte[]> listFirst = computeEnumEnumBlock(tableId, firstLevelGroupBy, tsColId, mdto, begin, end);
     List<String> listSecond = computeRaw(tableId, secondLevelGroupBy, tsColId, mdto, begin, end);
 
-    setMapValueCommon(map, listFirst, listSecond, 1);
+    setMapValueEnumRawBlock(map, listFirst, listSecond, 1);
   }
 
-  public void rawEnum(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  public void rawEnumBlock(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
-    Map<String, Map<Byte, Integer>> map = new HashMap<>();
+    Map<String, Map<Integer, Integer>> map = new HashMap<>();
 
     long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
-      this.computeRawEnum(tableId, firstLevelGroupBy, secondLevelGroupBy,
+      this.computeRawEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, this.metadataDAO.getMetadata(tableId, prevKey), begin, end, map);
     }
 
     for (MetadataDto md : this.metadataDAO.getListMetadata(tableId, begin, end)) {
-      this.computeRawEnum(tableId, firstLevelGroupBy, secondLevelGroupBy,
+      this.computeRawEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, md, begin, end, map);
     }
 
-    int[] eColumnSecond = enumDAO.getEColumnValues(tableId, secondLevelGroupBy.getColId());
-
-    map.forEach((key, value) -> {
-      list.add(GanttColumn.builder().key(key).gantt(getRawEnumMap(eColumnSecond, value, secondLevelGroupBy))
-          .build());
-    });
+    map.forEach((key, value) -> list.add(GanttColumn.builder()
+        .key(key)
+        .gantt(getEnumBlockMap(value, secondLevelGroupBy)).build()));
   }
 
-  private void computeRawEnum(byte tableId, CProfile firstLevelGroupBy,
+  private void computeRawEnumBlock(byte tableId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, int tsColId, MetadataDto mdto, long begin, long end,
-      Map<String, Map<Byte, Integer>> map) {
+      Map<String, Map<Integer, Integer>> map) {
 
     List<String> listFirst = computeRaw(tableId, firstLevelGroupBy, tsColId, mdto, begin, end);
-    List<Byte> listSecond = computeEnum(tableId, secondLevelGroupBy, tsColId, mdto, begin, end);
+    Map.Entry<int[], byte[]> listSecond = computeEnumBlock(tableId, secondLevelGroupBy, tsColId, mdto, begin, end);
 
-    setMapValueCommon(map, listFirst, listSecond, 1);
-  }
-
-  private Map<String, Integer> getRawEnumMap(int[] eColumnSecond, Map<Byte, Integer> value,
-      CProfile secondLevelGroupBy) {
-    return value.entrySet()
-        .stream()
-        .collect(Collectors.toMap(
-            k -> converter.convertIntToRaw(EnumHelper.getIndexValue(eColumnSecond, k.getKey()),
-                secondLevelGroupBy),
-            Map.Entry::getValue));
+    setMapValueRawEnumBlock(map, listFirst, listSecond, 1);
   }
 
   private int getNextIndex(int i, int[][] array, long[] timestamps) {
@@ -468,6 +450,47 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     }
   }
 
+  private void setMapValueEnumEnumBlock(Map<Integer, Map<Integer, Integer>> map, Map.Entry<int[], byte[]> entryFirst,
+      Map.Entry<int[], byte[]> entrySecond, int sum) {
+    for (int i = 0; i < entryFirst.getValue().length; i++) {
+      int intToRawFirst = EnumHelper.getIndexValue(entryFirst.getKey(), entryFirst.getValue()[i]);
+      int intToRawSecond = EnumHelper.getIndexValue(entrySecond.getKey(), entrySecond.getValue()[i]);
+      setMapValueEnumBlock(map, intToRawFirst, intToRawSecond, sum);
+    }
+  }
+
+  private void setMapValueHistEnumBlock(Map<Integer, Map<Integer, Integer>> map, List<Integer> listFirst,
+      Map.Entry<int[], byte[]> entrySecond, int sum) {
+    for (int i = 0; i < listFirst.size(); i++) {
+      int intToRaw = EnumHelper.getIndexValue(entrySecond.getKey(), entrySecond.getValue()[i]);
+      setMapValueEnumBlock(map, listFirst.get(i), intToRaw, sum);
+    }
+  }
+
+  private void setMapValueRawEnumBlock(Map<String, Map<Integer, Integer>> map, List<String> listFirst,
+      Map.Entry<int[], byte[]> entrySecond, int sum) {
+    for (int i = 0; i < listFirst.size(); i++) {
+      int intToRaw = EnumHelper.getIndexValue(entrySecond.getKey(), entrySecond.getValue()[i]);
+      setMapValueRawEnumBlock(map, listFirst.get(i), intToRaw, sum);
+    }
+  }
+
+  private void setMapValueCommonBlockLevel(Map<Integer, Map<Integer, Integer>> map,
+      Map.Entry<int[], byte[]> entryFirst, List<Integer> listSecond, int sum) {
+    for (int i = 0; i < entryFirst.getValue().length; i++) {
+      int intToRawFirst = EnumHelper.getIndexValue(entryFirst.getKey(), entryFirst.getValue()[i]);
+      setMapValueEnumBlock(map, intToRawFirst, listSecond.get(i), sum);
+    }
+  }
+
+  private void setMapValueEnumRawBlock(Map<Integer, Map<String, Integer>> map,
+      Map.Entry<int[], byte[]> entryFirst, List<String> listSecond, int sum) {
+    for (int i = 0; i < entryFirst.getValue().length; i++) {
+      int intToRawFirst = EnumHelper.getIndexValue(entryFirst.getKey(), entryFirst.getValue()[i]);
+      setMapValueRawEnumBlock(map, intToRawFirst, listSecond.get(i), sum);
+    }
+  }
+
   private Map<String, Integer> getHistogramGanttMap(Map<Integer, Integer> value,
       CProfile secondLevelGroupBy) {
     return value.entrySet()
@@ -476,10 +499,9 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
             Map.Entry::getValue));
   }
 
-  private Map<String, Integer> getHistogramEnumMap(int[] eColumnSecond, Map<Byte, Integer> value, CProfile secondLevelGroupBy) {
+  private Map<String, Integer> getEnumBlockMap(Map<Integer, Integer> value, CProfile secondLevelGroupBy) {
     return value.entrySet()
         .stream()
-        .collect(Collectors.toMap(k -> converter
-            .convertIntToRaw(EnumHelper.getIndexValue(eColumnSecond, k.getKey()), secondLevelGroupBy), Map.Entry::getValue));
+        .collect(Collectors.toMap(k -> converter.convertIntToRaw(k.getKey(), secondLevelGroupBy), Map.Entry::getValue));
   }
 }

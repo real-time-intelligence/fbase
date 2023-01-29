@@ -20,5 +20,4 @@ public class MetadataDto {
   private byte[] storageType;
 
   private int[] histograms;
-  private int[] enums;
 }

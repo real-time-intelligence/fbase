@@ -32,6 +32,7 @@ import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.helper.EnumHelper;
+import org.fbase.util.CachedLastLinkedHashMap;
 
 @Log4j2
 public class StoreServiceImpl extends CommonServiceApi implements StoreService {
@@ -118,8 +119,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     int colRawDataEnumCount = (int) cProfiles.stream().filter(isEnum).count();
     byte[][] rawDataEnum = new byte[colRawDataEnumCount][rowCount];
     List<Integer> rawDataEnumMapping = new ArrayList<>(colRawDataEnumCount);
-    List<int[]> rawDataEnumEColumn = new ArrayList<>(colRawDataEnumCount);
-    fillEnumMapping(tableId, cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
+    List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn = new ArrayList<>(colRawDataEnumCount);
+    fillEnumMapping(cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
 
     IntStream iRow = IntStream.range(0, rowCount);
     iRow.forEach(iR -> {
@@ -163,11 +164,12 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
           int valueInt = this.converter.convertRawToInt(data.get(iC).get(iR), cProfiles.get(iC));
 
           try {
-            int valueByte = EnumHelper.getByteValue(rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(iC)), valueInt);
-            rawDataEnum[rawDataEnumMapping.indexOf(iC)][iR] = (byte) valueByte;
+            rawDataEnum[rawDataEnumMapping.indexOf(iC)][iR] =
+                EnumHelper.getByteValue(rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(iC)), valueInt);
           } catch (EnumByteExceedException e) {
             log.error(e.getMessage());
           }
+
         }
 
       });
@@ -265,8 +267,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     fillArrayList(rawDataEnum, colRawDataEnumCount);
 
     List<Integer> rawDataEnumMapping = new ArrayList<>(colRawDataEnumCount);
-    List<int[]> rawDataEnumEColumn = new ArrayList<>(colRawDataEnumCount);
-    fillEnumMapping(tableId, cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
+    List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn = new ArrayList<>(colRawDataEnumCount);
+    fillEnumMapping(cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
 
     // Fill histogram data
     Map<Integer, Map<Integer, Integer>> mapOfHistograms = new HashMap<>();
@@ -316,8 +318,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
               int valueInt = this.converter.convertRawToInt(currObject, cProfile);
 
               try {
-                int valueByte = EnumHelper.getByteValue(rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(iC)), valueInt);
-                rawDataEnum.get(rawDataEnumMapping.indexOf(iC)).add(iR, (byte) valueByte);
+                rawDataEnum.get(rawDataEnumMapping.indexOf(iC)).add(iR,
+                    EnumHelper.getByteValue(rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(iC)), valueInt));
               } catch (EnumByteExceedException e) {
                 log.error(e.getMessage());
               }
@@ -421,8 +423,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     int colRawDataEnumCount = (int) cProfiles.stream().filter(isEnum).count();
     byte[][] rawDataEnum = new byte[colRawDataEnumCount][rowCount];
     List<Integer> rawDataEnumMapping = new ArrayList<>(colRawDataEnumCount);
-    List<int[]> rawDataEnumEColumn = new ArrayList<>(colRawDataEnumCount);
-    fillEnumMapping(tableId, cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
+    List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn = new ArrayList<>(colRawDataEnumCount);
+    fillEnumMapping(cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
 
     // Fill histogram data
     Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms = new HashMap<>(colCount);
@@ -490,7 +492,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
           rawDataEnum = new byte[colRawDataEnumCount][rowCount];
           rawDataEnumMapping = new ArrayList<>(colRawDataEnumCount);
           rawDataEnumEColumn = new ArrayList<>(colRawDataEnumCount);
-          fillEnumMapping(tableId, cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
+          fillEnumMapping(cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
 
           // Fill histogram data
           mapOfHistograms.replaceAll((k,v) -> new CachedLastLinkedHashMap<>());
@@ -538,8 +540,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
               int valueInt = this.converter.convertRawToInt(currObject, cProfile);
 
               try {
-                int valueByte = EnumHelper.getByteValue(rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(iC)), valueInt);
-                rawDataEnum[rawDataEnumMapping.indexOf(iC)][iR] = (byte) valueByte;
+                rawDataEnum[rawDataEnumMapping.indexOf(iC)][iR] =
+                    EnumHelper.getByteValue(rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(iC)), valueInt);
               } catch (EnumByteExceedException e) {
                 log.error(e.getMessage());
               }
@@ -712,7 +714,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
   }
 
-  private void fillEnumMapping(byte tableId, List<CProfile> cProfiles, List<Integer> mapping, List<int[]> rawDataEnumEColumn) {
+  private void fillEnumMapping(List<CProfile> cProfiles, List<Integer> mapping,
+      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn) {
+
     final AtomicInteger iRawDataEnumMapping = new AtomicInteger(0);
 
     cProfiles.stream()
@@ -720,7 +724,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         .forEach(e -> {
           int var = iRawDataEnumMapping.getAndAdd(1);
           mapping.add(var, e.getColId());
-          rawDataEnumEColumn.add(var, this.enumDAO.putEColumn(tableId, e.getColId()).getValues());
+          rawDataEnumEColumn.add(var, new CachedLastLinkedHashMap<>());
         });
   }
 
@@ -761,7 +765,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       int colRawDataFloatCount, List<Integer> rawDataFloatMapping, float[][] rawDataFloat,
       int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, double[][] rawDataDouble,
       int colRawDataStringCount, List<Integer> rawDataStringMapping, String[][] rawDataString,
-      int colRawDataEnumCount, List<Integer> rawDataEnumMapping, byte[][] rawDataEnum, List<int[]> rawDataEnumEColumn,
+      int colRawDataEnumCount, List<Integer> rawDataEnumMapping, byte[][] rawDataEnum,
+      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn,
       int[] histograms) {
 
     /* Store data in RMapping entity */
@@ -788,8 +793,15 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
       cProfiles.stream()
           .filter(isEnum)
-          .forEach(e -> this.enumDAO.updateEColumnValues(tableId, e.getColId(),
-              rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(e.getColId()))));
+          .forEach(cProfile -> {
+            AtomicInteger counter = new AtomicInteger(0);
+            int[] values = new int[rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(cProfile.getColId())).size()];
+
+            rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(cProfile.getColId()))
+                .forEach((key1, value) -> values[counter.getAndAdd(1)] = key1);
+
+            this.enumDAO.putEColumn(tableId, key, cProfile.getColId(), values);
+          });
     }
 
     /* Store metadata entity */
@@ -825,20 +837,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     if (colRawDataStringCount > 0)
       this.rawDAO.putString(tableId, key, rawDataStringMapping.stream().mapToInt(i -> i).toArray(), getArrayString(rawDataString));
 
-  }
-
-  static class CachedLastLinkedHashMap<K,V> extends LinkedHashMap<K, V> {
-    private V last = null;
-
-    @Override
-    public V put(K key, V value) {
-      last = value;
-      return super.put(key, value);
-    }
-
-    public V getLast() {
-      return last;
-    }
   }
 
 }
