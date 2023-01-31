@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.core.Converter;
+import org.fbase.core.Mapper;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.MetaModel;
 import org.fbase.model.output.StackedColumn;
@@ -16,7 +17,6 @@ import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.RawService;
-import org.fbase.service.container.RawContainer;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.MetadataDAO;
@@ -163,14 +163,13 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
       if (cProfile.getCsType().getSType() == SType.RAW & !cProfile.getCsType().isTimeStamp()) { // raw data
 
-        RawContainer rawContainer =
-            new RawContainer(mdto.getKey(), cProfile,
-                this.rawDAO.getRawData(tableId, mdto.getKey(), cProfile.getColId()));
+        String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
+            tableId, mdto.getKey(), cProfile.getColId());
 
         IntStream iRow = IntStream.range(0, timestamps.length);
         iRow.forEach(iR -> {
           if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-            columnData.add(rawContainer.getStrValueForCell(iR));
+            columnData.add(column[iR]);
           }
         });
 
@@ -191,16 +190,14 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
       if (cProfile.getCsType().getSType() == SType.ENUM) { // enum data
 
-        RawContainer rawContainer =
-            new RawContainer(mdto.getKey(), cProfile,
-                this.rawDAO.getRawData(tableId, mdto.getKey(), cProfile.getColId()));
+        byte[] bytes = this.rawDAO.getRawByte(tableId, mdto.getKey(), cProfile.getColId());
 
         IntStream iRow = IntStream.range(0, timestamps.length);
 
         iRow.forEach(iR -> {
           if (timestamps[iR] >= begin & timestamps[iR] <= end) {
             int[] eColumn = enumDAO.getEColumnValues(tableId, mdto.getKey(), cProfile.getColId());
-            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn, rawContainer.getEnumValueForCell(iR)), cProfile));
+            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn, bytes[iR]), cProfile));
           }
         });
 
@@ -219,15 +216,15 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
     long[] timestamps = this.rawDAO.getRawLong(tableId, key, tProfile.getColId());
 
-    RawContainer rawContainer = new RawContainer(key, cProfile,
-        this.rawDAO.getRawData(tableId, key, cProfile.getColId()));
+    String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
+        tableId, key, cProfile.getColId());
 
     long tail = timestamps[timestamps.length - 1];
 
     IntStream iRow = IntStream.range(0, timestamps.length);
     iRow.forEach(iR -> {
       if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-        map.compute(rawContainer.getStrValueForCell(iR), (k, val) -> val == null ? 1 : val + 1);
+        map.compute(column[iR], (k, val) -> val == null ? 1 : val + 1);
       }
     });
 

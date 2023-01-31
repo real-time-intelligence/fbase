@@ -13,7 +13,6 @@ import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.EnumService;
-import org.fbase.service.container.RawContainer;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.helper.EnumHelper;
@@ -73,16 +72,14 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
 
     long[] timestamps = this.rawDAO.getRawLong(tableId, key, tsProfile.getColId());
 
-    RawContainer rawContainer = new RawContainer(key, cProfile,
-        this.rawDAO.getRawData(tableId, key, cProfile.getColId()));
+    byte[] bytes = this.rawDAO.getRawByte(tableId, key, cProfile.getColId());
 
     long tail = timestamps[timestamps.length - 1];
 
     IntStream iRow = IntStream.range(0, timestamps.length);
     iRow.forEach(iR -> {
       if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-        byte var = rawContainer.getEnumValueForCell(iR);
-        map.compute(var, (k, val) -> val == null ? 1 : val + 1);
+        map.compute(bytes[iR], (k, val) -> val == null ? 1 : val + 1);
       }
     });
 

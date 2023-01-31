@@ -7,13 +7,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.fbase.core.Converter;
+import org.fbase.core.Mapper;
 import org.fbase.model.MetaModel;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.GroupByService;
-import org.fbase.service.container.RawContainer;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.MetadataDAO;
@@ -129,15 +129,15 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     long[] timestamps = rawDAO.getRawLong(tableId, mdto.getKey(), tsColId);
 
-    RawContainer rcFirst = new RawContainer(mdto.getKey(), firstLevelGroupBy,
-        this.rawDAO.getRawData(tableId, mdto.getKey(), firstLevelGroupBy.getColId()));
-    RawContainer rcSecond = new RawContainer(mdto.getKey(), secondLevelGroupBy,
-        this.rawDAO.getRawData(tableId, mdto.getKey(), secondLevelGroupBy.getColId()));
+    String[] first = getStringArrayValue(rawDAO, Mapper.isCType(firstLevelGroupBy),
+        tableId, mdto.getKey(), firstLevelGroupBy.getColId());
+    String[] second = getStringArrayValue(rawDAO, Mapper.isCType(secondLevelGroupBy),
+        tableId, mdto.getKey(), secondLevelGroupBy.getColId());
 
     IntStream iRow = IntStream.range(0, timestamps.length);
     iRow.forEach(iR -> {
       if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-        setMapValue(map, rcFirst.getStrValueForCell(iR), rcSecond.getStrValueForCell(iR), 1);
+        setMapValue(map, first[iR], second[iR], 1);
       }
     });
   }
@@ -209,15 +209,13 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     long[] tsSecond = rawDAO.getRawLong(tableId, mdto.getKey(), tsColId);
     byte[] eBytes = new byte[tsSecond.length];
 
-    RawContainer rawContainer =
-        new RawContainer(mdto.getKey(), cProfile,
-            this.rawDAO.getRawData(tableId, mdto.getKey(), cProfile.getColId()));
+    byte[] bytes = this.rawDAO.getRawByte(tableId, mdto.getKey(), cProfile.getColId());
 
     IntStream iRow = IntStream.range(0, tsSecond.length);
 
     iRow.forEach(iR -> {
       if (tsSecond[iR] >= begin & tsSecond[iR] <= end) {
-        eBytes[iR] = rawContainer.getEnumValueForCell(iR);
+        eBytes[iR] = bytes[iR];
       }
     });
 
@@ -232,15 +230,13 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     long[] tsSecond = rawDAO.getRawLong(tableId, mdto.getKey(), tsColId);
     List<Byte> eBytes = new ArrayList<>();
 
-    RawContainer rawContainer =
-        new RawContainer(mdto.getKey(), cProfile,
-            this.rawDAO.getRawData(tableId, mdto.getKey(), cProfile.getColId()));
+    byte[] bytes = this.rawDAO.getRawByte(tableId, mdto.getKey(), cProfile.getColId());
 
     IntStream iRow = IntStream.range(0, tsSecond.length);
 
     iRow.forEach(iR -> {
       if (tsSecond[iR] >= begin & tsSecond[iR] <= end) {
-        eBytes.add(rawContainer.getEnumValueForCell(iR));
+        eBytes.add(bytes[iR]);
       }
     });
 
@@ -256,13 +252,13 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     long[] timestamps = rawDAO.getRawLong(tableId, mdto.getKey(), tsColId);
 
-    RawContainer rawContainer = new RawContainer(mdto.getKey(), cProfile,
-        this.rawDAO.getRawData(tableId, mdto.getKey(), cProfile.getColId()));
+    String[] columnData = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
+        tableId, mdto.getKey(), cProfile.getColId());
 
     IntStream iRow = IntStream.range(0, timestamps.length);
     iRow.forEach(iR -> {
       if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-        list.add(rawContainer.getStrValueForCell(iR));
+        list.add(columnData[iR]);
       }
     });
 

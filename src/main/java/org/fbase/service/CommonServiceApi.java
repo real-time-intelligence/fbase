@@ -1,5 +1,10 @@
 package org.fbase.service;
 
+import static org.fbase.core.Mapper.DOUBLE_NULL;
+import static org.fbase.core.Mapper.FLOAT_NULL;
+import static org.fbase.core.Mapper.INT_NULL;
+import static org.fbase.core.Mapper.LONG_NULL;
+
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,8 +14,11 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.fbase.model.MetaModel;
 import org.fbase.model.profile.CProfile;
+import org.fbase.model.profile.cstype.CType;
+import org.fbase.storage.RawDAO;
 
 public abstract class CommonServiceApi {
 
@@ -310,5 +318,31 @@ public abstract class CommonServiceApi {
     }
 
     return rawDataStringOut;
+  }
+
+  public String[] getStringArrayValue(RawDAO rawDAO, CType cType, byte tableId, long key, int colIndex) {
+    if (CType.INT == cType) {
+      return Arrays.stream(rawDAO.getRawInt(tableId, key, colIndex))
+          .mapToObj(val -> val == INT_NULL ? "" : String.valueOf(val))
+          .toArray(String[]::new);
+    } else if (CType.LONG == cType) {
+      return Arrays.stream(rawDAO.getRawLong(tableId, key, colIndex))
+          .mapToObj(val -> val == LONG_NULL ? "" : String.valueOf(val))
+          .toArray(String[]::new);
+    } else if (CType.FLOAT == cType) {
+      float[] floats = rawDAO.getRawFloat(tableId, key, colIndex);
+      return IntStream.range(0, floats.length)
+          .mapToDouble(i -> floats[i])
+          .mapToObj(val -> val == FLOAT_NULL ? "" : String.valueOf(val))
+          .toArray(String[]::new);
+    } else if (CType.DOUBLE == cType) {
+      return Arrays.stream(rawDAO.getRawDouble(tableId, key, colIndex))
+          .mapToObj(val -> val == DOUBLE_NULL ? "" : String.valueOf(val))
+          .toArray(String[]::new);
+    } else if (CType.STRING == cType) {
+      return rawDAO.getRawString(tableId, key, colIndex);
+    }
+
+    return new String[0];
   }
 }
