@@ -177,8 +177,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     long[] timestamps = rawDAO.getRawLong(tableId, key, tsColId);
 
-    int[][] h = histogramDAO.get(metadataDAO.getMetadata(tableId, key)
-        .getHistograms()[cProfile.getColId()]);
+    int[][] h = histogramDAO.get(metadataDAO.getHistograms(tableId, key)[cProfile.getColId()]);
 
     for (int i = 0; i < h.length; i++) {
       int fNextIndex = getNextIndex(i, h, timestamps);

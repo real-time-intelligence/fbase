@@ -21,7 +21,6 @@ import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
-import org.fbase.storage.dto.MetadataDto;
 import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
@@ -66,9 +65,8 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
       this.computeNoIndexBeginEnd(tableId, tsProfile, cProfile, prevKey, begin, end, list);
     }
 
-    for (MetadataDto e : this.metadataDAO.getListMetadata(tableId, begin, end)) {
-      this.computeNoIndexBeginEnd(tableId, tsProfile, cProfile, e.getKey(), begin, end, list);
-    }
+    this.rawDAO.getListKeys(tableId, begin, end)
+        .forEach(key -> this.computeNoIndexBeginEnd(tableId, tsProfile, cProfile, key, begin, end, list));
 
     return list;
   }
@@ -100,13 +98,12 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
     long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
-      MetadataDto mDto = this.metadataDAO.getMetadata(tableId, prevKey);
-      this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, mDto, begin, end, columnDataListOut);
+      this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, prevKey, begin, end, columnDataListOut);
     }
 
-    for (MetadataDto mDto : this.metadataDAO.getListMetadata(tableId, begin, end)) {
-      this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, mDto, begin, end, columnDataListOut);
-    }
+    this.rawDAO.getListKeys(tableId, begin, end)
+        .forEach(key ->
+            this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, key, begin, end, columnDataListOut));
 
     return columnDataListOut;
   }
@@ -140,10 +137,10 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   private void computeRawDataBeginEnd(byte tableId, CProfile tsProfile, List<CProfile> cProfiles,
-      MetadataDto mdto, long begin, long end, List<List<Object>> columnDataListOut) {
+      long key, long begin, long end, List<List<Object>> columnDataListOut) {
     List<List<Object>> columnDataListLocal = new ArrayList<>();
 
-    long[] timestamps = rawDAO.getRawLong(tableId, mdto.getKey(), tsProfile.getColId());
+    long[] timestamps = rawDAO.getRawLong(tableId, key, tsProfile.getColId());
 
     cProfiles.forEach(cProfile -> {
 
@@ -164,7 +161,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
       if (cProfile.getCsType().getSType() == SType.RAW & !cProfile.getCsType().isTimeStamp()) { // raw data
 
         String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
-            tableId, mdto.getKey(), cProfile.getColId());
+            tableId, key, cProfile.getColId());
 
         IntStream iRow = IntStream.range(0, timestamps.length);
         iRow.forEach(iR -> {
@@ -177,7 +174,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
       }
 
       if (cProfile.getCsType().getSType() == SType.HISTOGRAM) { // indexed data
-        int[][] h = histogramDAO.get(mdto.getHistograms()[cProfile.getColId()]);
+        int[][] h = histogramDAO.get(metadataDAO.getHistograms(tableId, key)[cProfile.getColId()]);
 
         for (int i = 0; i < timestamps.length; i++) {
           if (timestamps[i] >= begin & timestamps[i] <= end) {
@@ -190,13 +187,13 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
       if (cProfile.getCsType().getSType() == SType.ENUM) { // enum data
 
-        byte[] bytes = this.rawDAO.getRawByte(tableId, mdto.getKey(), cProfile.getColId());
+        byte[] bytes = this.rawDAO.getRawByte(tableId, key, cProfile.getColId());
 
         IntStream iRow = IntStream.range(0, timestamps.length);
 
         iRow.forEach(iR -> {
           if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-            int[] eColumn = enumDAO.getEColumnValues(tableId, mdto.getKey(), cProfile.getColId());
+            int[] eColumn = enumDAO.getEColumnValues(tableId, key, cProfile.getColId());
             columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn, bytes[iR]), cProfile));
           }
         });
