@@ -2,7 +2,7 @@ package org.fbase.storage;
 
 import java.io.IOException;
 import java.util.List;
-import org.fbase.storage.bdb.entity.raw.RColumn;
+import org.fbase.model.profile.cstype.CType;
 import org.fbase.storage.dto.RawDto;
 
 public interface RawDAO {
@@ -43,11 +43,9 @@ public interface RawDAO {
 
   RawDto getRawData(byte tableId, long key, int colIndex);
 
-  RawDto getCompressRawData(byte tableId, long key, int colIndex) throws IOException;
-
   List<Long> getListKeys(byte tableId, long begin, long end);
 
-  List<RColumn> getListRColumn(byte tableId);
+  List<Object> getColumnData(byte tableId, int colIndex, boolean compression, CType cType);
 
   long getPreviousKey(byte tableId, long begin);
 

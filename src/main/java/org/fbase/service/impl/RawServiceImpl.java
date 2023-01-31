@@ -1,6 +1,5 @@
 package org.fbase.service.impl;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -14,7 +13,6 @@ import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.MetaModel;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
-import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.RawService;
@@ -23,9 +21,7 @@ import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
-import org.fbase.storage.bdb.entity.raw.RColumn;
 import org.fbase.storage.dto.MetadataDto;
-import org.fbase.storage.dto.RawDto;
 import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
@@ -123,53 +119,17 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     cProfiles.stream()
         .sorted(Comparator.comparing(CProfile::getColId))
         .toList()
+        .stream()
+        .filter(f -> f.getCsType().getSType() == SType.RAW)
         .forEach(cProfile -> {
-
-          List<Object> columnData = new ArrayList<>();
-
-          for (RColumn rColumn : this.rawDAO.getListRColumn(tableId)) {
-            if (rColumn.getColumnKey().getColIndex() == cProfile.getColId()) {
-              if (cProfile.getCsType().getSType() == SType.RAW) { // raw data
-
-                RawDto rawDto = getRawDto(tableId, compression, rColumn, cProfile);
-
-                RawContainer rawContainer =
-                    new RawContainer(rColumn.getColumnKey().getKey(), cProfile, rawDto);
-
-                IntStream iRow = IntStream.range(0, getLengthByColumn(cProfile, rawDto));
-                iRow.forEach(iR -> columnData.add(rawContainer.getStrValueForCell(iR)));
-              }
-            }
-          }
+          List<Object> columnData =
+              rawDAO.getColumnData(tableId, cProfile.getColId(), compression,
+                  cProfile.getCsType().getCType());
 
           columnDataListLocal.add(cProfile.getColId(), columnData);
         });
 
     return transpose(columnDataListLocal);
-  }
-
-  private RawDto getRawDto(byte tableId, boolean compression, RColumn rColumn, CProfile cProfile) {
-    if (compression)  {
-      try {
-        return this.rawDAO.getCompressRawData(tableId, rColumn.getColumnKey().getKey(), cProfile.getColId());
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    } else {
-      return this.rawDAO.getRawData(tableId, rColumn.getColumnKey().getKey(), cProfile.getColId());
-    }
-  }
-
-  private int getLengthByColumn(CProfile cProfile, RawDto rawDto) {
-    if (CType.LONG == cProfile.getCsType().getCType()) {
-      return rawDto.getDataLong().length;
-    } else if (CType.DOUBLE == cProfile.getCsType().getCType()) {
-      return rawDto.getDataDouble().length;
-    } else if (CType.STRING == cProfile.getCsType().getCType()) {
-      return rawDto.getDataString().length;
-    }
-
-    return rawDto.getDataString().length;
   }
 
   private CProfile getTsProfile(String tableName) {
