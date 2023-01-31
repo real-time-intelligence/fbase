@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.fbase.model.MetaModel;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
@@ -340,7 +341,9 @@ public abstract class CommonServiceApi {
           .mapToObj(val -> val == DOUBLE_NULL ? "" : String.valueOf(val))
           .toArray(String[]::new);
     } else if (CType.STRING == cType) {
-      return rawDAO.getRawString(tableId, key, colIndex);
+      return Stream.of(rawDAO.getRawString(tableId, key, colIndex))
+          .map(val -> val == null ? "" : val)
+          .toArray(String[]::new);
     }
 
     return new String[0];
