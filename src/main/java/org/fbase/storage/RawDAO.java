@@ -3,7 +3,6 @@ package org.fbase.storage;
 import java.io.IOException;
 import java.util.List;
 import org.fbase.model.profile.cstype.CType;
-import org.fbase.storage.dto.RawDto;
 
 public interface RawDAO {
 
@@ -40,8 +39,6 @@ public interface RawDAO {
   double[] getRawDouble(byte tableId, long key, int colIndex);
 
   String[] getRawString(byte tableId, long key, int colIndex);
-
-  RawDto getRawData(byte tableId, long key, int colIndex);
 
   List<Long> getListKeys(byte tableId, long begin, long end);
 

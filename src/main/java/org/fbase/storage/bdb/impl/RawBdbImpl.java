@@ -22,7 +22,6 @@ import org.fbase.storage.bdb.QueryBdbApi;
 import org.fbase.storage.bdb.entity.ColumnKey;
 import org.fbase.storage.bdb.entity.raw.RColumn;
 import org.fbase.storage.bdb.entity.raw.RMapping;
-import org.fbase.storage.dto.RawDto;
 import org.xerial.snappy.Snappy;
 
 @Log4j2
@@ -193,22 +192,6 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   public String[] getRawString(byte tableId, long key, int colIndex) {
     return this.primaryIndexDataColumn.get(
         ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build()).getDataString();
-  }
-
-  @Override
-  public RawDto getRawData(byte tableId, long key, int colIndex) {
-    RColumn rColumn =
-        this.primaryIndexDataColumn.get(
-            ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build());
-
-    return RawDto.builder()
-        .key(rColumn.getColumnKey().getKey())
-        .dataByte(rColumn.getDataByte())
-        .dataInt(rColumn.getDataInt())
-        .dataLong(rColumn.getDataLong())
-        .dataFloat(rColumn.getDataFloat())
-        .dataDouble(rColumn.getDataDouble())
-        .dataString(rColumn.getDataString()).build();
   }
 
   @Override
