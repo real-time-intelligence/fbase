@@ -22,8 +22,8 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 @Disabled
 public class FBaseOracleTest extends AbstractOracleTest {
 
-  String selectAsh = "SELECT * FROM v$active_session_history FETCH FIRST 10 ROWS ONLY";
-  private String selectRandom = "SELECT SYSDATE AS dt, "
+  private final String selectAsh = "SELECT * FROM v$active_session_history FETCH FIRST 10 ROWS ONLY";
+  private final String selectRandom = "SELECT SYSDATE AS dt, "
       + "value AS value_histogram, "
       + "value AS value_enum, "
       + "value AS value_raw"
@@ -34,7 +34,7 @@ public class FBaseOracleTest extends AbstractOracleTest {
     try {
       loadData(fStore, dbConnection, selectRandom, getSProfileForRandom(), log,20000, 20000);
       loadData(fStore, dbConnection, selectAsh, getSProfileForAsh(selectAsh), log,20000, 20000);
-    } catch (SQLException e) {
+    } catch (Exception e) {
       log.catching(e);
       throw new RuntimeException(e);
     }

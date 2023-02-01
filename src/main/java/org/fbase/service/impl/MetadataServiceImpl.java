@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
-import org.fbase.core.Converter;
+import org.fbase.storage.Converter;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.metadata.DataType;
 import org.fbase.model.MetaModel;

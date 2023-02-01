@@ -42,6 +42,7 @@ import org.fbase.service.impl.HistogramServiceImpl;
 import org.fbase.service.impl.MetadataServiceImpl;
 import org.fbase.service.impl.RawServiceImpl;
 import org.fbase.service.impl.StoreServiceImpl;
+import org.fbase.storage.Converter;
 import org.fbase.storage.DimensionDAO;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
@@ -164,7 +165,8 @@ public class BdbStore implements FStore {
     try {
       List<CProfile> cProfileList = MetadataHandler.getJdbcCProfileList(connection, select);
 
-      cProfileList.forEach(e -> e.setCsType(sProfile.getCsTypeMap().getOrDefault(e.getColName(),
+      cProfileList.forEach(cProfile ->
+          cProfile.setCsType(sProfile.getCsTypeMap().getOrDefault(cProfile.getColName(),
           new CSType().toBuilder().isTimeStamp(false).sType(SType.RAW).build())));
 
       metaModel.getMetadata().put(tableName,
@@ -175,6 +177,12 @@ public class BdbStore implements FStore {
 
     } catch (Exception e) {
       log.catching(e);
+    }
+
+    try {
+      tProfile.setCProfiles(getCProfileList(tableName));
+    } catch (TableNameEmptyException e) {
+      throw new RuntimeException(e);
     }
 
     saveMetaModel();
@@ -202,6 +210,7 @@ public class BdbStore implements FStore {
 
       tProfile.setIsTimestamp(sProfile.getIsTimestamp());
       tProfile.setCompression(sProfile.getCompression());
+
       try {
         tProfile.setCProfiles(getCProfileList(tableName));
       } catch (TableNameEmptyException e) {

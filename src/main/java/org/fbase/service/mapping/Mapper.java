@@ -1,4 +1,4 @@
-package org.fbase.core;
+package org.fbase.service.mapping;
 
 import static java.lang.String.valueOf;
 
@@ -29,42 +29,13 @@ public class Mapper {
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING") ||
         cProfile.getColDbTypeName().contains("ENUM")) return CType.STRING;
 
-    switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case UINT8:
-      case UINT16:
-      case INT4:
-      case FLOAT8:
-      case NUMBER:
-      case INTEGER:
-        return CType.INT;
-      case OID:
-      case DATE:
-      case TIMESTAMP:
-      case TIMESTAMPTZ:
-      case DATETIME:
-      case UINT32:
-      case LONG:
-        return CType.LONG;
-      case FLOAT32:
-        return CType.FLOAT;
-      case FLOAT64:
-      case DOUBLE:
-        return CType.DOUBLE;
-      case ENUM8:
-      case ENUM16:
-      case FIXEDSTRING:
-      case RAW:
-      case CHAR:
-      case CLOB:
-      case NAME:
-      case TEXT:
-      case VARCHAR:
-      case VARCHAR2:
-      case STRING:
-        return CType.STRING;
-      default:
-        return CType.STRING;
-    }
+    return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
+      case UINT8, UINT16, INT4, FLOAT8, NUMBER, INTEGER -> CType.INT;
+      case OID, DATE, TIMESTAMP, TIMESTAMPTZ, DATETIME, UINT32, LONG -> CType.LONG;
+      case FLOAT32 -> CType.FLOAT;
+      case FLOAT64, DOUBLE -> CType.DOUBLE;
+      default -> CType.STRING;
+    };
   }
 
   public static int convertRawToInt(Object obj, CProfile cProfile) {
@@ -111,22 +82,18 @@ public class Mapper {
 
   public static float convertRawToFloat(Object obj, CProfile cProfile) {
     if (obj == null) return FLOAT_NULL;
-    switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case FLOAT32:
-        return (Float) obj;
-      default:
-        return FLOAT_NULL;
+    if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.FLOAT32) {
+      return (Float) obj;
     }
+    return FLOAT_NULL;
   }
 
   public static double convertRawToDouble(Object obj, CProfile cProfile) {
     if (obj == null) return DOUBLE_NULL;
-    switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case FLOAT64:
-        return (Double) obj;
-      default:
-        return DOUBLE_NULL;
+    if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.FLOAT64) {
+      return (Double) obj;
     }
+    return DOUBLE_NULL;
   }
 
   public static String convertRawToString(Object obj, CProfile cProfile) {
@@ -193,7 +160,7 @@ public class Mapper {
     byte[] bytes = (byte[]) obj;
     useValue = new Byte[bytes.length];
     for (int m=0; m<bytes.length; m++) {
-      useValue[m] = Byte.valueOf(bytes[m]);
+      useValue[m] = bytes[m];
     }
     return BinaryDisplayConverter.convertToString(useValue,
         BinaryDisplayConverter.HEX, false);

@@ -1,7 +1,7 @@
 package org.fbase.service.impl;
 
 import lombok.extern.log4j.Log4j2;
-import org.fbase.core.Converter;
+import org.fbase.storage.Converter;
 import org.fbase.model.MetaModel;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.HistogramsService;

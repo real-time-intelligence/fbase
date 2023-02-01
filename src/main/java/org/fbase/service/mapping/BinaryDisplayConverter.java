@@ -1,4 +1,4 @@
-package org.fbase.core;
+package org.fbase.service.mapping;
 
 public class BinaryDisplayConverter {
 

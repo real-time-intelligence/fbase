@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
-import org.fbase.core.Converter;
+import org.fbase.storage.Converter;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.MetaModel;
 import org.fbase.model.output.StackedColumn;

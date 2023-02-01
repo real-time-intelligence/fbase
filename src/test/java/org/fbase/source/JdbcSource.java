@@ -32,6 +32,8 @@ public interface JdbcSource {
       throw new RuntimeException(e);
     }
 
+    System.out.println(tProfile);
+
     List<CProfile> cProfiles = tProfile.getCProfiles();
 
     List<List<Object>> listsColStore = new ArrayList<>();

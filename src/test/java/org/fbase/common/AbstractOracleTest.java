@@ -2,6 +2,7 @@ package org.fbase.common;
 
 import static org.fbase.config.FileConfig.FILE_SEPARATOR;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -20,8 +21,10 @@ import org.fbase.model.profile.cstype.SType;
 import org.fbase.source.JdbcSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.io.TempDir;
 
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
@@ -37,21 +40,23 @@ public abstract class AbstractOracleTest implements JdbcSource {
   protected FBase fBase;
   protected FStore fStore;
 
-  private String tableName = "oracle_table_test";
+  private final String tableNameRandom = "oracle_table_test_random";
+  private final String tableNameAsh = "oracle_table_test_ash";
 
   @BeforeAll
-  public void initBackendAndLoad() throws IOException {
-    berkleyDB = new BerkleyDB(BERKLEY_DB_DIR, true);
-
-    fBaseConfig = new FBaseConfig().setConfigDirectory(BERKLEY_DB_DIR).setBlockSize(16);
-    fBase = new FBase(fBaseConfig, berkleyDB.getStore());
-    fStore = fBase.getFStore();
-
+  public void initBackendAndLoad() {
     try {
+      System.out.println(BERKLEY_DB_DIR);
+      berkleyDB = new BerkleyDB(BERKLEY_DB_DIR, false);
+
+      fBaseConfig = new FBaseConfig().setConfigDirectory(BERKLEY_DB_DIR).setBlockSize(16);
+      fBase = new FBase(fBaseConfig, berkleyDB.getStore());
+      fStore = fBase.getFStore();
+
       System.getProperties().setProperty("oracle.jdbc.J2EE13Compliant", "true");
 
       dbConnection = DriverManager.getConnection(DB_URL, "system", "sys");
-    } catch (SQLException e) {
+    } catch (Exception e) {
       log.catching(e);
       throw new RuntimeException(e);
     }
@@ -66,7 +71,10 @@ public abstract class AbstractOracleTest implements JdbcSource {
     csTypeMap.put("VALUE_ENUM", new CSType().toBuilder().sType(SType.ENUM).build());
     csTypeMap.put("VALUE_RAW", new CSType().toBuilder().sType(SType.RAW).build());
 
-    return new SProfile().setTableName(tableName).setCsTypeMap(csTypeMap);
+    return new SProfile().setTableName(tableNameRandom)
+        .setIsTimestamp(true)
+        .setCompression(false)
+        .setCsTypeMap(csTypeMap);
   }
 
   protected SProfile getSProfileForAsh(String select) throws SQLException {
@@ -82,7 +90,10 @@ public abstract class AbstractOracleTest implements JdbcSource {
       }
     });
 
-    return new SProfile().setTableName(tableName).setCsTypeMap(csTypeMap);
+    return new SProfile().setTableName(tableNameAsh)
+        .setIsTimestamp(true)
+        .setCompression(false)
+        .setCsTypeMap(csTypeMap);
   }
 
   @AfterAll

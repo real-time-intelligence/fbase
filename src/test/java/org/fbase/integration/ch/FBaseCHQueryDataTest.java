@@ -31,7 +31,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
-@Disabled
+//@Disabled
 public class FBaseCHQueryDataTest implements ClickHouse {
 
   private FStore fStore;

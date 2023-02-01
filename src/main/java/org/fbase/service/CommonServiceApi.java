@@ -1,9 +1,9 @@
 package org.fbase.service;
 
-import static org.fbase.core.Mapper.DOUBLE_NULL;
-import static org.fbase.core.Mapper.FLOAT_NULL;
-import static org.fbase.core.Mapper.INT_NULL;
-import static org.fbase.core.Mapper.LONG_NULL;
+import static org.fbase.service.mapping.Mapper.DOUBLE_NULL;
+import static org.fbase.service.mapping.Mapper.FLOAT_NULL;
+import static org.fbase.service.mapping.Mapper.INT_NULL;
+import static org.fbase.service.mapping.Mapper.LONG_NULL;
 
 import java.nio.FloatBuffer;
 import java.util.ArrayList;

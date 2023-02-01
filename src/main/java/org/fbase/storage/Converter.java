@@ -1,4 +1,6 @@
-package org.fbase.core;
+package org.fbase.storage;
+
+import static org.fbase.service.mapping.Mapper.INT_NULL;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -15,42 +17,14 @@ import org.fbase.storage.DimensionDAO;
 @Log4j2
 public class Converter {
 
-  private int intNullValue = Integer.MIN_VALUE;
-  private double doubleNullValue = Double.MIN_VALUE;
-
-  private DimensionDAO dimensionDAO;
+  private final DimensionDAO dimensionDAO;
 
   public Converter(DimensionDAO dimensionDAO) {
     this.dimensionDAO = dimensionDAO;
   }
 
-  public double convertRawToDouble(Object obj, CProfile cProfile) {
-    if (obj == null) return doubleNullValue;
-
-    switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case FLOAT64:
-        return (Double) obj;
-      case FLOAT32:
-        Float varF = (Float) obj;
-        return varF.doubleValue();
-      default:
-        return doubleNullValue;
-    }
-  }
-
-  public String convertDoubleToRaw(double objIndex, CProfile cProfile) {
-    if (objIndex == doubleNullValue) return "";
-
-    switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case FLOAT32:
-      case FLOAT64:
-      default:
-        return String.valueOf(objIndex);
-    }
-  }
-
   public int convertRawToInt(Object obj, CProfile cProfile) {
-    if (obj == null) return intNullValue;
+    if (obj == null) return INT_NULL;
 
     if (cProfile.getColDbTypeName().contains("ENUM")) return dimensionDAO.getOrLoad((String) obj);
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getOrLoad((String) obj);
@@ -107,39 +81,23 @@ public class Converter {
       case VARCHAR2:
         return dimensionDAO.getOrLoad((String) obj);
       default:
-        return intNullValue;
+        return INT_NULL;
     }
   }
 
   public String convertIntToRaw(int objIndex, CProfile cProfile) {
-    if (objIndex == intNullValue) return "";
+    if (objIndex == INT_NULL) return "";
 
     if (cProfile.getColDbTypeName().contains("ENUM")) return dimensionDAO.getStringById(objIndex);
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getStringById(objIndex);
 
-    switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case OID:
-      case DATE:
-      case ENUM8:
-      case ENUM16:
-      case FIXEDSTRING:
-      case CHAR:
-      case CLOB:
-      case NAME:
-      case TEXT:
-      case VARCHAR:
-      case VARCHAR2:
-        return dimensionDAO.getStringById(objIndex);
-      case TIMESTAMP:
-      case TIMESTAMPTZ:
-      case DATETIME:
-        return getDateForLongShorted(objIndex);
-      case FLOAT64:
-      case FLOAT32:
-        return String.valueOf(dimensionDAO.getDoubleById(objIndex));
-      default:
-        return String.valueOf(objIndex);
-    }
+    return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
+      case OID, DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, CLOB, NAME, TEXT, VARCHAR, VARCHAR2 ->
+          dimensionDAO.getStringById(objIndex);
+      case TIMESTAMP, TIMESTAMPTZ, DATETIME -> getDateForLongShorted(objIndex);
+      case FLOAT64, FLOAT32 -> String.valueOf(dimensionDAO.getDoubleById(objIndex));
+      default -> String.valueOf(objIndex);
+    };
   }
 
   public long getKeyValue(Object obj, CProfile cProfile) {

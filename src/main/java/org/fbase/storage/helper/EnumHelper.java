@@ -1,14 +1,9 @@
 package org.fbase.storage.helper;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.IntStream;
 import org.fbase.exception.EnumByteExceedException;
 import org.fbase.util.CachedLastLinkedHashMap;
 
 public class EnumHelper {
-
-  public static int ENUM_INDEX_CAPACITY = 255;
 
   public static byte getByteValue(CachedLastLinkedHashMap<Integer, Byte> values, int valueInt)
       throws EnumByteExceedException {
@@ -34,11 +29,6 @@ public class EnumHelper {
 
   public static int getIndexValue(int[] values, byte valueByte) {
     return values[valueByte < 0 ? (valueByte + 128) : valueByte];
-  }
-
-  public static int indexOf(List<Integer> arr, int value) {
-    return IntStream.range(0, arr.size()).filter(i -> arr.get(i) == value).findFirst()
-        .orElse(Integer.MIN_VALUE);
   }
 
 }
