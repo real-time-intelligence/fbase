@@ -42,6 +42,7 @@ import org.fbase.service.impl.HistogramServiceImpl;
 import org.fbase.service.impl.MetadataServiceImpl;
 import org.fbase.service.impl.RawServiceImpl;
 import org.fbase.service.impl.StoreServiceImpl;
+import org.fbase.sql.BatchResultSet;
 import org.fbase.storage.Converter;
 import org.fbase.storage.DimensionDAO;
 import org.fbase.storage.EnumDAO;
@@ -404,8 +405,8 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public List<List<Object>> getRawDataAll(String tableName) {
-    return rawService.getRawDataAll(tableName);
+  public BatchResultSet getBatchResultSet(String tableName, int fetchSize) {
+    return rawService.getBatchResultSet(tableName, fetchSize);
   }
 
   @Override

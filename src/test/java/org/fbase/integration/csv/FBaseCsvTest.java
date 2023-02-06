@@ -1,10 +1,13 @@
 package org.fbase.integration.csv;
 
 import static org.fbase.config.FileConfig.FILE_SEPARATOR;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.FBase;
@@ -16,6 +19,7 @@ import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.CSType;
+import org.fbase.sql.BatchResultSet;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -43,7 +47,7 @@ public class FBaseCsvTest {
 
     targetFBase = getTestDbFolder("C:\\Users\\.benchmark", "fbase-data");
 
-    this.berkleyDB = new BerkleyDB(targetFBase, true);
+    this.berkleyDB = new BerkleyDB(targetFBase, false);
 
     FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(targetFBase).setBlockSize(16);
 
@@ -67,14 +71,36 @@ public class FBaseCsvTest {
     }
 
     fStore.putDataCsvBatch(tProfile.getTableName(), fileName, csvSplitBy, 20000);
+  }
 
-    log.info(fStore.getRawDataAll(tProfile.getTableName()));
+  @Test
+  public void selectData() {
+    log.info(LocalDateTime.now());
+    int resultSetSize999 = getBatchResultSet(999);
+    System.out.println(resultSetSize999);
+    log.info(LocalDateTime.now());
+    int resultSetSize1001 = getBatchResultSet(1001);
+    log.info(LocalDateTime.now());
+
+    assertEquals(resultSetSize999, resultSetSize1001);
+  }
+
+  private int getBatchResultSet(int fetchSize) {
+    int i = 0;
+    BatchResultSet batchResultSet = fStore.getBatchResultSet(tableName, fetchSize);
+
+    while (batchResultSet.next()) {
+      List<List<Object>> var = batchResultSet.getObject();
+      i = i + var.size();
+    }
+
+    return i;
   }
 
   private SProfile getSProfile() {
     SProfile sProfile = new SProfile();
     sProfile.setTableName(tableName);
-    sProfile.setCompression(true);
+    sProfile.setCompression(false);
     sProfile.setIsTimestamp(false);
 
     Map<String, CSType> csTypeMap = new HashMap<>();
@@ -90,6 +116,6 @@ public class FBaseCsvTest {
   @AfterAll
   public void closeDb() throws IOException {
     berkleyDB.closeDatabase();
-    berkleyDB.removeDirectory();
+    //berkleyDB.removeDirectory();
   }
 }

@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -21,9 +22,8 @@ import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
-import org.junit.jupiter.api.AfterAll;
+import org.fbase.sql.BatchResultSet;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -43,7 +43,6 @@ public class FBase06CsvTest {
   @BeforeEach
   public void init() throws IOException {
     String dbDir = databaseDir.getAbsolutePath() + FILE_SEPARATOR + "csv";
-
     this.berkleyDB = new BerkleyDB(dbDir, true);
 
     FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(dbDir).setBlockSize(16);
@@ -57,21 +56,207 @@ public class FBase06CsvTest {
   }
 
   @Test
-  public void putDataCsvBatchCompressionTest() throws SqlColMetadataException, IOException {
-    putDataCsvBatchTest(true);
+  public void putDataBatchCompressOneFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 1);
+    assertDataCsvBatchTest(true, 1, true);
   }
 
   @Test
-  public void putDataCsvBatchNotCompressionTest() throws SqlColMetadataException, IOException {
-    putDataCsvBatchTest(false);
+  public void putDataBatchCompressOneFetchTwoTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 1);
+    assertDataCsvBatchTest(true, 2, true);
   }
 
-  private void putDataCsvBatchTest(boolean compression) throws SqlColMetadataException, IOException {
+  @Test
+  public void putDataBatchCompressOneFetchThreeTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 1);
+    assertDataCsvBatchTest(true, 3, false);
+  }
+
+  @Test
+  public void putDataBatchCompressOneFetchFourTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 1);
+    assertDataCsvBatchTest(true, 4, true);
+  }
+
+  @Test
+  public void putDataBatchCompressOneFetchFiveTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 1);
+    assertDataCsvBatchTest(true, 5, false);
+  }
+
+  @Test
+  public void putDataBatchCompressOneFetchSixTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 1);
+    assertDataCsvBatchTest(true, 6, false);
+  }
+
+  @Test
+  public void putDataBatchCompressTwoFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 2);
+    assertDataCsvBatchTest(true, 1, true);
+  }
+
+  @Test
+  public void putDataBatchCompressThreeFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 3);
+    assertDataCsvBatchTest(true, 1, true);
+  }
+
+  @Test
+  public void putDataBatchCompressFourFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 4);
+    assertDataCsvBatchTest(true, 1, true);
+  }
+
+  @Test
+  public void putDataBatchCompressFiveFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 5);
+    assertDataCsvBatchTest(true, 1, true);
+  }
+
+  @Test
+  public void putDataBatchCompressSixFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 6);
+    assertDataCsvBatchTest(true, 1, true);
+  }
+
+  @Test
+  public void putDataBatchCompressTwoFetchTwoTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 2);
+    assertDataCsvBatchTest(true, 2, true);
+  }
+
+  @Test
+  public void putDataBatchCompressTwoFetchThreeTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(true, 2);
+    assertDataCsvBatchTest(true, 3, false);
+  }
+
+  @Test
+  public void putDataBatchOneFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 1);
+    assertDataCsvBatchTest(false, 1, true);
+  }
+
+  @Test
+  public void putDataBatchOneFetchTwoTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 1);
+    assertDataCsvBatchTest(false, 2, true);
+  }
+
+  @Test
+  public void putDataBatchOneFetchThreeTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 1);
+    assertDataCsvBatchTest(false, 3, false);
+  }
+
+  @Test
+  public void putDataBatchOneFetchFourTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 1);
+    assertDataCsvBatchTest(false, 4, true);
+  }
+
+  @Test
+  public void putDataBatchOneFetchFiveTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 1);
+    assertDataCsvBatchTest(false, 5, false);
+  }
+
+  @Test
+  public void putDataBatchOneFetchSixTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 1);
+    assertDataCsvBatchTest(false, 6, false);
+  }
+
+  @Test
+  public void putDataBatchTwoFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 2);
+    assertDataCsvBatchTest(false, 1, true);
+  }
+
+  @Test
+  public void putDataBatchThreeFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 3);
+    assertDataCsvBatchTest(false, 1, true);
+  }
+
+  @Test
+  public void putDataBatchFourFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 4);
+    assertDataCsvBatchTest(false, 1, true);
+  }
+
+  @Test
+  public void putDataBatchFiveFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 5);
+    assertDataCsvBatchTest(false, 1, true);
+  }
+
+  @Test
+  public void putDataBatchSixFetchOneTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 6);
+    assertDataCsvBatchTest(false, 1, true);
+  }
+
+  @Test
+  public void putDataBatchTwoFetchTwoTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 2);
+    assertDataCsvBatchTest(false, 2, true);
+  }
+
+  @Test
+  public void putDataBatchTwoFetchThreeTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSet(false, 2);
+    assertDataCsvBatchTest(false, 3, false);
+  }
+
+  private void putDataCsvBatchResultSet(boolean compression, int fBaseBatchSize) throws SqlColMetadataException {
     String csvSplitBy = ",";
 
     String fileName = new File("").getAbsolutePath()  + FILE_SEPARATOR +
         Paths.get("src","test", "resources", "csv", "file.csv");
 
+    TProfile tProfile = getTProfile(fileName, csvSplitBy, compression);
+
+    String tableName = tProfile.getTableName();
+
+    fStore.putDataCsvBatch(tableName, fileName, csvSplitBy, fBaseBatchSize);
+  }
+
+  private void assertDataCsvBatchTest(boolean compression, int fetchSize, boolean eventFetchSize) throws IOException {
+    String csvSplitBy = ",";
+
+    String fileName = new File("").getAbsolutePath()  + FILE_SEPARATOR +
+        Paths.get("src","test", "resources", "csv", "file.csv");
+
+    TProfile tProfile = getTProfile(fileName, csvSplitBy, compression);
+
+    String tableName = tProfile.getTableName();
+
+    String expected = readFile(fileName, Charset.defaultCharset());
+
+    List<List<Object>> rawDataAll = new ArrayList<>();
+
+    BatchResultSet batchResultSet = fStore.getBatchResultSet(tableName, fetchSize);
+
+    while (batchResultSet.next()) {
+      List<List<Object>> var = batchResultSet.getObject();
+      if (eventFetchSize) {
+        assertEquals(fetchSize, var.size());
+      }
+      log.info("Output by fetchSize: " + var);
+      rawDataAll.addAll(var);
+    }
+
+    String actual = toCsvFile(rawDataAll, tProfile, csvSplitBy);
+
+    log.info(actual);
+
+    assertEquals(expected, actual);
+  }
+
+  private TProfile getTProfile(String fileName, String csvSplitBy, boolean compression) {
     TProfile tProfile;
     try {
       tProfile = fStore.loadCsvTableMetadata(fileName, csvSplitBy,
@@ -84,18 +269,7 @@ public class FBase06CsvTest {
       throw new RuntimeException(e);
     }
 
-    String tableName = tProfile.getTableName();
-
-    fStore.putDataCsvBatch(tableName, fileName, csvSplitBy, 1);
-
-    String expected = readFile(fileName, Charset.defaultCharset());
-
-    List<List<Object>> rawDataAll = fStore.getRawDataAll(tableName);
-    String actual = toCsvFile(rawDataAll, tProfile, csvSplitBy);
-
-    log.info(fStore.getRawDataAll(tableName));
-
-    assertEquals(expected, actual);
+    return tProfile;
   }
 
   static String readFile(String path, Charset encoding) throws IOException {

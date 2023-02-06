@@ -2,12 +2,13 @@ package org.fbase.service.impl;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
+import org.fbase.sql.BatchResultSet;
+import org.fbase.sql.BatchResultSetImpl;
 import org.fbase.storage.Converter;
 import org.fbase.service.mapping.Mapper;
 import org.fbase.exception.SqlColMetadataException;
@@ -85,9 +86,11 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   @Override
-  public List<List<Object>> getRawDataAll(String tableName) {
+  public BatchResultSet getBatchResultSet(String tableName, int fetchSize) {
+    byte tableId = getTableId(tableName, metaModel);
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
-    return getRawData(tableName, cProfiles);
+    boolean compression = getTableCompression(tableName, metaModel);
+    return getBatchResultSet(tableName, tableId, compression, fetchSize, cProfiles);
   }
 
   private List<List<Object>> getRawData(String tableName, List<CProfile> cProfiles, long begin, long end) {
@@ -108,25 +111,14 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     return columnDataListOut;
   }
 
-  private List<List<Object>> getRawData(String tableName, List<CProfile> cProfiles) {
-    byte tableId = getTableId(tableName, metaModel);
-    boolean compression = getTableCompression(tableName, metaModel);
-    List<List<Object>> columnDataListLocal = new ArrayList<>();
+  private BatchResultSet getBatchResultSet(String tableName, byte tableId, boolean compression,
+      int fetchSize, List<CProfile> cProfiles) {
 
-    cProfiles.stream()
-        .sorted(Comparator.comparing(CProfile::getColId))
-        .toList()
-        .stream()
-        .filter(f -> f.getCsType().getSType() == SType.RAW)
-        .forEach(cProfile -> {
-          List<Object> columnData =
-              rawDAO.getColumnData(tableId, cProfile.getColId(), compression,
-                  cProfile.getCsType().getCType());
+    if (fetchSize <= 0) {
+      fetchSize = 1;
+    }
 
-          columnDataListLocal.add(cProfile.getColId(), columnData);
-        });
-
-    return transpose(columnDataListLocal);
+    return new BatchResultSetImpl(tableName, tableId, compression, fetchSize, cProfiles, rawDAO);
   }
 
   private CProfile getTsProfile(String tableName) {
@@ -229,26 +221,6 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         .key(key)
         .tail(tail)
         .keyCount(map).build());
-  }
-
-  public static <T> List<List<T>> transpose(List<List<T>> table) {
-    List<List<T>> ret = new ArrayList<List<T>>();
-    final int N = table.stream().mapToInt(List::size).max().orElse(-1);
-    Iterator[] iters = new Iterator[table.size()];
-
-    int i = 0;
-    for (List<T> col : table) {
-      iters[i++] = col.iterator();
-    }
-
-    for (i = 0; i < N; i++) {
-      List<T> col = new ArrayList<T>(iters.length);
-      for (Iterator it : iters) {
-        col.add(it.hasNext() ? (T) it.next() : null);
-      }
-      ret.add(col);
-    }
-    return ret;
   }
 
 }

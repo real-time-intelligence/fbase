@@ -12,8 +12,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.CompressType;
 import org.fbase.model.profile.cstype.CType;
@@ -149,15 +151,6 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
     }
   }
 
-  public String[] getStringFromList(List<String> list) {
-    String[] stringArray = new String[list.size()];
-    int index = 0;
-    for (String b : list) {
-      stringArray[index++] = b;
-    }
-    return stringArray;
-  }
-
   @Override
   public byte[] getRawByte(byte tableId, long key, int colIndex) {
     return this.primaryIndexDataColumn.get(
@@ -214,58 +207,136 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public List<Object> getColumnData(byte tableId, int colIndex, boolean compression, CType cType) {
+  public Entry<Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colIndex, CType cType,
+      boolean compression, int fetchSize, boolean isStarted,
+      Entry<Long, Integer> pointer, AtomicInteger fetchCounter) {
+
+    long maxKey = getMaxKey(tableId);
+
     List<Object> columnData = new ArrayList<>();
 
-    for (long i = 0; i <= getMaxKey(tableId); i++) {
-      RColumn rColumn =
-          this.primaryIndexDataColumn.get(
-              ColumnKey.builder().table(tableId).key(i).colIndex(colIndex).build());
+    boolean getNextPointer = false;
 
-      if (compression) {
-        if (CompressType.LONG.equals(rColumn.getCompressionType())) {
-          try {
-            long[] uncompressed = Snappy.uncompressLongArray(rColumn.getDataByte());
-            IntStream iRow = IntStream.range(0, uncompressed.length);
-            iRow.forEach(
-                iR -> columnData.add(String.valueOf(uncompressed[iR] == LONG_NULL ? "" : uncompressed[iR])));
-          } catch (IOException e) {
-            log.error(e);
-          }
-        } else if (CompressType.DOUBLE.equals(rColumn.getCompressionType())) {
-          try {
-            double[] uncompressed = Snappy.uncompressDoubleArray(rColumn.getDataByte());
-            IntStream iRow = IntStream.range(0, uncompressed.length);
-            iRow.forEach(iR -> columnData.add(
-                String.valueOf(uncompressed[iR] == DOUBLE_NULL ? "" : uncompressed[iR])));
-          } catch (IOException e) {
-            log.error(e);
-          }
-        } else if (CompressType.STRING.equals(rColumn.getCompressionType())) {
-          try {
-            int[] length = rColumn.getDataInt();
-            String uncompressString = Snappy.uncompressString(rColumn.getDataByte());
-            List<String> dataString = new ArrayList<>();
-            AtomicLong counter = new AtomicLong(0);
-            Arrays.stream(length)
-                .asLongStream()
-                .forEach(l -> dataString.add(
-                    uncompressString.substring((int) counter.get(), (int) (counter.addAndGet(l)))));
+    ColumnKey columnKeyBegin = ColumnKey.builder().table(tableId).key(pointer.getKey()).colIndex(0).build();
+    ColumnKey columnKeyEnd = ColumnKey.builder().table(tableId).key(Long.MAX_VALUE).colIndex(0).build();
+    EntityCursor<RMapping> cursor = doRangeQuery(this.primaryIndex, columnKeyBegin, true, columnKeyEnd, true);
 
-            String[] uncompressed = getStringFromList(dataString);
-            IntStream iRow = IntStream.range(0, uncompressed.length);
-            iRow.forEach(iR -> columnData.add(uncompressed[iR] == null ? "" : uncompressed[iR]));
-          } catch (IOException e) {
-            log.error(e);
+    try (cursor) {
+      RMapping columnKey;
+
+      while ((columnKey = cursor.next()) != null) {
+        RColumn rColumn =
+            this.primaryIndexDataColumn.get(
+                ColumnKey.builder().table(tableId).key(columnKey.getKey().getKey()).colIndex(colIndex).build());
+
+        if (getNextPointer) {
+          return Map.entry(Map.entry(rColumn.getColumnKey().getKey(), 0), columnData);
+        }
+
+        if (compression) {
+          int startPoint = isStarted ? 0 : pointer.getValue();
+
+          if (CompressType.LONG.equals(rColumn.getCompressionType())) {
+            try {
+              long[] uncompressed = Snappy.uncompressLongArray(rColumn.getDataByte());
+              int lengthByColumn = uncompressed.length;
+
+              for (int i = startPoint; i < lengthByColumn; i++) {
+                columnData.add(String.valueOf(uncompressed[i] == LONG_NULL ? "" : uncompressed[i]));
+
+                fetchCounter.decrementAndGet();
+                if (fetchCounter.get() == 0) {
+                  if (i == lengthByColumn - 1) {
+                    getNextPointer = true;
+                  } else {
+                    return Map.entry(Map.entry(rColumn.getColumnKey().getKey(), i + 1), columnData);
+                  }
+                }
+              }
+            } catch (IOException e) {
+              log.error(e);
+            }
+          } else if (CompressType.DOUBLE.equals(rColumn.getCompressionType())) {
+            try {
+              double[] uncompressed = Snappy.uncompressDoubleArray(rColumn.getDataByte());
+              int lengthByColumn = uncompressed.length;
+
+              for (int i = startPoint; i < lengthByColumn; i++) {
+                columnData.add(String.valueOf(uncompressed[i] == DOUBLE_NULL ? "" : uncompressed[i]));
+                fetchCounter.decrementAndGet();
+                if (fetchCounter.get() == 0) {
+                  if (i == lengthByColumn - 1) {
+                    getNextPointer = true;
+                  } else {
+                    return Map.entry(Map.entry(rColumn.getColumnKey().getKey(), i + 1), columnData);
+                  }
+                }
+              }
+            } catch (IOException e) {
+              log.error(e);
+            }
+          } else if (CompressType.STRING.equals(rColumn.getCompressionType())) {
+            try {
+              int[] length = rColumn.getDataInt();
+              String uncompressString = Snappy.uncompressString(rColumn.getDataByte());
+              List<String> dataString = new ArrayList<>();
+              AtomicLong counter = new AtomicLong(0);
+              Arrays.stream(length)
+                  .asLongStream()
+                  .forEach(l -> dataString.add(
+                      uncompressString.substring((int) counter.get(), (int) (counter.addAndGet(l)))));
+
+              String[] uncompressed = getStringFromList(dataString);
+              int lengthByColumn = uncompressed.length;
+
+              for (int i = startPoint; i < lengthByColumn; i++) {
+                columnData.add(uncompressed[i] == null ? "" : uncompressed[i]);
+                fetchCounter.decrementAndGet();
+                if (fetchCounter.get() == 0) {
+                  if (i == lengthByColumn - 1) {
+                    getNextPointer = true;
+                  } else {
+                    return Map.entry(Map.entry(rColumn.getColumnKey().getKey(), i + 1), columnData);
+                  }
+                }
+              }
+            } catch (IOException e) {
+              log.error(e);
+            }
+          }
+        } else {
+          int startPoint = isStarted ? 0 : pointer.getValue();
+          int length = getLengthByColumn(rColumn, cType);
+
+          for (int i = startPoint; i < length; i++) {
+            columnData.add(getStrValueForCell(rColumn, cType, i));
+            fetchCounter.decrementAndGet();
+            if (fetchCounter.get() == 0) {
+              if (i == length - 1) {
+                getNextPointer = true;
+              } else {
+                return Map.entry(Map.entry(rColumn.getColumnKey().getKey(), i + 1), columnData);
+              }
+            }
           }
         }
-      } else {
-        IntStream iRow = IntStream.range(0, getLengthByColumn(rColumn, cType));
-        iRow.forEach(iR -> columnData.add(getStrValueForCell(rColumn, cType, iR)));
       }
+    } catch (Exception e) {
+      log.error(e.getMessage());
     }
 
-    return columnData;
+    cursor.close();
+
+    return Map.entry(Map.entry(maxKey + 1, 0), columnData);
+  }
+
+  public String[] getStringFromList(List<String> list) {
+    String[] stringArray = new String[list.size()];
+    int index = 0;
+    for (String b : list) {
+      stringArray[index++] = b;
+    }
+    return stringArray;
   }
 
   public String getStrValueForCell(RColumn rColumn, CType cType, int iRow) {
@@ -276,8 +347,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
     } else if (CType.FLOAT == cType) {
       return String.valueOf(rColumn.getDataFloat()[iRow] == FLOAT_NULL ? "" : rColumn.getDataFloat()[iRow]);
     } else if (CType.DOUBLE == cType) {
-      return String.valueOf(
-          rColumn.getDataDouble()[iRow] == DOUBLE_NULL ? "" : rColumn.getDataDouble()[iRow]);
+      return String.valueOf(rColumn.getDataDouble()[iRow] == DOUBLE_NULL ? "" : rColumn.getDataDouble()[iRow]);
     } else if (CType.STRING == cType) {
       return rColumn.getDataString()[iRow] == null ? "" : rColumn.getDataString()[iRow];
     } else {

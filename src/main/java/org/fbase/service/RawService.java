@@ -4,6 +4,7 @@ import java.util.List;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
+import org.fbase.sql.BatchResultSet;
 
 public interface RawService {
 
@@ -14,6 +15,5 @@ public interface RawService {
 
   List<List<Object>> getRawDataByColumn(String tableName, CProfile cProfile, long begin, long end);
 
-  List<List<Object>> getRawDataAll(String tableName);
-
+  BatchResultSet getBatchResultSet(String tableName, int fetchSize);
 }

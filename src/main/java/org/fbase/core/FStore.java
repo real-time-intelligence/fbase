@@ -16,6 +16,7 @@ import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
+import org.fbase.sql.BatchResultSet;
 
 /**
  * Main API for data management
@@ -142,11 +143,12 @@ public interface FStore {
   List<List<Object>> getRawDataAll(String tableName, long begin, long end);
 
   /**
-   * Get list of raw data
+   * Get BatchResultSet
    * @param tableName - Table name
-   * @return {@literal List<List<Object>>} - list raw data
+   * @param fetchSize - the number of rows to fetch
+   * @return {@literal BatchResultSet} - batch result set
    */
-  List<List<Object>> getRawDataAll(String tableName);
+  BatchResultSet getBatchResultSet(String tableName, int fetchSize);
 
   /**
    * Get last timestamp

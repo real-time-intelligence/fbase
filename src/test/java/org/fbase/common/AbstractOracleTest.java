@@ -46,7 +46,6 @@ public abstract class AbstractOracleTest implements JdbcSource {
   @BeforeAll
   public void initBackendAndLoad() {
     try {
-      System.out.println(BERKLEY_DB_DIR);
       berkleyDB = new BerkleyDB(BERKLEY_DB_DIR, false);
 
       fBaseConfig = new FBaseConfig().setConfigDirectory(BERKLEY_DB_DIR).setBlockSize(16);

@@ -9,6 +9,7 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -22,7 +23,6 @@ import org.fbase.model.profile.cstype.CType;
 import org.fbase.storage.RawDAO;
 
 public abstract class CommonServiceApi {
-
   protected int getHistogramValue(int iR, int[][] histogram, long[] timestamps) {
     int curValue = 0;
 
@@ -347,5 +347,25 @@ public abstract class CommonServiceApi {
     }
 
     return new String[0];
+  }
+
+  public static <T> List<List<T>> transpose(List<List<T>> table) {
+    List<List<T>> ret = new ArrayList<List<T>>();
+    final int N = table.stream().mapToInt(List::size).max().orElse(-1);
+    Iterator[] iters = new Iterator[table.size()];
+
+    int i = 0;
+    for (List<T> col : table) {
+      iters[i++] = col.iterator();
+    }
+
+    for (i = 0; i < N; i++) {
+      List<T> col = new ArrayList<T>(iters.length);
+      for (Iterator it : iters) {
+        col.add(it.hasNext() ? (T) it.next() : null);
+      }
+      ret.add(col);
+    }
+    return ret;
   }
 }

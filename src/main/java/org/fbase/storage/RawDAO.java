@@ -2,6 +2,9 @@ package org.fbase.storage;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.fbase.model.profile.cstype.CType;
 
 public interface RawDAO {
@@ -42,7 +45,9 @@ public interface RawDAO {
 
   List<Long> getListKeys(byte tableId, long begin, long end);
 
-  List<Object> getColumnData(byte tableId, int colIndex, boolean compression, CType cType);
+  Map.Entry<Map.Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colIndex, CType cType,
+      boolean compression, int fetchSize, boolean isStarted,
+      Entry<Long, Integer> pointer, AtomicInteger fetchCounter);
 
   long getPreviousKey(byte tableId, long begin);
 
