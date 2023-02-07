@@ -114,10 +114,6 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   private BatchResultSet getBatchResultSet(String tableName, byte tableId, boolean compression,
       int fetchSize, List<CProfile> cProfiles) {
 
-    if (fetchSize <= 0) {
-      fetchSize = 1;
-    }
-
     return new BatchResultSetImpl(tableName, tableId, compression, fetchSize, cProfiles, rawDAO);
   }
 

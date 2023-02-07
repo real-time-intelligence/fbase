@@ -347,6 +347,11 @@ public class BdbStore implements FStore {
       throw new SqlColMetadataException("Empty sql column metadata for FBase instance..");
     }
 
+    if (fBaseBatchSize <= 0) {
+      log.warn("Batch size can not be less or equal 0. Set to the default value of 1");
+      fBaseBatchSize = 1;
+    }
+
     this.storeService.putDataCsvBatch(tableName, fileName, csvSplitBy, fBaseBatchSize);
   }
 
@@ -406,6 +411,11 @@ public class BdbStore implements FStore {
 
   @Override
   public BatchResultSet getBatchResultSet(String tableName, int fetchSize) {
+    if (fetchSize <= 0) {
+      log.warn("Fetch size can not be less or equal 0. Set to the default value of 1");
+      fetchSize = 1;
+    }
+
     return rawService.getBatchResultSet(tableName, fetchSize);
   }
 

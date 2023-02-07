@@ -215,6 +215,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
 
     List<Object> columnData = new ArrayList<>();
 
+    boolean isPointerFirst = true;
     boolean getNextPointer = false;
 
     ColumnKey columnKeyBegin = ColumnKey.builder().table(tableId).key(pointer.getKey()).colIndex(0).build();
@@ -234,7 +235,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
         }
 
         if (compression) {
-          int startPoint = isStarted ? 0 : pointer.getValue();
+          int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
           if (CompressType.LONG.equals(rColumn.getCompressionType())) {
             try {
@@ -304,21 +305,25 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
               log.error(e);
             }
           }
+
+          if (isPointerFirst) isPointerFirst = false;
         } else {
-          int startPoint = isStarted ? 0 : pointer.getValue();
+          int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
           int length = getLengthByColumn(rColumn, cType);
 
           for (int i = startPoint; i < length; i++) {
             columnData.add(getStrValueForCell(rColumn, cType, i));
-            fetchCounter.decrementAndGet();
+                fetchCounter.decrementAndGet();
             if (fetchCounter.get() == 0) {
-              if (i == length - 1) {
+                if (i == length - 1) {
                 getNextPointer = true;
               } else {
                 return Map.entry(Map.entry(rColumn.getColumnKey().getKey(), i + 1), columnData);
               }
             }
           }
+
+          if (isPointerFirst) isPointerFirst = false;
         }
       }
     } catch (Exception e) {

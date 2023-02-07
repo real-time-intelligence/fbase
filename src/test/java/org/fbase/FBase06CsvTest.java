@@ -211,11 +211,25 @@ public class FBase06CsvTest {
     assertDataCsvBatchTest(false, 3, false);
   }
 
+  @Test
+  public void putDataBatchTwoFetchDynamicTest() throws SqlColMetadataException, IOException {
+    putDataCsvBatchResultSetLarge(false, 2);
+    assertDataCsvBatchTestLarge(false, 10, false);
+  }
+
+  private void putDataCsvBatchResultSetLarge(boolean compression, int fBaseBatchSize) throws SqlColMetadataException {
+    putDataCsvBatchResultSet("file-l.csv", compression, fBaseBatchSize);
+  }
+
   private void putDataCsvBatchResultSet(boolean compression, int fBaseBatchSize) throws SqlColMetadataException {
+    putDataCsvBatchResultSet("file.csv", compression, fBaseBatchSize);
+  }
+
+  private void putDataCsvBatchResultSet(String fileNameCsv, boolean compression, int fBaseBatchSize) throws SqlColMetadataException {
     String csvSplitBy = ",";
 
     String fileName = new File("").getAbsolutePath()  + FILE_SEPARATOR +
-        Paths.get("src","test", "resources", "csv", "file.csv");
+        Paths.get("src","test", "resources", "csv", fileNameCsv);
 
     TProfile tProfile = getTProfile(fileName, csvSplitBy, compression);
 
@@ -224,11 +238,19 @@ public class FBase06CsvTest {
     fStore.putDataCsvBatch(tableName, fileName, csvSplitBy, fBaseBatchSize);
   }
 
+  private void assertDataCsvBatchTestLarge(boolean compression, int fetchSize, boolean eventFetchSize) throws IOException {
+    assertDataCsvBatchTest("file-l.csv", compression, fetchSize, eventFetchSize);
+  }
+
   private void assertDataCsvBatchTest(boolean compression, int fetchSize, boolean eventFetchSize) throws IOException {
+    assertDataCsvBatchTest("file.csv", compression, fetchSize, eventFetchSize);
+  }
+
+  private void assertDataCsvBatchTest(String fileNameCsv, boolean compression, int fetchSize, boolean eventFetchSize) throws IOException {
     String csvSplitBy = ",";
 
     String fileName = new File("").getAbsolutePath()  + FILE_SEPARATOR +
-        Paths.get("src","test", "resources", "csv", "file.csv");
+        Paths.get("src","test", "resources", "csv", fileNameCsv);
 
     TProfile tProfile = getTProfile(fileName, csvSplitBy, compression);
 

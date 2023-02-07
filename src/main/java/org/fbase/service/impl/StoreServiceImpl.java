@@ -453,8 +453,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
               colRawDataEnumCount, rawDataEnumMapping, rawDataEnum, rawDataEnumEColumn,
               histograms);
 
-          log.info("Flush for iRow: " + iR);
-
           iRow.set(0);
           iR = iRow.getAndAdd(1);
 
@@ -646,8 +644,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
               colRawDataLongCount, rawDataLongMapping, rawDataLong,
               colRawDataDoubleCount, rawDataDoubleMapping, rawDataDouble,
               colRawDataStringCount, rawDataStringMapping, rawDataString);
-
-          log.info("Flush for iRow: " + iR);
 
           iRow.set(0);
           iRow.getAndAdd(1);

@@ -33,7 +33,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 @Disabled
-public class FBaseCsvTest {
+public class FBaseCsvBenchmarkTest {
   private FStore fStore;
   private BerkleyDB berkleyDB;
   private String fileName;
@@ -77,7 +77,6 @@ public class FBaseCsvTest {
   public void selectData() {
     log.info(LocalDateTime.now());
     int resultSetSize999 = getBatchResultSet(999);
-    System.out.println(resultSetSize999);
     log.info(LocalDateTime.now());
     int resultSetSize1001 = getBatchResultSet(1001);
     log.info(LocalDateTime.now());
