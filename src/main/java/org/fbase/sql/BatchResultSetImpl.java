@@ -16,7 +16,6 @@ import org.fbase.storage.RawDAO;
 public class BatchResultSetImpl implements BatchResultSet {
   private final String tableName;
   private final byte tableId;
-  private boolean compression;
   private final int fetchSize;
   private final List<CProfile> cProfiles;
 
@@ -38,11 +37,9 @@ public class BatchResultSetImpl implements BatchResultSet {
    * @param cProfiles list of column profiles
    * @param rawDAO DAO for raw data
    */
-  public BatchResultSetImpl(String tableName, byte tableId, boolean compression, int fetchSize,
-      List<CProfile> cProfiles, RawDAO rawDAO) {
+  public BatchResultSetImpl(String tableName, byte tableId, int fetchSize, List<CProfile> cProfiles, RawDAO rawDAO) {
     this.tableName = tableName;
     this.tableId = tableId;
-    this.compression = compression;
     this.fetchSize = fetchSize;
     this.cProfiles = cProfiles;
     this.rawDAO = rawDAO;
@@ -64,7 +61,8 @@ public class BatchResultSetImpl implements BatchResultSet {
         .forEach(cProfile -> {
           AtomicInteger fetchCounter = new AtomicInteger(fetchSize);
           Map.Entry<Map.Entry<Long, Integer>, List<Object>> columnData =
-              rawDAO.getColumnData(tableId, cProfile.getColId(), cProfile.getCsType().getCType(), compression, fetchSize, isStarted, pointer, fetchCounter);
+              rawDAO.getColumnData(tableId, cProfile.getColId(), cProfile.getCsType().getCType(),
+                  fetchSize, isStarted, pointer, fetchCounter);
 
           pointerLocal.set(columnData.getKey());
 

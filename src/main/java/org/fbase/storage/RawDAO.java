@@ -25,7 +25,7 @@ public interface RawDAO {
 
   void putEnum(byte tableId, long key, int[] mapping, byte[][] data);
 
-  <T> void putCompressed(byte tableId, long key,
+  void putCompressed(byte tableId, long key,
       int colRawDataLongCount, List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
       int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
       int colRawDataStringCount, List<Integer> rawDataStringMapping, List<List<String>> rawDataString)
@@ -46,8 +46,7 @@ public interface RawDAO {
   List<Long> getListKeys(byte tableId, long begin, long end);
 
   Map.Entry<Map.Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colIndex, CType cType,
-      boolean compression, int fetchSize, boolean isStarted,
-      Entry<Long, Integer> pointer, AtomicInteger fetchCounter);
+      int fetchSize, boolean isStarted, Entry<Long, Integer> pointer, AtomicInteger fetchCounter);
 
   long getPreviousKey(byte tableId, long begin);
 

@@ -1,7 +1,6 @@
 package org.fbase.service.impl;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,8 +88,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   public BatchResultSet getBatchResultSet(String tableName, int fetchSize) {
     byte tableId = getTableId(tableName, metaModel);
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
-    boolean compression = getTableCompression(tableName, metaModel);
-    return getBatchResultSet(tableName, tableId, compression, fetchSize, cProfiles);
+    return getBatchResultSet(tableName, tableId, fetchSize, cProfiles);
   }
 
   private List<List<Object>> getRawData(String tableName, List<CProfile> cProfiles, long begin, long end) {
@@ -111,10 +109,9 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     return columnDataListOut;
   }
 
-  private BatchResultSet getBatchResultSet(String tableName, byte tableId, boolean compression,
-      int fetchSize, List<CProfile> cProfiles) {
+  private BatchResultSet getBatchResultSet(String tableName, byte tableId, int fetchSize, List<CProfile> cProfiles) {
 
-    return new BatchResultSetImpl(tableName, tableId, compression, fetchSize, cProfiles, rawDAO);
+    return new BatchResultSetImpl(tableName, tableId, fetchSize, cProfiles, rawDAO);
   }
 
   private CProfile getTsProfile(String tableName) {
