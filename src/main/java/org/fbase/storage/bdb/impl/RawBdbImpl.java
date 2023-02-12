@@ -115,10 +115,30 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
 
   @Override
   public void putCompressed(byte tableId, long key,
-      int colRawDataLongCount, List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
-      int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
-      int colRawDataStringCount, List<Integer> rawDataStringMapping, List<List<String>> rawDataString)
+      List<Integer> rawDataTimeStampMapping, List<List<Long>> rawDataTimestamp,
+      List<Integer> rawDataIntMapping, List<List<Integer>> rawDataInt,
+      List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
+      List<Integer> rawDataFloatMapping, List<List<Float>> rawDataFloat,
+      List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
+      List<Integer> rawDataStringMapping, List<List<String>> rawDataString,
+      List<Integer> rawDataEnumMapping, List<List<Byte>> rawDataEnum)
       throws IOException {
+
+    for (int i = 0; i < rawDataTimeStampMapping.size(); i++) {
+      this.primaryIndexDataColumn.putNoOverwrite(
+          RColumn.builder().columnKey(
+                  ColumnKey.builder().table(tableId).key(key).colIndex(rawDataTimeStampMapping.get(i)).build())
+              .compressionType(CompressType.LONG)
+              .dataByte(Snappy.compress(rawDataTimestamp.get(i).stream().mapToLong(j -> j).toArray())).build());
+    }
+
+    for (int i = 0; i < rawDataIntMapping.size(); i++) {
+      this.primaryIndexDataColumn.putNoOverwrite(
+          RColumn.builder().columnKey(
+                  ColumnKey.builder().table(tableId).key(key).colIndex(rawDataIntMapping.get(i)).build())
+              .compressionType(CompressType.INT)
+              .dataByte(Snappy.compress(rawDataInt.get(i).stream().mapToInt(j -> j).toArray())).build());
+    }
 
     for (int i = 0; i < rawDataLongMapping.size(); i++) {
       this.primaryIndexDataColumn.putNoOverwrite(
@@ -126,6 +146,15 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
                   ColumnKey.builder().table(tableId).key(key).colIndex(rawDataLongMapping.get(i)).build())
               .compressionType(CompressType.LONG)
               .dataByte(Snappy.compress(rawDataLong.get(i).stream().mapToLong(j -> j).toArray())).build());
+    }
+
+    for (int i = 0; i < rawDataFloatMapping.size(); i++) {
+      this.primaryIndexDataColumn.putNoOverwrite(
+          RColumn.builder().columnKey(
+                  ColumnKey.builder().table(tableId).key(key).colIndex(rawDataFloatMapping.get(i)).build())
+              .compressionType(CompressType.FLOAT)
+              .dataByte(Snappy.compress(rawDataFloat.get(i).stream().mapToDouble(j -> j).toArray()))
+              .build());
     }
 
     for (int i = 0; i < rawDataDoubleMapping.size(); i++) {
@@ -149,42 +178,131 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
               .dataInt(lengthArray)
               .dataByte(Snappy.compress(String.join("", rawDataString.get(i)))).build());
     }
+
+    for (int i = 0; i < rawDataEnumMapping.size(); i++) {
+      this.primaryIndexDataColumn.putNoOverwrite(
+          RColumn.builder().columnKey(
+                  ColumnKey.builder().table(tableId).key(key).colIndex(rawDataEnumMapping.get(i)).build())
+              .compressionType(CompressType.BYTE)
+              .dataByte(Snappy.compress(getByteFromList(rawDataEnum.get(i))))
+              .build());
+    }
   }
 
   @Override
   public byte[] getRawByte(byte tableId, long key, int colIndex) {
-    return this.primaryIndexDataColumn.get(
-        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build()).getDataByte();
+    RColumn rColumn = this.primaryIndexDataColumn.get(
+        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build());
+
+    if (isNotBlockCompressed(rColumn)) {
+      return rColumn.getDataByte();
+    }
+
+    try {
+      return Snappy.uncompress(rColumn.getDataByte());
+    } catch (Exception e) {
+      log.catching(e);
+    }
+
+    return new byte[0];
   }
 
   @Override
   public int[] getRawInt(byte tableId, long key, int colIndex) {
-    return this.primaryIndexDataColumn.get(
-        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build()).getDataInt();
+    RColumn rColumn = this.primaryIndexDataColumn.get(
+        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build());
+
+    if (isNotBlockCompressed(rColumn)) {
+      return rColumn.getDataInt();
+    }
+
+    try {
+      return Snappy.uncompressIntArray(rColumn.getDataByte());
+    } catch (Exception e) {
+      log.catching(e);
+    }
+
+    return new int[0];
   }
 
   @Override
   public long[] getRawLong(byte tableId, long key, int colIndex) {
-    return this.primaryIndexDataColumn.get(
-        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build()).getDataLong();
+    RColumn rColumn = this.primaryIndexDataColumn.get(
+        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build());
+
+    if (isNotBlockCompressed(rColumn)) {
+      return rColumn.getDataLong();
+    }
+
+    try {
+      return Snappy.uncompressLongArray(rColumn.getDataByte());
+    } catch (Exception e) {
+      log.catching(e);
+    }
+
+    return new long[0];
   }
 
   @Override
   public float[] getRawFloat(byte tableId, long key, int colIndex) {
-    return this.primaryIndexDataColumn.get(
-        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build()).getDataFloat();
+    RColumn rColumn = this.primaryIndexDataColumn.get(
+        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build());
+
+    if (isNotBlockCompressed(rColumn)) {
+      return rColumn.getDataFloat();
+    }
+
+    try {
+      return convertDoubleArrayToFloatArray(Snappy.uncompressDoubleArray(rColumn.getDataByte()));
+    } catch (Exception e) {
+      log.catching(e);
+    }
+
+    return new float[0];
   }
 
   @Override
   public double[] getRawDouble(byte tableId, long key, int colIndex) {
-    return this.primaryIndexDataColumn.get(
-        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build()).getDataDouble();
+    RColumn rColumn = this.primaryIndexDataColumn.get(
+        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build());
+
+    if (isNotBlockCompressed(rColumn)) {
+      return rColumn.getDataDouble();
+    }
+
+    try {
+      return Snappy.uncompressDoubleArray(rColumn.getDataByte());
+    } catch (Exception e) {
+      log.catching(e);
+    }
+
+    return new double[0];
   }
 
   @Override
   public String[] getRawString(byte tableId, long key, int colIndex) {
-    return this.primaryIndexDataColumn.get(
-        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build()).getDataString();
+    RColumn rColumn = this.primaryIndexDataColumn.get(
+        ColumnKey.builder().table(tableId).key(key).colIndex(colIndex).build());
+
+    if (isNotBlockCompressed(rColumn)) {
+      return rColumn.getDataString();
+    }
+
+    try {
+      String uncompressString = Snappy.uncompressString(rColumn.getDataByte());
+      List<String> dataString = new ArrayList<>();
+      AtomicLong counter = new AtomicLong(0);
+      Arrays.stream(rColumn.getDataInt())
+          .asLongStream()
+          .forEach(l ->
+              dataString.add(uncompressString.substring((int) counter.get(), (int) (counter.addAndGet(l)))));
+
+      return getStringFromList(dataString);
+    } catch (Exception e) {
+      log.catching(e);
+    }
+
+    return new String[0];
   }
 
   @Override

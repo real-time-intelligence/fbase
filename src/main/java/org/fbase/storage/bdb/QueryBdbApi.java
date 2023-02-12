@@ -3,6 +3,9 @@ package org.fbase.storage.bdb;
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.persist.EntityCursor;
 import com.sleepycat.persist.EntityIndex;
+import java.util.List;
+import org.fbase.metadata.CompressType;
+import org.fbase.storage.bdb.entity.raw.RColumn;
 
 public abstract class QueryBdbApi {
 
@@ -20,4 +23,26 @@ public abstract class QueryBdbApi {
         toKey,
         toInclusive);
   }
+
+  public boolean isNotBlockCompressed(RColumn rColumn) {
+    return rColumn.getCompressionType() == null || CompressType.NONE.equals(rColumn.getCompressionType());
+  }
+
+  public static float[] convertDoubleArrayToFloatArray(double[] input) {
+    float[] result = new float[input.length];
+    for (int i = 0; i < input.length; i++) {
+      result[i] = (float) input[i];
+    }
+    return result;
+  }
+
+  public byte[] getByteFromList(List<Byte> list) {
+    byte[] byteArray = new byte[list.size()];
+    int index = 0;
+    for (byte b : list) {
+      byteArray[index++] = b;
+    }
+    return byteArray;
+  }
+
 }

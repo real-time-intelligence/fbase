@@ -26,9 +26,13 @@ public interface RawDAO {
   void putEnum(byte tableId, long key, int[] mapping, byte[][] data);
 
   void putCompressed(byte tableId, long key,
-      int colRawDataLongCount, List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
-      int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
-      int colRawDataStringCount, List<Integer> rawDataStringMapping, List<List<String>> rawDataString)
+      List<Integer> rawDataTimeStampMapping, List<List<Long>> rawDataTimestamp,
+      List<Integer> rawDataIntMapping, List<List<Integer>> rawDataInt,
+      List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
+      List<Integer> rawDataFloatMapping, List<List<Float>> rawDataFloat,
+      List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
+      List<Integer> rawDataStringMapping, List<List<String>> rawDataString,
+      List<Integer> rawDataEnumMapping, List<List<Byte>> rawDataEnum)
       throws IOException;
 
   byte[] getRawByte(byte tableId, long key, int colIndex);

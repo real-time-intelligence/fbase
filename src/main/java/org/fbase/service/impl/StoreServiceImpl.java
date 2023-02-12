@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.storage.Converter;
@@ -75,6 +77,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   public void putDataDirect(String tableName, List<List<Object>> data) {
     byte tableId = getTableId(tableName, metaModel);
     int rowCount = data.get(0).size();
+
+    boolean compression = getTableCompression(tableName, metaModel);
 
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
     int colCount = cProfiles.size();
@@ -202,7 +206,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
     long key = rawDataTimestamp[0][0];
 
-    this.storeData(tableId, key,
+    this.storeData(tableId, compression, key,
         rawDataTimeStampMapping, rawDataTimestamp,
         colRawDataIntCount, rawDataIntMapping, rawDataInt,
         colRawDataLongCount, rawDataLongMapping, rawDataLong,
@@ -216,6 +220,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   @Override
   public long putDataJdbc(String tableName, ResultSet resultSet) {
     byte tableId = getTableId(tableName, metaModel);
+    boolean compression = getTableCompression(tableName, metaModel);
 
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
     int colCount = cProfiles.size();
@@ -356,7 +361,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
       long key = rawDataTimestamp.get(0).get(0);
 
-      this.storeData(tableId, key,
+      this.storeData(tableId, compression, key,
           rawDataTimeStampMapping, getArrayLong(rawDataTimestamp),
           colRawDataIntCount, rawDataIntMapping, getArrayInt(rawDataInt),
           colRawDataLongCount, rawDataLongMapping, getArrayLong(rawDataLong),
@@ -378,6 +383,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   @Override
   public void putDataJdbcBatch(String tableName, ResultSet resultSet, Integer fBaseBatchSize) {
     byte tableId = getTableId(tableName, metaModel);
+    boolean compression = getTableCompression(tableName, metaModel);
 
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
     int colCount = cProfiles.size();
@@ -443,7 +449,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
           long key = rawDataTimestamp[0][0];
 
-          this.storeData(tableId, key,
+          this.storeData(tableId, compression, key,
               rawDataTimeStampMapping, rawDataTimestamp,
               colRawDataIntCount, rawDataIntMapping, rawDataInt,
               colRawDataLongCount, rawDataLongMapping, rawDataLong,
@@ -578,7 +584,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
         log.info("Final flush for iRow: " + iRow.get());
 
-        this.storeData(tableId, key,
+        this.storeData(tableId, compression, key,
             rawDataTimeStampMapping, copyOfLong(rawDataTimestamp, row),
             colRawDataIntCount, rawDataIntMapping, copyOfInt(rawDataInt, row),
             colRawDataLongCount, rawDataLongMapping, copyOfLong(rawDataLong, row),
@@ -754,7 +760,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     return histograms;
   }
 
-  private void storeData(byte tableId, long key,
+  private void storeData(byte tableId, boolean compression, long key,
       List<Integer> rawDataTimeStampMapping, long[][] rawDataTimestamp,
       int colRawDataIntCount, List<Integer> rawDataIntMapping, int[][] rawDataInt,
       int colRawDataLongCount, List<Integer> rawDataLongMapping, long[][] rawDataLong,
@@ -767,6 +773,50 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
     /* Store data in RMapping entity */
     this.rawDAO.putKey(tableId, key);
+
+    if (compression) {
+      try {
+        rawDAO.putCompressed(tableId, key,
+            rawDataTimeStampMapping, Arrays.stream(rawDataTimestamp)
+                .map(ia -> Arrays.stream(ia)
+                    .boxed()
+                    .collect(Collectors.toList()))
+                .collect(Collectors.toList()),
+            rawDataIntMapping, Arrays.stream(rawDataInt)
+                .map(ia -> Arrays.stream(ia)
+                    .boxed()
+                    .collect(Collectors.toList()))
+                .collect(Collectors.toList()),
+            rawDataLongMapping, Arrays.stream(rawDataLong)
+                .map(ia -> Arrays.stream(ia)
+                    .boxed()
+                    .collect(Collectors.toList()))
+                .collect(Collectors.toList()),
+            rawDataFloatMapping, convert2DFloatArrayToList(rawDataFloat),
+            rawDataDoubleMapping, Arrays.stream(rawDataDouble)
+                .map(ia -> Arrays.stream(ia)
+                    .boxed()
+                    .collect(Collectors.toList()))
+                .collect(Collectors.toList()),
+            rawDataStringMapping, Arrays.stream(rawDataString)
+                .map(ia -> Arrays.stream(ia)
+                    .collect(Collectors.toList()))
+                .collect(Collectors.toList()),
+            rawDataEnumMapping, convert2DByteArrayToList(rawDataEnum));
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+
+      /* Store enum raw data metadata */
+      if (colRawDataEnumCount > 0) {
+        this.storeEnum(tableId, key, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn);
+      }
+
+      /* Store metadata entity */
+      this.metadataDAO.put(tableId, key, getByteFromList(new ArrayList<>()), getByteFromList(new ArrayList<>()), histograms);
+
+      return;
+    }
 
     /* Store timestamp raw data entity */
     this.rawDAO.putLong(tableId, key, rawDataTimeStampMapping.stream().mapToInt(i -> i).toArray(), rawDataTimestamp);
@@ -783,10 +833,22 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     if (colRawDataStringCount > 0)
       this.rawDAO.putString(tableId, key, rawDataStringMapping.stream().mapToInt(i -> i).toArray(), rawDataString);
 
-    /* Store enum raw data entity */
+    /* Store enum raw data metadata and entity */
     if (colRawDataEnumCount > 0) {
       this.rawDAO.putEnum(tableId, key, rawDataEnumMapping.stream().mapToInt(i -> i).toArray(), rawDataEnum);
 
+      this.storeEnum(tableId, key, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn);
+    }
+
+    /* Store metadata entity */
+    this.metadataDAO.put(tableId, key, getByteFromList(new ArrayList<>()), getByteFromList(new ArrayList<>()), histograms);
+  }
+
+  private void storeEnum(byte tableId, long key,
+      int colRawDataEnumCount, List<Integer> rawDataEnumMapping,
+      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn) {
+
+    if (colRawDataEnumCount > 0) {
       for (int i = 0; i < rawDataEnumMapping.size(); i++) {
         int colId = rawDataEnumMapping.get(i);
 
@@ -800,8 +862,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       }
     }
 
-    /* Store metadata entity */
-    this.metadataDAO.put(tableId, key, getByteFromList(new ArrayList<>()), getByteFromList(new ArrayList<>()), histograms);
   }
 
   private void storeData(byte tableId, boolean compression, long key,
@@ -816,9 +876,13 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     if (compression) {
       try {
         rawDAO.putCompressed(tableId, key,
-            colRawDataLongCount, rawDataLongMapping, rawDataLong,
-            colRawDataDoubleCount, rawDataDoubleMapping, rawDataDouble,
-            colRawDataStringCount, rawDataStringMapping, rawDataString);
+            Collections.emptyList(), Collections.emptyList(),
+            Collections.emptyList(), Collections.emptyList(),
+            rawDataLongMapping, rawDataLong,
+            Collections.emptyList(), Collections.emptyList(),
+            rawDataDoubleMapping, rawDataDouble,
+            rawDataStringMapping, rawDataString,
+            Collections.emptyList(), Collections.emptyList());
       } catch (IOException e) {
         throw new RuntimeException(e);
       }

@@ -62,6 +62,30 @@ public abstract class CommonServiceApi {
         .collect(Collectors.toList());
   }
 
+  public static List<List<Float>> convert2DFloatArrayToList(float[][] input) {
+    List<List<Float>> result = new ArrayList<>();
+    for (float[] innerArray : input) {
+      List<Float> innerList = new ArrayList<>();
+      for (float value : innerArray) {
+        innerList.add(value);
+      }
+      result.add(innerList);
+    }
+    return result;
+  }
+
+  public static List<List<Byte>> convert2DByteArrayToList(byte[][] input) {
+    List<List<Byte>> result = new ArrayList<>();
+    for (byte[] innerArray : input) {
+      List<Byte> innerList = new ArrayList<>();
+      for (byte value : innerArray) {
+        innerList.add(value);
+      }
+      result.add(innerList);
+    }
+    return result;
+  }
+
   public int[][] getArrayFromMap(Map<Integer, Integer> map) {
     int[][] array = new int[map.size()][2];
     int count = 0;

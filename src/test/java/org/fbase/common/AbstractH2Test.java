@@ -137,6 +137,7 @@ public abstract class AbstractH2Test implements JdbcSource {
     try {
       SProfile sProfile = new SProfile();
       sProfile.setTableName(tableName);
+      sProfile.setCompression(true);
       sProfile.setCsTypeMap(new HashMap<>());
 
       csTypeMap.forEach((k,v) -> {
@@ -183,6 +184,7 @@ public abstract class AbstractH2Test implements JdbcSource {
     try {
       SProfile sProfile = new SProfile();
       sProfile.setTableName(tableName);
+      sProfile.setCompression(true);
       sProfile.setCsTypeMap(new HashMap<>());
 
       csTypeMap.forEach((k,v) -> {
