@@ -202,7 +202,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
     long key = rawDataTimestamp[0][0];
 
-    this.storeData(tableId, cProfiles, key,
+    this.storeData(tableId, key,
         rawDataTimeStampMapping, rawDataTimestamp,
         colRawDataIntCount, rawDataIntMapping, rawDataInt,
         colRawDataLongCount, rawDataLongMapping, rawDataLong,
@@ -356,7 +356,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
       long key = rawDataTimestamp.get(0).get(0);
 
-      this.storeData(tableId, cProfiles, key,
+      this.storeData(tableId, key,
           rawDataTimeStampMapping, getArrayLong(rawDataTimestamp),
           colRawDataIntCount, rawDataIntMapping, getArrayInt(rawDataInt),
           colRawDataLongCount, rawDataLongMapping, getArrayLong(rawDataLong),
@@ -443,7 +443,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
           long key = rawDataTimestamp[0][0];
 
-          this.storeData(tableId, cProfiles, key,
+          this.storeData(tableId, key,
               rawDataTimeStampMapping, rawDataTimestamp,
               colRawDataIntCount, rawDataIntMapping, rawDataInt,
               colRawDataLongCount, rawDataLongMapping, rawDataLong,
@@ -578,7 +578,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
         log.info("Final flush for iRow: " + iRow.get());
 
-        this.storeData(tableId, cProfiles, key,
+        this.storeData(tableId, key,
             rawDataTimeStampMapping, copyOfLong(rawDataTimestamp, row),
             colRawDataIntCount, rawDataIntMapping, copyOfInt(rawDataInt, row),
             colRawDataLongCount, rawDataLongMapping, copyOfLong(rawDataLong, row),
@@ -754,7 +754,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     return histograms;
   }
 
-  private void storeData(byte tableId, List<CProfile> cProfiles, long key,
+  private void storeData(byte tableId, long key,
       List<Integer> rawDataTimeStampMapping, long[][] rawDataTimestamp,
       int colRawDataIntCount, List<Integer> rawDataIntMapping, int[][] rawDataInt,
       int colRawDataLongCount, List<Integer> rawDataLongMapping, long[][] rawDataLong,
@@ -787,17 +787,17 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     if (colRawDataEnumCount > 0) {
       this.rawDAO.putEnum(tableId, key, rawDataEnumMapping.stream().mapToInt(i -> i).toArray(), rawDataEnum);
 
-      cProfiles.stream()
-          .filter(isEnum)
-          .forEach(cProfile -> {
-            AtomicInteger counter = new AtomicInteger(0);
-            int[] values = new int[rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(cProfile.getColId())).size()];
+      for (int i = 0; i < rawDataEnumMapping.size(); i++) {
+        int colId = rawDataEnumMapping.get(i);
 
-            rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(cProfile.getColId()))
-                .forEach((key1, value) -> values[counter.getAndAdd(1)] = key1);
+        int[] values = new int[rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(colId)).size()];
 
-            this.enumDAO.putEColumn(tableId, key, cProfile.getColId(), values);
-          });
+        AtomicInteger counter = new AtomicInteger(0);
+        rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(colId))
+            .forEach((enumKey, enumValue) -> values[counter.getAndAdd(1)] = enumKey);
+
+        this.enumDAO.putEColumn(tableId, key, colId, values);
+      }
     }
 
     /* Store metadata entity */
