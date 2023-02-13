@@ -28,7 +28,9 @@ import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.CSType;
+import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.service.mapping.Mapper;
 import org.fbase.source.H2Database;
 import org.fbase.source.JdbcSource;
 import org.junit.jupiter.api.AfterAll;
@@ -61,7 +63,7 @@ public abstract class AbstractH2Test implements JdbcSource {
   private List<CProfile> cProfiles;
   private String select = "SELECT * FROM person WHERE ROWNUM < 2";
 
-  private String tableName = "h2_table_test";
+  protected String tableName = "h2_table_test";
 
   @BeforeAll
   public void initBackendAndLoad() throws SQLException, IOException {
@@ -119,6 +121,10 @@ public abstract class AbstractH2Test implements JdbcSource {
   }
 
   protected void putDataDirect(Map<String, SType> csTypeMap) {
+    putDataDirect(csTypeMap, true);
+  }
+
+  protected void putDataDirect(Map<String, SType> csTypeMap, boolean isCompressed) {
     fStore = fBase.getFStore();
 
     cProfiles = h2Db.getCProfileList().stream()
@@ -131,20 +137,28 @@ public abstract class AbstractH2Test implements JdbcSource {
                     .csType(CSType.builder()
                             .isTimeStamp(col.getColName().equalsIgnoreCase("ID"))
                             .sType(csTypeMap.get(col.getColName()))
+                            .cType(col.getColName().equalsIgnoreCase("ID") ? CType.LONG : Mapper.isCType(col))
                             .build())
                     .build()).toList();
 
     try {
       SProfile sProfile = new SProfile();
       sProfile.setTableName(tableName);
-      sProfile.setCompression(true);
+      sProfile.setCompression(isCompressed);
       sProfile.setCsTypeMap(new HashMap<>());
 
       csTypeMap.forEach((k,v) -> {
         if (k.equals("ID")) {
-          sProfile.getCsTypeMap().put(k, new CSType().toBuilder().isTimeStamp(true).sType(v).build());
+          sProfile.getCsTypeMap().put(k, new CSType().toBuilder()
+              .isTimeStamp(true)
+              .sType(v)
+              .cType(cProfiles.stream().filter(f -> f.getColName().equals(k)).findAny().orElseThrow().getCsType().getCType())
+              .build());
         } else {
-          sProfile.getCsTypeMap().put(k, new CSType().toBuilder().sType(v).build());
+          sProfile.getCsTypeMap().put(k, new CSType().toBuilder()
+              .sType(v)
+              .cType(cProfiles.stream().filter(f -> f.getColName().equals(k)).findAny().orElseThrow().getCsType().getCType())
+              .build());
         }
       });
 
@@ -153,6 +167,7 @@ public abstract class AbstractH2Test implements JdbcSource {
       } catch (TableNameEmptyException e) {
         throw new RuntimeException(e);
       }
+
       String tableName = tProfile.getTableName();
       fStore.putDataDirect(tableName, data01);
       fStore.putDataDirect(tableName, data02);
@@ -178,6 +193,7 @@ public abstract class AbstractH2Test implements JdbcSource {
             .csType(CSType.builder()
                 .isTimeStamp(col.getColName().equalsIgnoreCase("ID"))
                 .sType(csTypeMap.get(col.getColName()))
+                .cType(col.getColName().equalsIgnoreCase("ID") ? CType.LONG : Mapper.isCType(col))
                 .build())
             .build()).toList();
 
@@ -189,9 +205,16 @@ public abstract class AbstractH2Test implements JdbcSource {
 
       csTypeMap.forEach((k,v) -> {
         if (k.equals("ID")) {
-          sProfile.getCsTypeMap().put(k, new CSType().toBuilder().isTimeStamp(true).sType(v).build());
+          sProfile.getCsTypeMap().put(k, new CSType().toBuilder()
+              .isTimeStamp(true)
+              .sType(v)
+              .cType(cProfiles.stream().filter(f -> f.getColName().equals(k)).findAny().orElseThrow().getCsType().getCType())
+              .build());
         } else {
-          sProfile.getCsTypeMap().put(k, new CSType().toBuilder().sType(v).build());
+          sProfile.getCsTypeMap().put(k, new CSType().toBuilder()
+              .sType(v)
+              .cType(cProfiles.stream().filter(f -> f.getColName().equals(k)).findAny().orElseThrow().getCsType().getCType())
+              .build());
         }
       });
 
@@ -233,6 +256,7 @@ public abstract class AbstractH2Test implements JdbcSource {
             .csType(CSType.builder()
                 .isTimeStamp(col.getColName().equalsIgnoreCase("ID"))
                 .sType(csTypeMap.get(col.getColName()))
+                .cType(col.getColName().equalsIgnoreCase("ID") ? CType.LONG : Mapper.isCType(col))
                 .build())
             .build()).toList();
 
@@ -243,9 +267,16 @@ public abstract class AbstractH2Test implements JdbcSource {
 
       csTypeMap.forEach((k,v) -> {
         if (k.equals("ID")) {
-          sProfile.getCsTypeMap().put(k, new CSType().toBuilder().isTimeStamp(true).sType(v).build());
+          sProfile.getCsTypeMap().put(k, new CSType().toBuilder()
+              .isTimeStamp(true)
+              .sType(v)
+              .cType(cProfiles.stream().filter(f -> f.getColName().equals(k)).findAny().orElseThrow().getCsType().getCType())
+              .build());
         } else {
-          sProfile.getCsTypeMap().put(k, new CSType().toBuilder().sType(v).build());
+          sProfile.getCsTypeMap().put(k, new CSType().toBuilder()
+              .sType(v)
+              .cType(cProfiles.stream().filter(f -> f.getColName().equals(k)).findAny().orElseThrow().getCsType().getCType())
+              .build());
         }
       });
 

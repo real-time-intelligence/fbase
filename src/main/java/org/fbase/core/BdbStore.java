@@ -416,7 +416,17 @@ public class BdbStore implements FStore {
       fetchSize = 1;
     }
 
-    return rawService.getBatchResultSet(tableName, fetchSize);
+    return rawService.getBatchResultSet(tableName, 0L, Long.MAX_VALUE, fetchSize);
+  }
+
+  @Override
+  public BatchResultSet getBatchResultSet(String tableName, long begin, long end, int fetchSize) {
+    if (fetchSize <= 0) {
+      log.warn("Fetch size can not be less or equal 0. Set to the default value of 1");
+      fetchSize = 1;
+    }
+
+    return rawService.getBatchResultSet(tableName, begin, end, fetchSize);
   }
 
   @Override

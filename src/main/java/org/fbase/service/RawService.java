@@ -15,5 +15,5 @@ public interface RawService {
 
   List<List<Object>> getRawDataByColumn(String tableName, CProfile cProfile, long begin, long end);
 
-  BatchResultSet getBatchResultSet(String tableName, int fetchSize);
+  BatchResultSet getBatchResultSet(String tableName, long begin, long end, int fetchSize);
 }

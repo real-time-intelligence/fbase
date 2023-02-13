@@ -49,8 +49,8 @@ public interface RawDAO {
 
   List<Long> getListKeys(byte tableId, long begin, long end);
 
-  Map.Entry<Map.Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colIndex, CType cType,
-      int fetchSize, boolean isStarted, Entry<Long, Integer> pointer, AtomicInteger fetchCounter);
+  Map.Entry<Map.Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colIndex, int tsColIndex,
+      CType cType, int fetchSize, boolean isStarted, long maxKey, Entry<Long, Integer> pointer, AtomicInteger fetchCounter);
 
   long getPreviousKey(byte tableId, long begin);
 

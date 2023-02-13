@@ -110,19 +110,10 @@ public abstract class CommonServiceApi {
   }
 
   public CProfile getTimestampProfile(List<CProfile> cProfileList) {
-    CProfile tsProfile = new CProfile();
-
-        cProfileList.stream()
-        .filter(k -> k.getCsType().isTimeStamp())
-        .forEach(e -> tsProfile.setColId(e.getColId())
-            .setColIdSql(e.getColIdSql())
-            .setColName(e.getColName())
-            .setColDbTypeName(e.getColDbTypeName())
-            .setColSizeDisplay(e.getColSizeDisplay())
-            .setColSizeSqlType(e.getColSizeSqlType())
-            .setCsType(e.getCsType()));
-
-        return tsProfile;
+   return cProfileList.stream()
+          .filter(k -> k.getCsType().isTimeStamp())
+          .findAny()
+          .orElse(CProfile.builder().colId(-1).build());
   }
 
   protected <T, V> void setMapValue(Map<T, Map<V, Integer>> map, T vFirst, V vSecond, int sum) {

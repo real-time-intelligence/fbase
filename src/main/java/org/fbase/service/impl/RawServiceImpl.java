@@ -85,10 +85,10 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   @Override
-  public BatchResultSet getBatchResultSet(String tableName, int fetchSize) {
+  public BatchResultSet getBatchResultSet(String tableName, long begin, long end, int fetchSize) {
     byte tableId = getTableId(tableName, metaModel);
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
-    return getBatchResultSet(tableName, tableId, fetchSize, cProfiles);
+    return new BatchResultSetImpl(tableName, tableId, fetchSize, begin, end, cProfiles, rawDAO);
   }
 
   private List<List<Object>> getRawData(String tableName, List<CProfile> cProfiles, long begin, long end) {
@@ -107,11 +107,6 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
             this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, key, begin, end, columnDataListOut));
 
     return columnDataListOut;
-  }
-
-  private BatchResultSet getBatchResultSet(String tableName, byte tableId, int fetchSize, List<CProfile> cProfiles) {
-
-    return new BatchResultSetImpl(tableName, tableId, fetchSize, cProfiles, rawDAO);
   }
 
   private CProfile getTsProfile(String tableName) {

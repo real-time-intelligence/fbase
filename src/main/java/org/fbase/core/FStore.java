@@ -143,12 +143,22 @@ public interface FStore {
   List<List<Object>> getRawDataAll(String tableName, long begin, long end);
 
   /**
-   * Get BatchResultSet
+   * Get list of raw data using BatchResultSet
    * @param tableName - Table name
    * @param fetchSize - the number of rows to fetch
    * @return {@literal BatchResultSet} - batch result set
    */
   BatchResultSet getBatchResultSet(String tableName, int fetchSize);
+
+  /**
+   * Get list of raw data for time-series table using BatchResultSet
+   * @param tableName - Table name
+   * @param begin - start of range
+   * @param end - end of range
+   * @param fetchSize - the number of rows to fetch
+   * @return {@literal BatchResultSet} - batch result set
+   */
+  BatchResultSet getBatchResultSet(String tableName, long begin, long end, int fetchSize);
 
   /**
    * Get last timestamp

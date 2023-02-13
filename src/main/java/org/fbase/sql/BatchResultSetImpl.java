@@ -11,9 +11,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.service.CommonServiceApi;
 import org.fbase.storage.RawDAO;
 
-public class BatchResultSetImpl implements BatchResultSet {
+public class BatchResultSetImpl extends CommonServiceApi implements BatchResultSet {
   private final String tableName;
   private final byte tableId;
   private final int fetchSize;
@@ -21,12 +22,14 @@ public class BatchResultSetImpl implements BatchResultSet {
 
   private final RawDAO rawDAO;
 
-  private Map.Entry<Long, Integer> pointer = Map.entry(0L, 0);
+  private Map.Entry<Long, Integer> pointer;
 
   private boolean isNext = true;
   private boolean isStarted = true;
 
-  private long maxKey;
+  private final long maxKey;
+
+  private final boolean isTimestamp;
 
   /**
    * Constructor
@@ -37,14 +40,27 @@ public class BatchResultSetImpl implements BatchResultSet {
    * @param cProfiles list of column profiles
    * @param rawDAO DAO for raw data
    */
-  public BatchResultSetImpl(String tableName, byte tableId, int fetchSize, List<CProfile> cProfiles, RawDAO rawDAO) {
+  public BatchResultSetImpl(String tableName, byte tableId, int fetchSize, long begin, long end,
+      List<CProfile> cProfiles, RawDAO rawDAO) {
     this.tableName = tableName;
     this.tableId = tableId;
     this.fetchSize = fetchSize;
     this.cProfiles = cProfiles;
     this.rawDAO = rawDAO;
 
-    this.maxKey = rawDAO.getMaxKey(tableId);
+    isTimestamp = cProfiles.stream().anyMatch(f -> f.getCsType().isTimeStamp());
+
+    this.pointer = Map.entry(begin, 0);
+
+    if (end == Long.MAX_VALUE) {
+      if (isTimestamp) {
+        throw new RuntimeException("Not supported API for time-series tables. Use overloaded version with begin and end parameters..");
+      }
+
+      this.maxKey = rawDAO.getMaxKey(tableId);
+    } else {
+      this.maxKey = end;
+    }
   }
 
   @Override
@@ -52,6 +68,8 @@ public class BatchResultSetImpl implements BatchResultSet {
     List<List<Object>> columnDataListLocal = new ArrayList<>();
 
     AtomicReference<Entry<Long, Integer>> pointerLocal = new AtomicReference<>(Map.entry(0L, 0));
+
+    CProfile tsProfile = getTimestampProfile(cProfiles);
 
     cProfiles.stream()
         .sorted(Comparator.comparing(CProfile::getColId))
@@ -61,8 +79,8 @@ public class BatchResultSetImpl implements BatchResultSet {
         .forEach(cProfile -> {
           AtomicInteger fetchCounter = new AtomicInteger(fetchSize);
           Map.Entry<Map.Entry<Long, Integer>, List<Object>> columnData =
-              rawDAO.getColumnData(tableId, cProfile.getColId(), cProfile.getCsType().getCType(),
-                  fetchSize, isStarted, pointer, fetchCounter);
+              rawDAO.getColumnData(tableId, cProfile.getColId(), tsProfile.getColId(), cProfile.getCsType().getCType(),
+                  fetchSize, isStarted, maxKey, pointer, fetchCounter);
 
           pointerLocal.set(columnData.getKey());
 
