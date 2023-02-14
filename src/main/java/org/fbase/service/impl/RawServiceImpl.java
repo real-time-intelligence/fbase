@@ -169,11 +169,12 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
         byte[] bytes = this.rawDAO.getRawByte(tableId, key, cProfile.getColId());
 
+        int[] eColumn = enumDAO.getEColumnValues(tableId, key, cProfile.getColId());
+
         IntStream iRow = IntStream.range(0, timestamps.length);
 
         iRow.forEach(iR -> {
           if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-            int[] eColumn = enumDAO.getEColumnValues(tableId, key, cProfile.getColId());
             columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn, bytes[iR]), cProfile));
           }
         });
