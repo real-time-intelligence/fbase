@@ -1,15 +1,14 @@
 package org.fbase.service.impl;
 
+import com.sleepycat.persist.EntityCursor;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
-import org.fbase.sql.BatchResultSet;
-import org.fbase.sql.BatchResultSetImpl;
-import org.fbase.storage.Converter;
-import org.fbase.service.mapping.Mapper;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.MetaModel;
 import org.fbase.model.output.StackedColumn;
@@ -17,10 +16,16 @@ import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.RawService;
+import org.fbase.service.mapping.Mapper;
+import org.fbase.sql.BatchResultSet;
+import org.fbase.sql.BatchResultSetImpl;
+import org.fbase.storage.Converter;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
+import org.fbase.storage.bdb.entity.ColumnKey;
+import org.fbase.storage.bdb.entity.raw.RMapping;
 import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
@@ -88,7 +93,145 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   public BatchResultSet getBatchResultSet(String tableName, long begin, long end, int fetchSize) {
     byte tableId = getTableId(tableName, metaModel);
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
-    return new BatchResultSetImpl(tableName, tableId, fetchSize, begin, end, cProfiles, rawDAO);
+    return new BatchResultSetImpl(tableName, tableId, fetchSize, begin, end, cProfiles, this);
+  }
+
+  @Override
+  public Entry<Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colIndex, int tsColIndex,
+      CProfile cProfile, int fetchSize, boolean isStarted, long maxKey, Entry<Long, Integer> pointer, AtomicInteger fetchCounter) {
+
+    List<Object> columnData = new ArrayList<>();
+
+    boolean isPointerFirst = true;
+    boolean getNextPointer = false;
+
+    if (tsColIndex != -1) {
+      long prevKey = this.rawDAO.getPreviousKey(tableId, pointer.getKey());
+      if (prevKey != pointer.getKey() & prevKey != 0) {
+        isStarted = false;
+
+        long[] timestamps = rawDAO.getRawLong(tableId, prevKey, tsColIndex);
+
+        for (int i = 0; i < timestamps.length; i++) {
+          if (timestamps[i] == pointer.getKey()) {
+            pointer = Map.entry(prevKey, i);
+          }
+        }
+      }
+    }
+
+    ColumnKey columnKeyBegin = ColumnKey.builder().table(tableId).key(pointer.getKey()).colIndex(0).build();
+    ColumnKey columnKeyEnd = ColumnKey.builder().table(tableId).key(maxKey).colIndex(0).build();
+    EntityCursor<RMapping> cursor = rawDAO.getRMappingEntityCursor(columnKeyBegin, columnKeyEnd);
+
+    try (cursor) {
+      RMapping columnKey;
+
+      while ((columnKey = cursor.next()) != null) {
+        long key = columnKey.getKey().getKey();
+
+        if (getNextPointer) {
+          return Map.entry(Map.entry(key, 0), columnData);
+        }
+
+        if (cProfile.getCsType().isTimeStamp()) { // timestamp
+          int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
+
+          long[] timestamps = rawDAO.getRawLong(tableId, key, cProfile.getColId());
+
+          for (int i = startPoint; i < timestamps.length; i++) {
+            columnData.add(timestamps[i]);
+            fetchCounter.decrementAndGet();
+            if (fetchCounter.get() == 0) {
+              if (i == timestamps.length - 1) {
+                getNextPointer = true;
+              } else {
+                return Map.entry(Map.entry(key, i + 1), columnData);
+              }
+            }
+          }
+        }
+
+        if (cProfile.getCsType().getSType() == SType.RAW & !cProfile.getCsType().isTimeStamp()) { // raw data
+          int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
+
+          String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
+              tableId, key, cProfile.getColId());
+
+          for (int i = startPoint; i < column.length; i++) {
+            columnData.add(column[i]);
+            fetchCounter.decrementAndGet();
+            if (fetchCounter.get() == 0) {
+              if (i == column.length - 1) {
+                getNextPointer = true;
+              } else {
+                return Map.entry(Map.entry(key, i + 1), columnData);
+              }
+            }
+          }
+
+          if (isPointerFirst) isPointerFirst = false;
+        }
+
+        if (cProfile.getCsType().getSType() == SType.HISTOGRAM) { // indexed data
+          long[] timestamps = rawDAO.getRawLong(tableId, key, tsColIndex);
+
+          int[][] h = histogramDAO.get(metadataDAO.getHistograms(tableId, key)[cProfile.getColId()]);
+
+          int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
+
+          for (int i = startPoint; i < timestamps.length; i++) {
+            columnData.add(this.converter.convertIntToRaw(getHistogramValue(i, h, timestamps), cProfile));
+            fetchCounter.decrementAndGet();
+            if (fetchCounter.get() == 0) {
+              if (i == timestamps.length - 1) {
+                getNextPointer = true;
+              } else {
+                return Map.entry(Map.entry(key, i + 1), columnData);
+              }
+            }
+          }
+
+          if (isPointerFirst) isPointerFirst = false;
+        }
+
+        if (cProfile.getCsType().getSType() == SType.ENUM) { // enum data
+          long[] timestamps = rawDAO.getRawLong(tableId, key, tsColIndex);
+
+          byte[] bytes = this.rawDAO.getRawByte(tableId, key, cProfile.getColId());
+
+          int[] eColumn = enumDAO.getEColumnValues(tableId, key, cProfile.getColId());
+
+          int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
+
+          for (int i = startPoint; i < timestamps.length; i++) {
+            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn, bytes[i]), cProfile));
+            fetchCounter.decrementAndGet();
+            if (fetchCounter.get() == 0) {
+              if (i == timestamps.length - 1) {
+                getNextPointer = true;
+              } else {
+                return Map.entry(Map.entry(key, i + 1), columnData);
+              }
+            }
+          }
+
+          if (isPointerFirst) isPointerFirst = false;
+        }
+
+      }
+    } catch (Exception e) {
+      log.error(e.getMessage());
+    }
+
+    cursor.close();
+
+    return Map.entry(Map.entry(maxKey + 1, 0), columnData);
+  }
+
+  @Override
+  public long getMaxKey(byte tableId) {
+    return rawDAO.getMaxKey(tableId);
   }
 
   private List<List<Object>> getRawData(String tableName, List<CProfile> cProfiles, long begin, long end) {

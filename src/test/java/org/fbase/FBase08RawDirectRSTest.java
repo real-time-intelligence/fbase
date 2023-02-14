@@ -29,8 +29,8 @@ public class FBase08RawDirectRSTest extends AbstractH2Test {
     csTypeMap.put("ID", SType.RAW);
     csTypeMap.put("LASTNAME", SType.RAW);
     csTypeMap.put("FIRSTNAME", SType.RAW);
-    csTypeMap.put("HOUSE", SType.RAW);
-    csTypeMap.put("CITY", SType.RAW);
+    csTypeMap.put("HOUSE", SType.HISTOGRAM);
+    csTypeMap.put("CITY", SType.ENUM);
 
     putDataDirect(csTypeMap, false);
   }

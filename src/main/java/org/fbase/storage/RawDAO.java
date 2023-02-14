@@ -1,11 +1,10 @@
 package org.fbase.storage;
 
+import com.sleepycat.persist.EntityCursor;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.fbase.model.profile.cstype.CType;
+import org.fbase.storage.bdb.entity.ColumnKey;
+import org.fbase.storage.bdb.entity.raw.RMapping;
 
 public interface RawDAO {
 
@@ -49,8 +48,7 @@ public interface RawDAO {
 
   List<Long> getListKeys(byte tableId, long begin, long end);
 
-  Map.Entry<Map.Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colIndex, int tsColIndex,
-      CType cType, int fetchSize, boolean isStarted, long maxKey, Entry<Long, Integer> pointer, AtomicInteger fetchCounter);
+  EntityCursor<RMapping> getRMappingEntityCursor(ColumnKey columnKeyBegin, ColumnKey columnKeyEnd);
 
   long getPreviousKey(byte tableId, long begin);
 

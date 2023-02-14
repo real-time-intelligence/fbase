@@ -1,7 +1,5 @@
 package org.fbase.sql;
 
-import static org.fbase.service.CommonServiceApi.transpose;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -10,9 +8,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.fbase.model.profile.CProfile;
-import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.CommonServiceApi;
-import org.fbase.storage.RawDAO;
+import org.fbase.service.RawService;
 
 public class BatchResultSetImpl extends CommonServiceApi implements BatchResultSet {
   private final String tableName;
@@ -20,7 +17,7 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
   private final int fetchSize;
   private final List<CProfile> cProfiles;
 
-  private final RawDAO rawDAO;
+  private final RawService rawService;
 
   private Map.Entry<Long, Integer> pointer;
 
@@ -38,15 +35,15 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
    * @param tableId table id
    * @param fetchSize the number of rows to fetch
    * @param cProfiles list of column profiles
-   * @param rawDAO DAO for raw data
+   * @param rawService service layer for raw data
    */
   public BatchResultSetImpl(String tableName, byte tableId, int fetchSize, long begin, long end,
-      List<CProfile> cProfiles, RawDAO rawDAO) {
+      List<CProfile> cProfiles, RawService rawService) {
     this.tableName = tableName;
     this.tableId = tableId;
     this.fetchSize = fetchSize;
     this.cProfiles = cProfiles;
-    this.rawDAO = rawDAO;
+    this.rawService = rawService;
 
     isTimestamp = cProfiles.stream().anyMatch(f -> f.getCsType().isTimeStamp());
 
@@ -57,7 +54,7 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
         throw new RuntimeException("Not supported API for time-series tables. Use overloaded version with begin and end parameters..");
       }
 
-      this.maxKey = rawDAO.getMaxKey(tableId);
+      this.maxKey = rawService.getMaxKey(tableId);
     } else {
       this.maxKey = end;
     }
@@ -74,12 +71,11 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
     cProfiles.stream()
         .sorted(Comparator.comparing(CProfile::getColId))
         .toList()
-        .stream()
-        .filter(f -> f.getCsType().getSType() == SType.RAW)
         .forEach(cProfile -> {
           AtomicInteger fetchCounter = new AtomicInteger(fetchSize);
+
           Map.Entry<Map.Entry<Long, Integer>, List<Object>> columnData =
-              rawDAO.getColumnData(tableId, cProfile.getColId(), tsProfile.getColId(), cProfile.getCsType().getCType(),
+              rawService.getColumnData(tableId, cProfile.getColId(), tsProfile.getColId(), cProfile,
                   fetchSize, isStarted, maxKey, pointer, fetchCounter);
 
           pointerLocal.set(columnData.getKey());

@@ -23,6 +23,7 @@ import org.fbase.model.profile.cstype.CType;
 import org.fbase.storage.RawDAO;
 
 public abstract class CommonServiceApi {
+
   protected int getHistogramValue(int iR, int[][] histogram, long[] timestamps) {
     int curValue = 0;
 
@@ -383,4 +384,5 @@ public abstract class CommonServiceApi {
     }
     return ret;
   }
+
 }
