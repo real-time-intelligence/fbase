@@ -150,6 +150,8 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
               }
             }
           }
+
+          if (isPointerFirst) isPointerFirst = false;
         }
 
         if (cProfile.getCsType().getSType() == SType.RAW & !cProfile.getCsType().isTimeStamp()) { // raw data

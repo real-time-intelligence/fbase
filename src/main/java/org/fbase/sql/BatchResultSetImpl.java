@@ -64,7 +64,8 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
   public List<List<Object>> getObject() {
     List<List<Object>> columnDataListLocal = new ArrayList<>();
 
-    AtomicReference<Entry<Long, Integer>> pointerLocal = new AtomicReference<>(Map.entry(0L, 0));
+    AtomicReference<Entry<Long, Integer>> pointerLocal
+        = new AtomicReference<>(Map.entry(isStarted ? 0L : pointer.getKey(), isStarted ? 0 : pointer.getValue()));
 
     CProfile tsProfile = getTimestampProfile(cProfiles);
 
