@@ -21,4 +21,8 @@ public class Histogram {
   private CompressType compressionType = CompressType.NONE;
 
   private int[][] data;
+
+  private byte[] keysCompressed;
+
+  private byte[] valuesCompressed;
 }

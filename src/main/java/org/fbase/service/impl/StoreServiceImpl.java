@@ -200,7 +200,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
     long key = rawDataTimestamp[0][0];
 
-    storeHistograms(tableId, key, mapOfHistograms);
+    this.storeHistograms(tableId, compression, key, mapOfHistograms);
 
     this.storeData(tableId, compression, key,
         rawDataTimeStampMapping, rawDataTimestamp,
@@ -354,7 +354,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
       long key = rawDataTimestamp.get(0).get(0);
 
-      storeHistograms(tableId, key, mapOfHistograms);
+      this.storeHistograms(tableId, compression, key, mapOfHistograms);
 
       this.storeData(tableId, compression, key,
           rawDataTimeStampMapping, getArrayLong(rawDataTimestamp),
@@ -441,7 +441,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         if (iR == fBaseBatchSize) {
           long key = rawDataTimestamp[0][0];
 
-          storeHistogramsCachedLast(tableId, key, mapOfHistograms);
+          storeHistogramsCachedLast(tableId, compression, key, mapOfHistograms);
 
           this.storeData(tableId, compression, key,
               rawDataTimeStampMapping, rawDataTimestamp,
@@ -571,7 +571,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       if (iRow.get() <= fBaseBatchSize) {
         long key = rawDataTimestamp[0][0];
 
-        storeHistogramsCachedLast(tableId, key,  mapOfHistograms);
+        this.storeHistogramsCachedLast(tableId, compression, key,  mapOfHistograms);
 
         int row = iRow.get();
 
@@ -722,18 +722,27 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         });
   }
 
-  private void storeHistograms(byte tableID, long key, Map<Integer, Map<Integer, Integer>> mapOfHistograms) {
+  private void storeHistograms(byte tableID, boolean compression, long key, Map<Integer, Map<Integer, Integer>> mapOfHistograms) {
     mapOfHistograms.forEach((k, v) -> {
       if (!v.isEmpty()) {
-        this.histogramDAO.put(tableID, key, k, getArrayFromMap(v));
+        if (compression) {
+          this.histogramDAO.putCompressed(tableID, key, k, getArrayFromMap(v));
+        } else {
+          this.histogramDAO.put(tableID, key, k, getArrayFromMap(v));
+        }
       }
     });
   }
 
-  private void storeHistogramsCachedLast(byte tableID, long key, Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms) {
+  private void storeHistogramsCachedLast(byte tableID, boolean compression, long key,
+      Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms) {
     mapOfHistograms.forEach((k, v) -> {
       if (!v.isEmpty()) {
-        this.histogramDAO.put(tableID, key, k, getArrayFromMap(v));
+        if (compression) {
+          this.histogramDAO.putCompressed(tableID, key, k, getArrayFromMap(v));
+        } else {
+          this.histogramDAO.put(tableID, key, k, getArrayFromMap(v));
+        }
       }
     });
   }

@@ -5,6 +5,7 @@ import com.sleepycat.persist.EntityCursor;
 import com.sleepycat.persist.EntityIndex;
 import java.util.List;
 import org.fbase.metadata.CompressType;
+import org.fbase.storage.bdb.entity.Histogram;
 import org.fbase.storage.bdb.entity.raw.RColumn;
 
 public abstract class QueryBdbApi {
@@ -26,6 +27,10 @@ public abstract class QueryBdbApi {
 
   public boolean isNotBlockCompressed(RColumn rColumn) {
     return rColumn.getCompressionType() == null || CompressType.NONE.equals(rColumn.getCompressionType());
+  }
+
+  public boolean isNotBlockCompressed(Histogram histogram) {
+    return histogram.getCompressionType() == null || CompressType.NONE.equals(histogram.getCompressionType());
   }
 
   public static float[] convertDoubleArrayToFloatArray(double[] input) {
