@@ -1,7 +1,6 @@
 package org.fbase.service.impl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,7 +9,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
-import org.fbase.storage.Converter;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.metadata.DataType;
 import org.fbase.model.MetaModel;
@@ -19,6 +17,7 @@ import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.MetadataService;
+import org.fbase.storage.Converter;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.RawDAO;
 
@@ -183,17 +182,17 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
 
     int[][] hData = histogramDAO.get(tableId, key, cProfile.getColId());
 
-    IntStream iRow = IntStream.range(0, hData.length);
+    IntStream iRow = IntStream.range(0, hData[0].length);
     iRow.forEach(iR -> {
       int deltaCountValue;
 
-      if (iR == hData.length - 1) { //todo last row
-        deltaCountValue = timestamps.length - hData[iR][0];
+      if (iR == hData[0].length - 1) { //todo last row
+        deltaCountValue = timestamps.length - hData[0][iR];
       } else {
-        deltaCountValue = hData[iR + 1][0] - hData[iR][0];
+        deltaCountValue = hData[0][iR + 1] - hData[0][iR];
       }
 
-      map.compute(hData[iR][1], (k, val) -> val == null ? deltaCountValue : val + deltaCountValue);
+      map.compute(hData[1][iR], (k, val) -> val == null ? deltaCountValue : val + deltaCountValue);
     });
 
     Map<String, Integer> mapKeyCount = new LinkedHashMap<>();
@@ -211,63 +210,55 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
 
     long tail = timestamps[timestamps.length - 1];
 
-    //todo replace objects with primitives
-    List<List<Integer>> histogramsList =
-        from2arrayToList(histogramDAO.get(tableId, key, cProfile.getColId()));
-
-    //todo replace objects with primitives
-    List<Long> timestampsList =
-        Arrays.stream(timestamps).boxed().collect(Collectors.toList());
+    int[][] histograms = histogramDAO.get(tableId, key, cProfile.getColId());
 
     AtomicInteger cntForHistExt = new AtomicInteger(0);
     List<List<Integer>> histogramsListExt = new ArrayList<>();
 
     AtomicInteger cnt = new AtomicInteger(0);
-    histogramsList
-        .forEach(k -> {
-          if (histogramsList.size() != 1) {
-            int deltaValue = 0;
-            int currValue = histogramsList.get(cnt.getAndIncrement()).get(0);
-            int currHistogramValue = histogramsList.get(cnt.get() - 1).get(1);
+    for (int i = 0; i < histograms[0].length; i++) {
+      if (histograms[0].length != 1) {
+        int deltaValue = 0;
+        int currValue = histograms[0][cnt.getAndIncrement()];
+        int currHistogramValue = histograms[1][cnt.get() - 1];
 
-            if (currValue == timestampsList.size() - 1) {
-              deltaValue = 1;
-            } else { // not
-              if (histogramsList.size() == cnt.get()) {// last value abs
-                int nextValue = timestampsList.size();
-                deltaValue = nextValue - currValue;
-              } else {
-                int nextValue = histogramsList.get(cnt.get()).get(0);
-                deltaValue = nextValue - currValue;
-              }
-            }
-
-            IntStream iRow = IntStream.range(0, deltaValue);
-            iRow.forEach(iR -> {
-              List<Integer> obj = new ArrayList<>();
-              obj.add(0, cntForHistExt.getAndIncrement());
-              obj.add(1, currHistogramValue);
-              histogramsListExt.add(obj);
-            });
-
+        if (currValue == timestamps.length - 1) {
+          deltaValue = 1;
+        } else { // not
+          if (histograms[0].length == cnt.get()) {// last value abs
+            int nextValue = timestamps.length;
+            deltaValue = nextValue - currValue;
           } else {
-            timestampsList.forEach(l -> {
-              List<Integer> tmp = new ArrayList<>();
-              tmp.add(0, l.intValue());
-              tmp.add(1, histogramsList.get(0).get(1));
-              histogramsListExt.add(tmp);
-            });
+            int nextValue = histograms[0][cnt.get()];
+            deltaValue = nextValue - currValue;
           }
+        }
+
+        IntStream iRow = IntStream.range(0, deltaValue);
+        iRow.forEach(iR -> {
+          List<Integer> obj = new ArrayList<>();
+          obj.add(0, cntForHistExt.getAndIncrement());
+          obj.add(1, currHistogramValue);
+          histogramsListExt.add(obj);
         });
 
+      } else {
+        for (long timestamp : timestamps) {
+          List<Integer> tmp = new ArrayList<>();
+          tmp.add(0, (int) timestamp);
+          tmp.add(1, histograms[1][0]);
+          histogramsListExt.add(tmp);
+        }
+      }
+    }
+
     Map<String, Integer> map = new LinkedHashMap<>();
-    IntStream iRow = IntStream.range(0, timestampsList.size());
+    IntStream iRow = IntStream.range(0, timestamps.length);
 
     if (key < begin) {
       iRow.forEach(iR -> {
-        if (timestampsList.get(iR) >= begin & timestampsList.get(iR) <= end) {
-          String keyCompute = this.converter
-              .convertIntToRaw(histogramsListExt.get(iR).get(1), cProfile);
+        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+          String keyCompute = this.converter.convertIntToRaw(histogramsListExt.get(iR).get(1), cProfile);
           map.compute(keyCompute, (k, val) -> val == null ? 1 : val + 1);
         }
       });
@@ -275,10 +266,8 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
 
     if (key >= begin & tail > end) {
       iRow.forEach(iR -> {
-        if (timestampsList.get(iR) >= begin & timestampsList.get(iR) <= end) {
-
-          String keyCompute = this.converter
-              .convertIntToRaw(histogramsListExt.get(iR).get(1), cProfile);
+        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+          String keyCompute = this.converter.convertIntToRaw(histogramsListExt.get(iR).get(1), cProfile);
           map.compute(keyCompute, (k, val) -> val == null ? 1 : val + 1);
         }
       });
@@ -296,28 +285,28 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
     int[][] f = histogramDAO.get(tableId, key, firstGrpBy.getColId());
     int[][] l = histogramDAO.get(tableId, key, secondGrpBy.getColId());
 
-    boolean checkRange = timestamps[f[0][0]] >= begin & timestamps[f[f.length - 1][0]] <= end;
+    boolean checkRange = timestamps[f[0][0]] >= begin & timestamps[f[0][f[0].length - 1]] <= end;
 
     int lCurrent = 0;
 
-    for (int i = 0; i < f.length; i++) {
+    for (int i = 0; i < f[0].length; i++) {
       int fNextIndex = getNextIndex(i, f, timestamps);
 
       if (checkRange) {
-        for (int j = lCurrent; j < l.length; j++) {
+        for (int j = lCurrent; j < l[0].length; j++) {
           int lNextIndex = getNextIndex(j, l, timestamps);
 
           if (lNextIndex <= fNextIndex) {
-            if (l[j][0] <= f[i][0]) {
-              setMapValue(map, f[i][1], l[j][1], (lNextIndex - f[i][0]) + 1);
+            if (l[0][j] <= f[0][i]) {
+              setMapValue(map, f[1][i], l[1][j], (lNextIndex - f[0][i]) + 1);
             } else {
-              setMapValue(map, f[i][1], l[j][1], (lNextIndex - l[j][0]) + 1);
+              setMapValue(map, f[1][i], l[1][j], (lNextIndex - l[0][j]) + 1);
             }
           } else {
-            if (f[i][0] <= l[j][0]) {
-              setMapValue(map, f[i][1], l[j][1], (fNextIndex - l[j][0]) + 1);
+            if (f[0][i] <= l[0][j]) {
+              setMapValue(map, f[1][i], l[1][j], (fNextIndex - l[0][j]) + 1);
             } else {
-              setMapValue(map, f[i][1], l[j][1], (fNextIndex - f[i][0]) + 1);
+              setMapValue(map, f[1][i], l[1][j], (fNextIndex - f[0][i]) + 1);
             }
           }
 
@@ -332,11 +321,11 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
           }
         }
       } else {
-        for (int iR = f[i][0]; (f[i][0] == fNextIndex) ? iR < fNextIndex + 1 : iR <= fNextIndex; iR++) {
+        for (int iR = f[0][i]; (f[0][i] == fNextIndex) ? iR < fNextIndex + 1 : iR <= fNextIndex; iR++) {
           if (timestamps[iR] >= begin & timestamps[iR] <= end) {
 
-            int valueFirst = f[i][1];
-            int valueSecond = this.getHistogramValue(iR, l, timestamps);
+            int valueFirst = f[1][i];
+            int valueSecond = getHistogramValue(iR, l, timestamps);
 
             setMapValue(map, valueFirst, valueSecond, 1);
           }
@@ -345,11 +334,11 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
     }
   }
 
-  private int getNextIndex(int i, int[][] array, long[] timestamps) {
+  private int getNextIndex(int i, int[][] histogram, long[] timestamps) {
     int nextIndex;
 
-    if (i + 1 < array.length) {
-      nextIndex = array[i + 1][0] - 1;
+    if (i + 1 < histogram[0].length) {
+      nextIndex = histogram[0][i + 1] - 1;
     } else {
       nextIndex = timestamps.length - 1;
     }

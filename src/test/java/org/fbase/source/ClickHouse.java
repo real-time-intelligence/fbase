@@ -68,7 +68,7 @@ public interface ClickHouse {
   default SProfile getSProfile(String tableName) {
     SProfile sProfile = new SProfile();
     sProfile.setTableName(tableName);
-    sProfile.setCompression(false);
+    sProfile.setCompression(true);
     Map<String, CSType> csTypeMap = new HashMap<>();
 
     csTypeMap.put("PICKUP_DATETIME", new CSType().toBuilder().isTimeStamp(true).sType(SType.RAW).build());

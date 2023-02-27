@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.fbase.model.MetaModel;
@@ -27,14 +26,14 @@ public abstract class CommonServiceApi {
   protected int getHistogramValue(int iR, int[][] histogram, long[] timestamps) {
     int curValue = 0;
 
-    for (int i = 0; i < histogram.length; i++) {
-      int curIndex = histogram[i][0];
+    for (int i = 0; i < histogram[0].length; i++) {
+      int curIndex = histogram[0][i];
       int nextIndex;
 
-      curValue = histogram[i][1];
+      curValue = histogram[1][i];
 
-      if (histogram.length != i+1) {
-        nextIndex = histogram[i+1][0];
+      if (histogram[0].length != i+1) {
+        nextIndex = histogram[0][i+1];
 
         if (iR >= curIndex & iR < nextIndex) {
           return curValue;
@@ -53,14 +52,6 @@ public abstract class CommonServiceApi {
       }
     }
     return curValue;
-  }
-
-  public List<List<Integer>> from2arrayToList(int[][] histograms) {
-    return Arrays.stream(histograms)
-        .map(ia -> Arrays.stream(ia)
-            .boxed()
-            .collect(Collectors.toList()))
-        .collect(Collectors.toList());
   }
 
   public static List<List<Float>> convert2DFloatArrayToList(float[][] input) {
@@ -88,12 +79,12 @@ public abstract class CommonServiceApi {
   }
 
   public int[][] getArrayFromMap(Map<Integer, Integer> map) {
-    int[][] array = new int[map.size()][2];
-    int count = 0;
+    int[][] array = new int[2][map.size()];
+    int i = 0;
     for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
-      array[count][0] = entry.getKey();
-      array[count][1] = entry.getValue();
-      count++;
+      array[0][i] = entry.getKey();
+      array[1][i] = entry.getValue();
+      i++;
     }
     return array;
   }

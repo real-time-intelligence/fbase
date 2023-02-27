@@ -176,7 +176,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     int[][] h = histogramDAO.get(tableId, key, cProfile.getColId());
 
-    for (int i = 0; i < h.length; i++) {
+    for (int i = 0; i < h[0].length; i++) {
       int fNextIndex = getNextIndex(i, h, timestamps);
       int startIndex;
 
@@ -189,7 +189,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
       for (int k = startIndex; k <= fNextIndex; k++) {
         boolean checkRange = timestamps[k] >= begin & timestamps[k] <= end;
         if (checkRange) {
-          list.add(h[i][1]);
+          list.add(h[1][i]);
         }
       }
     }
@@ -410,11 +410,11 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     setMapValueRawEnumBlock(map, listFirst, listSecond, 1);
   }
 
-  private int getNextIndex(int i, int[][] array, long[] timestamps) {
+  private int getNextIndex(int i, int[][] histogram, long[] timestamps) {
     int nextIndex;
 
-    if (i + 1 < array.length) {
-      nextIndex = array[i + 1][0] - 1;
+    if (i + 1 < histogram[0].length) {
+      nextIndex = histogram[0][i + 1] - 1;
     } else {
       nextIndex = timestamps.length - 1;
     }
@@ -428,8 +428,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
         secondLevelGroupBy.getCsType().getSType().equals(secondSType);
   }
 
-  private <T, V> void setMapValueCommon(Map<T, Map<V, Integer>> map, List<T> listFirst, List<V> listSecond,
-      int sum) {
+  private <T, V> void setMapValueCommon(Map<T, Map<V, Integer>> map, List<T> listFirst, List<V> listSecond, int sum) {
     for (int i = 0; i < listFirst.size(); i++) {
       setMapValue(map, listFirst.get(i), listSecond.get(i), sum);
     }
