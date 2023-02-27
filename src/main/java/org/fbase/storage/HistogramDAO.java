@@ -2,7 +2,7 @@ package org.fbase.storage;
 
 public interface HistogramDAO {
 
-  int put(int[][] data);
+  void put(byte tableId, long key, int colId, int[][] data);
 
-  int[][] get(int key);
+  int[][] get(byte tableId, long key, int colId);
 }

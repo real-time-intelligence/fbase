@@ -48,4 +48,5 @@ public class DimensionBdbImpl implements DimensionDAO {
   public double getDoubleById(int key) {
     return this.primaryIndexDouble.get(key).getValue();
   }
+
 }

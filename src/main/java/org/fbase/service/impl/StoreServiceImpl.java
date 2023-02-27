@@ -19,8 +19,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
-import org.fbase.storage.Converter;
-import org.fbase.service.mapping.Mapper;
 import org.fbase.exception.EnumByteExceedException;
 import org.fbase.model.MetaModel;
 import org.fbase.model.profile.CProfile;
@@ -29,9 +27,10 @@ import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.StoreService;
+import org.fbase.service.mapping.Mapper;
+import org.fbase.storage.Converter;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
-import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.helper.EnumHelper;
 import org.fbase.util.CachedLastLinkedHashMap;
@@ -49,8 +48,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
   private final HistogramDAO histogramDAO;
 
-  private final MetadataDAO metadataDAO;
-
   Predicate<CProfile> isNotTimestamp = Predicate.not(f -> f.getCsType().isTimeStamp());
   Predicate<CProfile> isRaw = Predicate.not(f -> f.getCsType().getSType() != SType.RAW);
   Predicate<CProfile> isEnum = Predicate.not(f -> f.getCsType().getSType() != SType.ENUM);
@@ -61,8 +58,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   Predicate<CProfile> isDouble = Predicate.not(f -> Mapper.isCType(f) != CType.DOUBLE);
   Predicate<CProfile> isString = Predicate.not(f -> Mapper.isCType(f) != CType.STRING);
 
-  public StoreServiceImpl(MetaModel metaModel, Converter converter,
-      RawDAO rawDAO, EnumDAO enumDAO, HistogramDAO histogramDAO, MetadataDAO metadataDAO) {
+  public StoreServiceImpl(MetaModel metaModel, Converter converter, RawDAO rawDAO, EnumDAO enumDAO, HistogramDAO histogramDAO) {
     this.metaModel = metaModel;
 
     this.converter = converter;
@@ -70,7 +66,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     this.rawDAO = rawDAO;
     this.enumDAO = enumDAO;
     this.histogramDAO = histogramDAO;
-    this.metadataDAO = metadataDAO;
   }
 
   @Override
@@ -181,7 +176,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
     // Fill histogram data
     Map<Integer, Map<Integer, Integer>> mapOfHistograms = new HashMap<>(colCount);
-    cProfiles.stream().filter(isHistogram).forEach(e -> mapOfHistograms.put(e.getColId(), new LinkedHashMap<>()));
+    cProfiles.stream().filter(isHistogram)
+        .forEach(cProfile -> mapOfHistograms.put(cProfile.getColId(), new LinkedHashMap<>()));
 
     cProfiles.stream()
         .filter(f -> f.getCsType().getSType() == SType.HISTOGRAM)
@@ -202,9 +198,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
           });
         });
 
-    int[] histograms = getHistograms(colCount, mapOfHistograms);
-
     long key = rawDataTimestamp[0][0];
+
+    storeHistograms(tableId, key, mapOfHistograms);
 
     this.storeData(tableId, compression, key,
         rawDataTimeStampMapping, rawDataTimestamp,
@@ -213,8 +209,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         colRawDataFloatCount, rawDataFloatMapping, rawDataFloat,
         colRawDataDoubleCount, rawDataDoubleMapping, rawDataDouble,
         colRawDataStringCount, rawDataStringMapping, rawDataString,
-        colRawDataEnumCount, rawDataEnumMapping, rawDataEnum, rawDataEnumEColumn,
-        histograms);
+        colRawDataEnumCount, rawDataEnumMapping, rawDataEnum, rawDataEnumEColumn);
   }
 
   @Override
@@ -357,9 +352,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         return -1;
       }
 
-      int[] histograms = getHistograms(colCount, mapOfHistograms);
-
       long key = rawDataTimestamp.get(0).get(0);
+
+      storeHistograms(tableId, key, mapOfHistograms);
 
       this.storeData(tableId, compression, key,
           rawDataTimeStampMapping, getArrayLong(rawDataTimestamp),
@@ -368,8 +363,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
           colRawDataFloatCount, rawDataFloatMapping, getArrayFloat(rawDataFloat),
           colRawDataDoubleCount, rawDataDoubleMapping, getArrayDouble(rawDataDouble),
           colRawDataStringCount, rawDataStringMapping, getArrayString(rawDataString),
-          colRawDataEnumCount, rawDataEnumMapping, getArrayByte(rawDataEnum), rawDataEnumEColumn,
-          histograms);
+          colRawDataEnumCount, rawDataEnumMapping, getArrayByte(rawDataEnum), rawDataEnumEColumn);
 
       return rawDataTimestamp.get(0).get(rawDataTimestamp.get(0).size() - 1);
 
@@ -445,9 +439,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
         // Reinitialize
         if (iR == fBaseBatchSize) {
-          int[] histograms = getHistogramsCachedLast(colCount, mapOfHistograms);
-
           long key = rawDataTimestamp[0][0];
+
+          storeHistogramsCachedLast(tableId, key, mapOfHistograms);
 
           this.storeData(tableId, compression, key,
               rawDataTimeStampMapping, rawDataTimestamp,
@@ -456,8 +450,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
               colRawDataFloatCount, rawDataFloatMapping, rawDataFloat,
               colRawDataDoubleCount, rawDataDoubleMapping, rawDataDouble,
               colRawDataStringCount, rawDataStringMapping, rawDataString,
-              colRawDataEnumCount, rawDataEnumMapping, rawDataEnum, rawDataEnumEColumn,
-              histograms);
+              colRawDataEnumCount, rawDataEnumMapping, rawDataEnum, rawDataEnumEColumn);
 
           iRow.set(0);
           iR = iRow.getAndAdd(1);
@@ -576,9 +569,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       }
 
       if (iRow.get() <= fBaseBatchSize) {
-        int[] histograms = getHistogramsCachedLast(colCount, mapOfHistograms);
-
         long key = rawDataTimestamp[0][0];
+
+        storeHistogramsCachedLast(tableId, key,  mapOfHistograms);
 
         int row = iRow.get();
 
@@ -591,8 +584,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
             colRawDataFloatCount, rawDataFloatMapping, copyOfFloat(rawDataFloat, row),
             colRawDataDoubleCount, rawDataDoubleMapping, copyOfDouble(rawDataDouble, row),
             colRawDataStringCount, rawDataStringMapping, copyOfString(rawDataString, row),
-            colRawDataEnumCount, rawDataEnumMapping, copyOfByte(rawDataEnum, row), rawDataEnumEColumn,
-            histograms);
+            colRawDataEnumCount, rawDataEnumMapping, copyOfByte(rawDataEnum, row), rawDataEnumEColumn);
       }
 
     } catch (Exception e) {
@@ -730,34 +722,20 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         });
   }
 
-  private int[] getHistograms(int colCount, Map<Integer, Map<Integer, Integer>> mapOfHistograms) {
-    int[] histograms = new int[colCount];
-
+  private void storeHistograms(byte tableID, long key, Map<Integer, Map<Integer, Integer>> mapOfHistograms) {
     mapOfHistograms.forEach((k, v) -> {
       if (!v.isEmpty()) {
-        int indexValue = this.histogramDAO.put(getArrayFromMap(v));
-        histograms[k] = indexValue;
-      } else {
-        histograms[k] = -1;
+        this.histogramDAO.put(tableID, key, k, getArrayFromMap(v));
       }
     });
-
-    return histograms;
   }
 
-  private int[] getHistogramsCachedLast(int colCount, Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms) {
-    int[] histograms = new int[colCount];
-
+  private void storeHistogramsCachedLast(byte tableID, long key, Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms) {
     mapOfHistograms.forEach((k, v) -> {
       if (!v.isEmpty()) {
-        int indexValue = this.histogramDAO.put(getArrayFromMap(v));
-        histograms[k] = indexValue;
-      } else {
-        histograms[k] = -1;
+        this.histogramDAO.put(tableID, key, k, getArrayFromMap(v));
       }
     });
-
-    return histograms;
   }
 
   private void storeData(byte tableId, boolean compression, long key,
@@ -768,8 +746,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, double[][] rawDataDouble,
       int colRawDataStringCount, List<Integer> rawDataStringMapping, String[][] rawDataString,
       int colRawDataEnumCount, List<Integer> rawDataEnumMapping, byte[][] rawDataEnum,
-      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn,
-      int[] histograms) {
+      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn) {
 
     /* Store data in RMapping entity */
     this.rawDAO.putKey(tableId, key);
@@ -812,9 +789,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         this.storeEnum(tableId, key, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn);
       }
 
-      /* Store metadata entity */
-      this.metadataDAO.put(tableId, key, getByteFromList(new ArrayList<>()), getByteFromList(new ArrayList<>()), histograms);
-
       return;
     }
 
@@ -839,9 +813,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
       this.storeEnum(tableId, key, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn);
     }
-
-    /* Store metadata entity */
-    this.metadataDAO.put(tableId, key, getByteFromList(new ArrayList<>()), getByteFromList(new ArrayList<>()), histograms);
   }
 
   private void storeEnum(byte tableId, long key,

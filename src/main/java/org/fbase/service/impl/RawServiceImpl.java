@@ -22,7 +22,6 @@ import org.fbase.sql.BatchResultSetImpl;
 import org.fbase.storage.Converter;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
-import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.entity.ColumnKey;
 import org.fbase.storage.bdb.entity.raw.RMapping;
@@ -34,16 +33,13 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   private final MetaModel metaModel;
   private final Converter converter;
   private final RawDAO rawDAO;
-  private final MetadataDAO metadataDAO;
   private final HistogramDAO histogramDAO;
   private final EnumDAO enumDAO;
 
-  public RawServiceImpl(MetaModel metaModel, Converter converter,
-      RawDAO rawDAO, MetadataDAO metadataDAO, HistogramDAO histogramDAO, EnumDAO enumDAO) {
+  public RawServiceImpl(MetaModel metaModel, Converter converter, RawDAO rawDAO, HistogramDAO histogramDAO, EnumDAO enumDAO) {
     this.metaModel = metaModel;
     this.converter = converter;
     this.rawDAO = rawDAO;
-    this.metadataDAO = metadataDAO;
     this.histogramDAO = histogramDAO;
     this.enumDAO = enumDAO;
   }
@@ -178,7 +174,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         if (cProfile.getCsType().getSType() == SType.HISTOGRAM) { // indexed data
           long[] timestamps = rawDAO.getRawLong(tableId, key, tsColIndex);
 
-          int[][] h = histogramDAO.get(metadataDAO.getHistograms(tableId, key)[cProfile.getColId()]);
+          int[][] h = histogramDAO.get(tableId, key, cProfile.getColId());
 
           int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
@@ -299,7 +295,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
       }
 
       if (cProfile.getCsType().getSType() == SType.HISTOGRAM) { // indexed data
-        int[][] h = histogramDAO.get(metadataDAO.getHistograms(tableId, key)[cProfile.getColId()]);
+        int[][] h = histogramDAO.get(tableId, key, cProfile.getColId());
 
         for (int i = 0; i < timestamps.length; i++) {
           if (timestamps[i] >= begin & timestamps[i] <= end) {

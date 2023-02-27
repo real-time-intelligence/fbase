@@ -339,6 +339,11 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
     return getMaxValue(tableId, 0L, Long.MAX_VALUE);
   }
 
+  @Override
+  public long getLastTimestamp(byte table, long begin, long end) {
+    return getMaxValue(table, begin, end);
+  }
+
   private long getMaxValue(byte tableId, long beginKey, long endKey) {
     long maxKey = 0L;
 
@@ -358,4 +363,5 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
 
     return maxKey;
   }
+
 }

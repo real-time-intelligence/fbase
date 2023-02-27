@@ -47,12 +47,10 @@ import org.fbase.storage.Converter;
 import org.fbase.storage.DimensionDAO;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
-import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.impl.DimensionBdbImpl;
 import org.fbase.storage.bdb.impl.EnumBdbImpl;
 import org.fbase.storage.bdb.impl.HistogramBdbImpl;
-import org.fbase.storage.bdb.impl.MetadataBdbImpl;
 import org.fbase.storage.bdb.impl.RawBdbImpl;
 
 @Log4j2
@@ -63,7 +61,6 @@ public class BdbStore implements FStore {
   private final FileConfig fileConfig;
 
   private final HistogramDAO histogramDAO;
-  private final MetadataDAO metadataDAO;
   private final RawDAO rawDAO;
   private final DimensionDAO dimensionDAO;
   private final EnumDAO enumDAO;
@@ -89,20 +86,19 @@ public class BdbStore implements FStore {
     }
 
     this.histogramDAO = new HistogramBdbImpl(this.store);
-    this.metadataDAO = new MetadataBdbImpl(this.store);
     this.rawDAO = new RawBdbImpl(this.store);
     this.dimensionDAO = new DimensionBdbImpl(this.store);
     this.enumDAO = new EnumBdbImpl(this.store);
 
     this.converter = new Converter(dimensionDAO);
 
-    this.metadataService = new MetadataServiceImpl(metaModel, converter, metadataDAO, histogramDAO, rawDAO);
+    this.metadataService = new MetadataServiceImpl(metaModel, converter, histogramDAO, rawDAO);
     this.histogramsService = new HistogramServiceImpl(metaModel, converter, histogramDAO);
-    this.rawService = new RawServiceImpl(metaModel, converter, rawDAO, metadataDAO, histogramDAO, enumDAO);
+    this.rawService = new RawServiceImpl(metaModel, converter, rawDAO, histogramDAO, enumDAO);
     this.enumService = new EnumServiceImpl(metaModel, converter, rawDAO, enumDAO);
-    this.groupByService = new GroupByServiceImpl(metaModel, converter, metadataDAO, histogramDAO, rawDAO, enumDAO);
+    this.groupByService = new GroupByServiceImpl(metaModel, converter, histogramDAO, rawDAO, enumDAO);
 
-    this.storeService = new StoreServiceImpl(metaModel, converter, rawDAO, enumDAO, histogramDAO, metadataDAO);
+    this.storeService = new StoreServiceImpl(metaModel, converter, rawDAO, enumDAO, histogramDAO);
   }
 
   @Override

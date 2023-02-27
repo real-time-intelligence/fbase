@@ -20,7 +20,6 @@ import org.fbase.model.profile.CProfile;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.MetadataService;
 import org.fbase.storage.HistogramDAO;
-import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
 
 @Log4j2
@@ -28,15 +27,12 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
 
   private final MetaModel metaModel;
   private final Converter converter;
-  private final MetadataDAO metadataDAO;
   private final HistogramDAO histogramDAO;
   private final RawDAO rawDAO;
 
-  public MetadataServiceImpl(MetaModel metaModel, Converter converter, MetadataDAO metadataDAO,
-      HistogramDAO histogramDAO, RawDAO rawDAO) {
+  public MetadataServiceImpl(MetaModel metaModel, Converter converter, HistogramDAO histogramDAO, RawDAO rawDAO) {
     this.metaModel = metaModel;
     this.converter = converter;
-    this.metadataDAO = metadataDAO;
     this.histogramDAO = histogramDAO;
     this.rawDAO = rawDAO;
   }
@@ -95,7 +91,7 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
 
     List<StackedColumn> list = new ArrayList<>();
 
-    long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
+    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
 
     if (prevKey != begin & prevKey != 0) {
       long[] timestamps = rawDAO.getRawLong(tableId, prevKey, tsProfile.getColId());
@@ -137,7 +133,7 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
     // firstLevelGroupBy = key, value = (secondLevelGroupBy = key2 : count = value2)
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
+    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
 
     if (prevKey != begin & prevKey != 0) {
       long[] timestamps = rawDAO.getRawLong(tableId, prevKey, tsProfile.getColId());
@@ -160,7 +156,7 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
   public long getLastTimestamp(String tableName, long begin, long end) {
     byte tableId = getTableId(tableName, metaModel);
 
-    return metadataDAO.getLastTimestamp(tableId, begin, end);
+    return this.rawDAO.getLastTimestamp(tableId, begin, end);
   }
 
   private void convertMapToDto(CProfile firstGrpBy, CProfile secondGrpBy,
@@ -185,7 +181,7 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
 
     long tail = timestamps[timestamps.length - 1];
 
-    int[][] hData = histogramDAO.get(metadataDAO.getHistograms(tableId, key)[cProfile.getColId()]);
+    int[][] hData = histogramDAO.get(tableId, key, cProfile.getColId());
 
     IntStream iRow = IntStream.range(0, hData.length);
     iRow.forEach(iR -> {
@@ -217,7 +213,7 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
 
     //todo replace objects with primitives
     List<List<Integer>> histogramsList =
-        from2arrayToList(histogramDAO.get(metadataDAO.getHistograms(tableId, key)[cProfile.getColId()]));
+        from2arrayToList(histogramDAO.get(tableId, key, cProfile.getColId()));
 
     //todo replace objects with primitives
     List<Long> timestampsList =
@@ -297,8 +293,8 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
   private void computeForGanttFull(byte tableId, long key, CProfile firstGrpBy, CProfile secondGrpBy,
       long[] timestamps, long begin, long end, Map<Integer, Map<Integer, Integer>> map) {
 
-    int[][] f = histogramDAO.get(metadataDAO.getHistograms(tableId, key)[firstGrpBy.getColId()]);
-    int[][] l = histogramDAO.get(metadataDAO.getHistograms(tableId, key)[secondGrpBy.getColId()]);
+    int[][] f = histogramDAO.get(tableId, key, firstGrpBy.getColId());
+    int[][] l = histogramDAO.get(tableId, key, secondGrpBy.getColId());
 
     boolean checkRange = timestamps[f[0][0]] >= begin & timestamps[f[f.length - 1][0]] <= end;
 

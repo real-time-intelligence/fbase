@@ -16,7 +16,6 @@ import org.fbase.service.CommonServiceApi;
 import org.fbase.service.GroupByService;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
-import org.fbase.storage.MetadataDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.helper.EnumHelper;
 
@@ -24,16 +23,14 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
   private final MetaModel metaModel;
   private final Converter converter;
-  private final MetadataDAO metadataDAO;
   private final HistogramDAO histogramDAO;
   private final RawDAO rawDAO;
   private final EnumDAO enumDAO;
 
-  public GroupByServiceImpl(MetaModel metaModel, Converter converter, MetadataDAO metadataDAO,
-      HistogramDAO histogramDAO, RawDAO rawDAO, EnumDAO enumDAO) {
+  public GroupByServiceImpl(MetaModel metaModel, Converter converter,  HistogramDAO histogramDAO,
+      RawDAO rawDAO, EnumDAO enumDAO) {
     this.metaModel = metaModel;
     this.converter = converter;
-    this.metadataDAO = metadataDAO;
     this.histogramDAO = histogramDAO;
     this.rawDAO = rawDAO;
     this.enumDAO = enumDAO;
@@ -79,7 +76,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
+    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
       this.computeEnumEnumBlock(tableId, tsColId, prevKey, firstLevelGroupBy, secondLevelGroupBy,
           begin, end, map);
@@ -109,7 +106,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<String, Map<String, Integer>> map = new HashMap<>();
 
-    long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
+    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
       this.computeRawRaw(tableId, firstLevelGroupBy, secondLevelGroupBy, tsColId,
           prevKey, begin, end, map);
@@ -145,7 +142,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
+    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
       this.computeHistEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, prevKey, begin, end, map);
@@ -177,7 +174,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     long[] timestamps = rawDAO.getRawLong(tableId, key, tsColId);
 
-    int[][] h = histogramDAO.get(metadataDAO.getHistograms(tableId, key)[cProfile.getColId()]);
+    int[][] h = histogramDAO.get(tableId, key, cProfile.getColId());
 
     for (int i = 0; i < h.length; i++) {
       int fNextIndex = getNextIndex(i, h, timestamps);
@@ -267,7 +264,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
+    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
       this.computeEnumHistBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, prevKey, begin, end, map);
@@ -297,7 +294,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<Integer, Map<String, Integer>> map = new HashMap<>();
 
-    long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
+    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
       this.computeHistRaw(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId,  prevKey, begin, end, map);
@@ -328,7 +325,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<String, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
+    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
       this.computeRawHist(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, prevKey, begin, end, map);
@@ -358,7 +355,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<Integer, Map<String, Integer>> map = new HashMap<>();
 
-    long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
+    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
       this.computeEnumRawBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, prevKey, begin, end, map);
@@ -388,7 +385,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<String, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.metadataDAO.getPreviousKey(tableId, begin);
+    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
     if (prevKey != begin & prevKey != 0) {
       this.computeRawEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
           tsColId, prevKey, begin, end, map);

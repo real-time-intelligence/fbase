@@ -53,4 +53,6 @@ public interface RawDAO {
   long getPreviousKey(byte tableId, long begin);
 
   long getMaxKey(byte tableId);
+
+  long getLastTimestamp(byte table, long begin, long end);
 }
