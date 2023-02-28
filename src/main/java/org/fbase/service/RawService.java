@@ -20,7 +20,7 @@ public interface RawService {
   BatchResultSet getBatchResultSet(String tableName, long begin, long end, int fetchSize);
 
   Entry<Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colIndex, int tsColIndex,
-      CProfile cProfile, int fetchSize, boolean isStarted, long maxKey, Entry<Long, Integer> pointer, AtomicInteger fetchCounter);
+      CProfile cProfile, int fetchSize, boolean isStarted, long maxBlockId, Entry<Long, Integer> pointer, AtomicInteger fetchCounter);
 
-  long getMaxKey(byte tableId);
+  long getMaxBlockId(byte tableId);
 }

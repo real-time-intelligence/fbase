@@ -4,8 +4,8 @@ import org.fbase.storage.bdb.entity.dictionary.EColumn;
 
 public interface EnumDAO {
 
-  EColumn putEColumn(byte tableId, long key, int colIndex, int[] values);
+  EColumn putEColumn(byte tableId, long blockId, int colId, int[] values);
 
-  int[] getEColumnValues(byte tableId, long key, int colIndex);
+  int[] getEColumnValues(byte tableId, long blockId, int colId);
 
 }

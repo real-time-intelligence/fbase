@@ -21,15 +21,15 @@ public class HistogramBdbImpl extends QueryBdbApi implements HistogramDAO {
   }
 
   @Override
-  public void put(byte tableId, long key, int colId, int[][] data) {
-    this.primaryIndex.put(new Histogram(ColumnKey.builder().table(tableId).key(key).colIndex(colId).build(),
+  public void put(byte tableId, long blockId, int colId, int[][] data) {
+    this.primaryIndex.put(new Histogram(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build(),
             CompressType.NONE, data, null, null));
   }
 
   @Override
-  public void putCompressed(byte tableId, long key, int colId, int[][] data) {
+  public void putCompressed(byte tableId, long blockId, int colId, int[][] data) {
     try {
-      this.primaryIndex.put(new Histogram(ColumnKey.builder().table(tableId).key(key).colIndex(colId).build(),
+      this.primaryIndex.put(new Histogram(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build(),
           CompressType.INT, null, Snappy.compress(data[0]), Snappy.compress(data[1])));
     } catch (IOException e) {
       log.catching(e);
@@ -38,8 +38,8 @@ public class HistogramBdbImpl extends QueryBdbApi implements HistogramDAO {
   }
 
   @Override
-  public int[][] get(byte tableId, long key, int colId) {
-    Histogram histogram = this.primaryIndex.get(ColumnKey.builder().table(tableId).key(key).colIndex(colId).build());
+  public int[][] get(byte tableId, long blockId, int colId) {
+    Histogram histogram = this.primaryIndex.get(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
     if (isNotBlockCompressed(histogram)) {
       return histogram.getData();

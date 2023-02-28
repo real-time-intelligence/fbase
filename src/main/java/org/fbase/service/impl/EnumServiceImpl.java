@@ -48,21 +48,21 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
 
     List<StackedColumn> list = new ArrayList<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
 
-    if (prevKey != begin & prevKey != 0) {
-      this.computeNoIndexBeginEnd(tableName, cProfile, prevKey, begin, end, list);
+    if (previousBlockId != begin & previousBlockId != 0) {
+      this.computeNoIndexBeginEnd(tableName, cProfile, previousBlockId, begin, end, list);
     }
 
-    for (Long e : this.rawDAO.getListKeys(tableId, begin, end)) {
-      this.computeNoIndexBeginEnd(tableName, cProfile, e, begin, end, list);
+    for (Long blockId : this.rawDAO.getListBlockIds(tableId, begin, end)) {
+      this.computeNoIndexBeginEnd(tableName, cProfile, blockId, begin, end, list);
     }
 
     return list;
   }
 
   private void computeNoIndexBeginEnd(String tableName, CProfile cProfile,
-      long key, long begin, long end, List<StackedColumn> list) {
+      long blockId, long begin, long end, List<StackedColumn> list) {
     byte tableId = getTableId(tableName, metaModel);
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
 
@@ -70,9 +70,9 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
 
     Map<Byte, Integer> map = new LinkedHashMap<>();
 
-    long[] timestamps = this.rawDAO.getRawLong(tableId, key, tsProfile.getColId());
+    long[] timestamps = this.rawDAO.getRawLong(tableId, blockId, tsProfile.getColId());
 
-    byte[] bytes = this.rawDAO.getRawByte(tableId, key, cProfile.getColId());
+    byte[] bytes = this.rawDAO.getRawByte(tableId, blockId, cProfile.getColId());
 
     long tail = timestamps[timestamps.length - 1];
 
@@ -84,13 +84,13 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
     });
 
     Map<String, Integer> mapKeyCount = new LinkedHashMap<>();
-    int[] eColumn = enumDAO.getEColumnValues(tableId, key, cProfile.getColId());
+    int[] eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
     map.forEach((keyByte, value) -> mapKeyCount.put(converter.convertIntToRaw(
         EnumHelper.getIndexValue(eColumn, keyByte), cProfile), value));
 
     list.add(StackedColumn.builder()
-        .key(key)
+        .key(blockId)
         .tail(tail)
         .keyCount(mapKeyCount).build());
   }

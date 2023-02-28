@@ -16,7 +16,7 @@ import org.fbase.metadata.CompressType;
 public class Histogram {
 
   @PrimaryKey
-  private ColumnKey key;
+  private ColumnKey columnKey;
 
   private CompressType compressionType = CompressType.NONE;
 

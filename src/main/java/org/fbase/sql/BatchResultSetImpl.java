@@ -24,7 +24,7 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
   private boolean isNext = true;
   private boolean isStarted = true;
 
-  private final long maxKey;
+  private final long maxBlockId;
 
   private final boolean isTimestamp;
 
@@ -34,6 +34,8 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
    * @param tableName table name
    * @param tableId table id
    * @param fetchSize the number of rows to fetch
+   * @param begin the start range
+   * @param end the end range
    * @param cProfiles list of column profiles
    * @param rawService service layer for raw data
    */
@@ -54,9 +56,9 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
         throw new RuntimeException("Not supported API for time-series tables. Use overloaded version with begin and end parameters..");
       }
 
-      this.maxKey = rawService.getMaxKey(tableId);
+      this.maxBlockId = rawService.getMaxBlockId(tableId);
     } else {
-      this.maxKey = end;
+      this.maxBlockId = end;
     }
   }
 
@@ -77,7 +79,7 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
 
           Map.Entry<Map.Entry<Long, Integer>, List<Object>> columnData =
               rawService.getColumnData(tableId, cProfile.getColId(), tsProfile.getColId(), cProfile,
-                  fetchSize, isStarted, maxKey, pointer, fetchCounter);
+                  fetchSize, isStarted, maxBlockId, pointer, fetchCounter);
 
           pointerLocal.set(columnData.getKey());
 
@@ -88,7 +90,7 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
 
     isStarted = false;
 
-    if (pointer.getKey() > maxKey) isNext = false;
+    if (pointer.getKey() > maxBlockId) isNext = false;
 
     return transpose(columnDataListLocal);
   }

@@ -90,23 +90,23 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
 
     List<StackedColumn> list = new ArrayList<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
 
-    if (prevKey != begin & prevKey != 0) {
-      long[] timestamps = rawDAO.getRawLong(tableId, prevKey, tsProfile.getColId());
-      this.computeIndexedForStackedBeginEnd(tableId, cProfile, prevKey, timestamps, begin, end, list);
+    if (previousBlockId != begin & previousBlockId != 0) {
+      long[] timestamps = rawDAO.getRawLong(tableId, previousBlockId, tsProfile.getColId());
+      this.computeIndexedForStackedBeginEnd(tableId, cProfile, previousBlockId, timestamps, begin, end, list);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key -> {
-          long[] timestamps = rawDAO.getRawLong(tableId, key, tsProfile.getColId());
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId -> {
+          long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsProfile.getColId());
 
           long tail = timestamps[timestamps.length - 1];
 
           if (tail > end) {
-            this.computeIndexedForStackedBeginEnd(tableId, cProfile, key, timestamps, begin, end, list);
+            this.computeIndexedForStackedBeginEnd(tableId, cProfile, blockId, timestamps, begin, end, list);
           } else {
-            this.computeIndexedForStackedFull(tableId, cProfile, key, timestamps, list);
+            this.computeIndexedForStackedFull(tableId, cProfile, blockId, timestamps, list);
           }
         });
 
@@ -132,18 +132,18 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
     // firstLevelGroupBy = key, value = (secondLevelGroupBy = key2 : count = value2)
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
 
-    if (prevKey != begin & prevKey != 0) {
-      long[] timestamps = rawDAO.getRawLong(tableId, prevKey, tsProfile.getColId());
+    if (previousBlockId != begin & previousBlockId != 0) {
+      long[] timestamps = rawDAO.getRawLong(tableId, previousBlockId, tsProfile.getColId());
 
-      this.computeForGanttFull(tableId, prevKey, firstGrpBy, secondGrpBy, timestamps, begin, end, map);
+      this.computeForGanttFull(tableId, previousBlockId, firstGrpBy, secondGrpBy, timestamps, begin, end, map);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key -> {
-          long[] timestamps = rawDAO.getRawLong(tableId, key, tsProfile.getColId());
-          this.computeForGanttFull(tableId, key, firstGrpBy, secondGrpBy, timestamps, begin, end, map);
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId -> {
+          long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsProfile.getColId());
+          this.computeForGanttFull(tableId, blockId, firstGrpBy, secondGrpBy, timestamps, begin, end, map);
         });
 
     this.convertMapToDto(firstGrpBy, secondGrpBy, map, list);
@@ -155,7 +155,7 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
   public long getLastTimestamp(String tableName, long begin, long end) {
     byte tableId = getTableId(tableName, metaModel);
 
-    return this.rawDAO.getLastTimestamp(tableId, begin, end);
+    return this.rawDAO.getLastBlockId(tableId, begin, end);
   }
 
   private void convertMapToDto(CProfile firstGrpBy, CProfile secondGrpBy,
@@ -173,14 +173,14 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
     });
   }
 
-  private void computeIndexedForStackedFull(byte tableId, CProfile cProfile, long key, long[] timestamps,
+  private void computeIndexedForStackedFull(byte tableId, CProfile cProfile, long blockId, long[] timestamps,
       List<StackedColumn> list) {
 
     Map<Integer, Integer> map = new LinkedHashMap<>();
 
     long tail = timestamps[timestamps.length - 1];
 
-    int[][] hData = histogramDAO.get(tableId, key, cProfile.getColId());
+    int[][] hData = histogramDAO.get(tableId, blockId, cProfile.getColId());
 
     IntStream iRow = IntStream.range(0, hData[0].length);
     iRow.forEach(iR -> {
@@ -200,17 +200,17 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
         .put(this.converter.convertIntToRaw(keyInt, cProfile), value));
 
     list.add(StackedColumn.builder()
-        .key(key)
+        .key(blockId)
         .tail(tail)
         .keyCount(mapKeyCount).build());
   }
 
-  private void computeIndexedForStackedBeginEnd(byte tableId, CProfile cProfile, long key,
+  private void computeIndexedForStackedBeginEnd(byte tableId, CProfile cProfile, long blockId,
       long[] timestamps, long begin, long end, List<StackedColumn> list) {
 
     long tail = timestamps[timestamps.length - 1];
 
-    int[][] histograms = histogramDAO.get(tableId, key, cProfile.getColId());
+    int[][] histograms = histogramDAO.get(tableId, blockId, cProfile.getColId());
 
     AtomicInteger cntForHistExt = new AtomicInteger(0);
     List<List<Integer>> histogramsListExt = new ArrayList<>();
@@ -255,7 +255,7 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
     Map<String, Integer> map = new LinkedHashMap<>();
     IntStream iRow = IntStream.range(0, timestamps.length);
 
-    if (key < begin) {
+    if (blockId < begin) {
       iRow.forEach(iR -> {
         if (timestamps[iR] >= begin & timestamps[iR] <= end) {
           String keyCompute = this.converter.convertIntToRaw(histogramsListExt.get(iR).get(1), cProfile);
@@ -264,7 +264,7 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
       });
     }
 
-    if (key >= begin & tail > end) {
+    if (blockId >= begin & tail > end) {
       iRow.forEach(iR -> {
         if (timestamps[iR] >= begin & timestamps[iR] <= end) {
           String keyCompute = this.converter.convertIntToRaw(histogramsListExt.get(iR).get(1), cProfile);
@@ -274,16 +274,16 @@ public class MetadataServiceImpl extends CommonServiceApi implements MetadataSer
     }
 
     list.add(StackedColumn.builder()
-        .key(key)
+        .key(blockId)
         .tail(tail)
         .keyCount(map).build());
   }
 
-  private void computeForGanttFull(byte tableId, long key, CProfile firstGrpBy, CProfile secondGrpBy,
+  private void computeForGanttFull(byte tableId, long blockId, CProfile firstGrpBy, CProfile secondGrpBy,
       long[] timestamps, long begin, long end, Map<Integer, Map<Integer, Integer>> map) {
 
-    int[][] f = histogramDAO.get(tableId, key, firstGrpBy.getColId());
-    int[][] l = histogramDAO.get(tableId, key, secondGrpBy.getColId());
+    int[][] f = histogramDAO.get(tableId, blockId, firstGrpBy.getColId());
+    int[][] l = histogramDAO.get(tableId, blockId, secondGrpBy.getColId());
 
     boolean checkRange = timestamps[f[0][0]] >= begin & timestamps[f[0][f[0].length - 1]] <= end;
 

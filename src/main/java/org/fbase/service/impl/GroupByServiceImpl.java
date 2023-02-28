@@ -76,14 +76,14 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
-    if (prevKey != begin & prevKey != 0) {
-      this.computeEnumEnumBlock(tableId, tsColId, prevKey, firstLevelGroupBy, secondLevelGroupBy,
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    if (previousBlockId != begin & previousBlockId != 0) {
+      this.computeEnumEnumBlock(tableId, tsColId, previousBlockId, firstLevelGroupBy, secondLevelGroupBy,
           begin, end, map);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key -> this.computeEnumEnumBlock(tableId, tsColId, key,
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId -> this.computeEnumEnumBlock(tableId, tsColId, blockId,
             firstLevelGroupBy, secondLevelGroupBy, begin, end, map));
 
     map.forEach((key, value) -> list.add(GanttColumn.builder()
@@ -91,12 +91,12 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
         .gantt(getEnumBlockMap(value, secondLevelGroupBy)).build()));
   }
 
-  private void computeEnumEnumBlock(byte tableId, int tsColId, long key,
+  private void computeEnumEnumBlock(byte tableId, int tsColId, long blockId,
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end,
       Map<Integer, Map<Integer, Integer>> map) {
 
-    Map.Entry<int[], byte[]> listFirst = computeEnumEnumBlock(tableId, firstLevelGroupBy, tsColId, key, begin, end);
-    Map.Entry<int[], byte[]> listSecond = computeEnumEnumBlock(tableId, secondLevelGroupBy, tsColId, key, begin, end);
+    Map.Entry<int[], byte[]> listFirst = computeEnumEnumBlock(tableId, firstLevelGroupBy, tsColId, blockId, begin, end);
+    Map.Entry<int[], byte[]> listSecond = computeEnumEnumBlock(tableId, secondLevelGroupBy, tsColId, blockId, begin, end);
 
     setMapValueEnumEnumBlock(map, listFirst, listSecond, 1);
   }
@@ -106,28 +106,30 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<String, Map<String, Integer>> map = new HashMap<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
-    if (prevKey != begin & prevKey != 0) {
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    if (previousBlockId != begin & previousBlockId != 0) {
       this.computeRawRaw(tableId, firstLevelGroupBy, secondLevelGroupBy, tsColId,
-          prevKey, begin, end, map);
+          previousBlockId, begin, end, map);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key -> this.computeRawRaw(tableId, firstLevelGroupBy, secondLevelGroupBy, tsColId, key, begin, end, map));
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId ->
+            this.computeRawRaw(tableId, firstLevelGroupBy, secondLevelGroupBy, tsColId, blockId, begin, end, map)
+        );
 
     map.forEach((key, value) -> list.add(GanttColumn.builder().key(key).gantt(value).build()));
   }
 
   private void computeRawRaw(byte tableId, CProfile firstLevelGroupBy,
-      CProfile secondLevelGroupBy, int tsColId, long key, long begin, long end,
+      CProfile secondLevelGroupBy, int tsColId, long blockId, long begin, long end,
       Map<String, Map<String, Integer>> map) {
 
-    long[] timestamps = rawDAO.getRawLong(tableId, key, tsColId);
+    long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
 
     String[] first = getStringArrayValue(rawDAO, Mapper.isCType(firstLevelGroupBy),
-        tableId, key, firstLevelGroupBy.getColId());
+        tableId, blockId, firstLevelGroupBy.getColId());
     String[] second = getStringArrayValue(rawDAO, Mapper.isCType(secondLevelGroupBy),
-        tableId, key, secondLevelGroupBy.getColId());
+        tableId, blockId, secondLevelGroupBy.getColId());
 
     IntStream iRow = IntStream.range(0, timestamps.length);
     iRow.forEach(iR -> {
@@ -142,15 +144,15 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
-    if (prevKey != begin & prevKey != 0) {
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    if (previousBlockId != begin & previousBlockId != 0) {
       this.computeHistEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
-          tsColId, prevKey, begin, end, map);
+          tsColId, previousBlockId, begin, end, map);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key -> this.computeHistEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
-                tsColId, key, begin, end, map));
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId -> this.computeHistEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
+                tsColId, blockId, begin, end, map));
 
     map.forEach((key, value) -> list.add(GanttColumn.builder()
         .key(this.converter.convertIntToRaw(key, firstLevelGroupBy))
@@ -158,23 +160,23 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
   }
 
   private void computeHistEnumBlock(byte tableId, CProfile firstLevelGroupBy,
-      CProfile secondLevelGroupBy, int tsColId, long key, long begin, long end,
+      CProfile secondLevelGroupBy, int tsColId, long blockId, long begin, long end,
       Map<Integer, Map<Integer, Integer>> map) {
 
-    List<Integer> listFirst = computeHistogram(tableId, firstLevelGroupBy, tsColId, key, begin, end);
-    Map.Entry<int[], byte[]> listSecond = computeEnumBlock(tableId, secondLevelGroupBy, tsColId, key, begin, end);
+    List<Integer> listFirst = computeHistogram(tableId, firstLevelGroupBy, tsColId, blockId, begin, end);
+    Map.Entry<int[], byte[]> listSecond = computeEnumBlock(tableId, secondLevelGroupBy, tsColId, blockId, begin, end);
 
     setMapValueHistEnumBlock(map, listFirst, listSecond, 1);
   }
 
   private List<Integer> computeHistogram(byte tableId, CProfile cProfile,
-      int tsColId, long key, long begin, long end) {
+      int tsColId, long blockId, long begin, long end) {
 
     List<Integer> list = new ArrayList<>();
 
-    long[] timestamps = rawDAO.getRawLong(tableId, key, tsColId);
+    long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
 
-    int[][] h = histogramDAO.get(tableId, key, cProfile.getColId());
+    int[][] h = histogramDAO.get(tableId, blockId, cProfile.getColId());
 
     for (int i = 0; i < h[0].length; i++) {
       int fNextIndex = getNextIndex(i, h, timestamps);
@@ -198,12 +200,12 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
   }
 
   private Map.Entry<int[], byte[]> computeEnumBlock(byte tableId, CProfile cProfile,
-      int tsColId, long key, long begin, long end) {
+      int tsColId, long blockId, long begin, long end) {
 
-    long[] tsSecond = rawDAO.getRawLong(tableId, key, tsColId);
+    long[] tsSecond = rawDAO.getRawLong(tableId, blockId, tsColId);
     byte[] eBytes = new byte[tsSecond.length];
 
-    byte[] bytes = this.rawDAO.getRawByte(tableId, key, cProfile.getColId());
+    byte[] bytes = this.rawDAO.getRawByte(tableId, blockId, cProfile.getColId());
 
     IntStream iRow = IntStream.range(0, tsSecond.length);
 
@@ -213,18 +215,18 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
       }
     });
 
-    int[] eColumn = enumDAO.getEColumnValues(tableId, key, cProfile.getColId());
+    int[] eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
     return Map.entry(eColumn, eBytes);
   }
 
   private Map.Entry<int[], byte[]> computeEnumEnumBlock(byte tableId, CProfile cProfile,
-      int tsColId, long key, long begin, long end) {
+      int tsColId, long blockId, long begin, long end) {
 
-    long[] tsSecond = rawDAO.getRawLong(tableId, key, tsColId);
+    long[] tsSecond = rawDAO.getRawLong(tableId, blockId, tsColId);
     List<Byte> eBytes = new ArrayList<>();
 
-    byte[] bytes = this.rawDAO.getRawByte(tableId, key, cProfile.getColId());
+    byte[] bytes = this.rawDAO.getRawByte(tableId, blockId, cProfile.getColId());
 
     IntStream iRow = IntStream.range(0, tsSecond.length);
 
@@ -234,20 +236,20 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
       }
     });
 
-    int[] eColumn = enumDAO.getEColumnValues(tableId, key, cProfile.getColId());
+    int[] eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
     return Map.entry(eColumn, getByteFromList(eBytes));
   }
 
   private List<String> computeRaw(byte tableId, CProfile cProfile,
-      int tsColId, long key, long begin, long end) {
+      int tsColId, long blockId, long begin, long end) {
 
     List<String> list = new ArrayList<>();
 
-    long[] timestamps = rawDAO.getRawLong(tableId, key, tsColId);
+    long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
 
     String[] columnData = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
-        tableId, key, cProfile.getColId());
+        tableId, blockId, cProfile.getColId());
 
     IntStream iRow = IntStream.range(0, timestamps.length);
     iRow.forEach(iR -> {
@@ -264,15 +266,15 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
-    if (prevKey != begin & prevKey != 0) {
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    if (previousBlockId != begin & previousBlockId != 0) {
       this.computeEnumHistBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
-          tsColId, prevKey, begin, end, map);
+          tsColId, previousBlockId, begin, end, map);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key -> this.computeEnumHistBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
-            tsColId, key, begin, end, map));
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId -> this.computeEnumHistBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
+            tsColId, blockId, begin, end, map));
 
     map.forEach((key, value) -> list.add(GanttColumn.builder()
         .key(this.converter.convertIntToRaw(key, firstLevelGroupBy))
@@ -280,11 +282,11 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
   }
 
   private void computeEnumHistBlock(byte tableId, CProfile firstLevelGroupBy,
-      CProfile secondLevelGroupBy, int tsColId, long key, long begin, long end,
+      CProfile secondLevelGroupBy, int tsColId, long blockId, long begin, long end,
       Map<Integer, Map<Integer, Integer>> map) {
 
-    Map.Entry<int[], byte[]> listFirst = computeEnumEnumBlock(tableId, firstLevelGroupBy, tsColId, key, begin, end);
-    List<Integer> listSecond = computeHistogram(tableId, secondLevelGroupBy, tsColId, key, begin, end);
+    Map.Entry<int[], byte[]> listFirst = computeEnumEnumBlock(tableId, firstLevelGroupBy, tsColId, blockId, begin, end);
+    List<Integer> listSecond = computeHistogram(tableId, secondLevelGroupBy, tsColId, blockId, begin, end);
 
     setMapValueCommonBlockLevel(map, listFirst, listSecond, 1);
   }
@@ -294,15 +296,15 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<Integer, Map<String, Integer>> map = new HashMap<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
-    if (prevKey != begin & prevKey != 0) {
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    if (previousBlockId != begin & previousBlockId != 0) {
       this.computeHistRaw(tableId, firstLevelGroupBy, secondLevelGroupBy,
-          tsColId,  prevKey, begin, end, map);
+          tsColId,  previousBlockId, begin, end, map);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key ->  this.computeHistRaw(tableId, firstLevelGroupBy, secondLevelGroupBy,
-            tsColId, key, begin, end, map));
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId ->  this.computeHistRaw(tableId, firstLevelGroupBy, secondLevelGroupBy,
+            tsColId, blockId, begin, end, map));
 
     map.forEach((key, value) -> {
       String keyStr = this.converter.convertIntToRaw(key, firstLevelGroupBy);
@@ -311,11 +313,11 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
   }
 
   private void computeHistRaw(byte tableId, CProfile firstLevelGroupBy,
-      CProfile secondLevelGroupBy, int tsColId, long key, long begin, long end,
+      CProfile secondLevelGroupBy, int tsColId, long blockId, long begin, long end,
       Map<Integer, Map<String, Integer>> map) {
 
-    List<Integer> listFirst = computeHistogram(tableId, firstLevelGroupBy, tsColId, key, begin, end);
-    List<String> listSecond = computeRaw(tableId, secondLevelGroupBy, tsColId, key, begin, end);
+    List<Integer> listFirst = computeHistogram(tableId, firstLevelGroupBy, tsColId, blockId, begin, end);
+    List<String> listSecond = computeRaw(tableId, secondLevelGroupBy, tsColId, blockId, begin, end);
 
     setMapValueCommon(map, listFirst, listSecond, 1);
   }
@@ -325,15 +327,15 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<String, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
-    if (prevKey != begin & prevKey != 0) {
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    if (previousBlockId != begin & previousBlockId != 0) {
       this.computeRawHist(tableId, firstLevelGroupBy, secondLevelGroupBy,
-          tsColId, prevKey, begin, end, map);
+          tsColId, previousBlockId, begin, end, map);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key ->  this.computeRawHist(tableId, firstLevelGroupBy, secondLevelGroupBy,
-          tsColId, key, begin, end, map));
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId ->  this.computeRawHist(tableId, firstLevelGroupBy, secondLevelGroupBy,
+          tsColId, blockId, begin, end, map));
 
     map.forEach((key, value) -> {
       list.add(GanttColumn.builder().key(key).gantt(getHistogramGanttMap(value, secondLevelGroupBy)).build());
@@ -341,11 +343,11 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
   }
 
   private void computeRawHist(byte tableId, CProfile firstLevelGroupBy,
-      CProfile secondLevelGroupBy, int tsColId, long key, long begin, long end,
+      CProfile secondLevelGroupBy, int tsColId, long blockId, long begin, long end,
       Map<String, Map<Integer, Integer>> map) {
 
-    List<String> listFirst = computeRaw(tableId, firstLevelGroupBy, tsColId, key, begin, end);
-    List<Integer> listSecond = computeHistogram(tableId, secondLevelGroupBy, tsColId, key, begin, end);
+    List<String> listFirst = computeRaw(tableId, firstLevelGroupBy, tsColId, blockId, begin, end);
+    List<Integer> listSecond = computeHistogram(tableId, secondLevelGroupBy, tsColId, blockId, begin, end);
 
     setMapValueCommon(map, listFirst, listSecond, 1);
   }
@@ -355,15 +357,15 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<Integer, Map<String, Integer>> map = new HashMap<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
-    if (prevKey != begin & prevKey != 0) {
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    if (previousBlockId != begin & previousBlockId != 0) {
       this.computeEnumRawBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
-          tsColId, prevKey, begin, end, map);
+          tsColId, previousBlockId, begin, end, map);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key -> this.computeEnumRawBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
-          tsColId, key, begin, end, map));
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId -> this.computeEnumRawBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
+          tsColId, blockId, begin, end, map));
 
     map.forEach((key, value) -> list.add(GanttColumn.builder()
         .key(this.converter.convertIntToRaw(key, firstLevelGroupBy))
@@ -371,11 +373,11 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
   }
 
   private void computeEnumRawBlock(byte tableId, CProfile firstLevelGroupBy,
-      CProfile secondLevelGroupBy, int tsColId, long key, long begin, long end,
+      CProfile secondLevelGroupBy, int tsColId, long blockId, long begin, long end,
       Map<Integer, Map<String, Integer>> map) {
 
-    Map.Entry<int[], byte[]> listFirst = computeEnumEnumBlock(tableId, firstLevelGroupBy, tsColId, key, begin, end);
-    List<String> listSecond = computeRaw(tableId, secondLevelGroupBy, tsColId, key, begin, end);
+    Map.Entry<int[], byte[]> listFirst = computeEnumEnumBlock(tableId, firstLevelGroupBy, tsColId, blockId, begin, end);
+    List<String> listSecond = computeRaw(tableId, secondLevelGroupBy, tsColId, blockId, begin, end);
 
     setMapValueEnumRawBlock(map, listFirst, listSecond, 1);
   }
@@ -385,15 +387,15 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     Map<String, Map<Integer, Integer>> map = new HashMap<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
-    if (prevKey != begin & prevKey != 0) {
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    if (previousBlockId != begin & previousBlockId != 0) {
       this.computeRawEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
-          tsColId, prevKey, begin, end, map);
+          tsColId, previousBlockId, begin, end, map);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key -> this.computeRawEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
-          tsColId, key, begin, end, map));
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId -> this.computeRawEnumBlock(tableId, firstLevelGroupBy, secondLevelGroupBy,
+          tsColId, blockId, begin, end, map));
 
     map.forEach((key, value) -> list.add(GanttColumn.builder()
         .key(key)
@@ -401,11 +403,11 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
   }
 
   private void computeRawEnumBlock(byte tableId, CProfile firstLevelGroupBy,
-      CProfile secondLevelGroupBy, int tsColId, long key, long begin, long end,
+      CProfile secondLevelGroupBy, int tsColId, long blockId, long begin, long end,
       Map<String, Map<Integer, Integer>> map) {
 
-    List<String> listFirst = computeRaw(tableId, firstLevelGroupBy, tsColId, key, begin, end);
-    Map.Entry<int[], byte[]> listSecond = computeEnumBlock(tableId, secondLevelGroupBy, tsColId, key, begin, end);
+    List<String> listFirst = computeRaw(tableId, firstLevelGroupBy, tsColId, blockId, begin, end);
+    Map.Entry<int[], byte[]> listSecond = computeEnumBlock(tableId, secondLevelGroupBy, tsColId, blockId, begin, end);
 
     setMapValueRawEnumBlock(map, listFirst, listSecond, 1);
   }

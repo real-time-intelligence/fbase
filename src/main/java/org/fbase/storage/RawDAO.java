@@ -8,23 +8,23 @@ import org.fbase.storage.bdb.entity.raw.RMapping;
 
 public interface RawDAO {
 
-  void putKey(byte tableId, long key);
+  void putBlockId(byte tableId, long blockId);
 
-  void putByte(byte tableId, long key, int[] mapping, byte[][] data);
+  void putByte(byte tableId, long blockId, int[] mapping, byte[][] data);
 
-  void putInt(byte tableId, long key, int[] mapping, int[][] data);
+  void putInt(byte tableId, long blockId, int[] mapping, int[][] data);
 
-  void putLong(byte tableId, long key, int[] mapping, long[][] data);
+  void putLong(byte tableId, long blockId, int[] mapping, long[][] data);
 
-  void putFloat(byte tableId, long key, int[] mapping, float[][] data);
+  void putFloat(byte tableId, long blockId, int[] mapping, float[][] data);
 
-  void putDouble(byte tableId, long key, int[] mapping, double[][] data);
+  void putDouble(byte tableId, long blockId, int[] mapping, double[][] data);
 
-  void putString(byte tableId, long key, int[] mapping, String[][] data);
+  void putString(byte tableId, long blockId, int[] mapping, String[][] data);
 
-  void putEnum(byte tableId, long key, int[] mapping, byte[][] data);
+  void putEnum(byte tableId, long blockId, int[] mapping, byte[][] data);
 
-  void putCompressed(byte tableId, long key,
+  void putCompressed(byte tableId, long blockId,
       List<Integer> rawDataTimeStampMapping, List<List<Long>> rawDataTimestamp,
       List<Integer> rawDataIntMapping, List<List<Integer>> rawDataInt,
       List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
@@ -34,25 +34,25 @@ public interface RawDAO {
       List<Integer> rawDataEnumMapping, List<List<Byte>> rawDataEnum)
       throws IOException;
 
-  byte[] getRawByte(byte tableId, long key, int colIndex);
+  byte[] getRawByte(byte tableId, long blockId, int colId);
 
-  int[] getRawInt(byte tableId, long key, int colIndex);
+  int[] getRawInt(byte tableId, long blockId, int colId);
 
-  float[] getRawFloat(byte tableId, long key, int colIndex);
+  float[] getRawFloat(byte tableId, long blockId, int colId);
 
-  long[] getRawLong(byte tableId, long key, int colIndex);
+  long[] getRawLong(byte tableId, long blockId, int colId);
 
-  double[] getRawDouble(byte tableId, long key, int colIndex);
+  double[] getRawDouble(byte tableId, long blockId, int colId);
 
-  String[] getRawString(byte tableId, long key, int colIndex);
+  String[] getRawString(byte tableId, long blockId, int colId);
 
-  List<Long> getListKeys(byte tableId, long begin, long end);
+  List<Long> getListBlockIds(byte tableId, long begin, long end);
 
-  EntityCursor<RMapping> getRMappingEntityCursor(ColumnKey columnKeyBegin, ColumnKey columnKeyEnd);
+  EntityCursor<RMapping> getRMappingEntityCursor(ColumnKey begin, ColumnKey end);
 
-  long getPreviousKey(byte tableId, long begin);
+  long getPreviousBlockId(byte tableId, long blockId);
 
-  long getMaxKey(byte tableId);
+  long getLastBlockId(byte tableId);
 
-  long getLastTimestamp(byte table, long begin, long end);
+  long getLastBlockId(byte tableId, long begin, long end);
 }

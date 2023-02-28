@@ -60,14 +60,15 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
     List<StackedColumn> list = new ArrayList<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
 
-    if (prevKey != begin & prevKey != 0) {
-      this.computeNoIndexBeginEnd(tableId, tsProfile, cProfile, prevKey, begin, end, list);
+    if (previousBlockId != begin & previousBlockId != 0) {
+      this.computeNoIndexBeginEnd(tableId, tsProfile, cProfile, previousBlockId, begin, end, list);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key -> this.computeNoIndexBeginEnd(tableId, tsProfile, cProfile, key, begin, end, list));
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId ->
+            this.computeNoIndexBeginEnd(tableId, tsProfile, cProfile, blockId, begin, end, list));
 
     return list;
   }
@@ -93,47 +94,47 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   @Override
-  public Entry<Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colIndex, int tsColIndex,
-      CProfile cProfile, int fetchSize, boolean isStarted, long maxKey, Entry<Long, Integer> pointer, AtomicInteger fetchCounter) {
+  public Entry<Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colId, int tsColId,
+      CProfile cProfile, int fetchSize, boolean isStarted, long maxBlockId, Entry<Long, Integer> pointer, AtomicInteger fetchCounter) {
 
     List<Object> columnData = new ArrayList<>();
 
     boolean isPointerFirst = true;
     boolean getNextPointer = false;
 
-    if (tsColIndex != -1) {
-      long prevKey = this.rawDAO.getPreviousKey(tableId, pointer.getKey());
-      if (prevKey != pointer.getKey() & prevKey != 0) {
+    if (tsColId != -1) {
+      long prevBlockId = this.rawDAO.getPreviousBlockId(tableId, pointer.getKey());
+      if (prevBlockId != pointer.getKey() & prevBlockId != 0) {
         isStarted = false;
 
-        long[] timestamps = rawDAO.getRawLong(tableId, prevKey, tsColIndex);
+        long[] timestamps = rawDAO.getRawLong(tableId, prevBlockId, tsColId);
 
         for (int i = 0; i < timestamps.length; i++) {
           if (timestamps[i] == pointer.getKey()) {
-            pointer = Map.entry(prevKey, i);
+            pointer = Map.entry(prevBlockId, i);
           }
         }
       }
     }
 
-    ColumnKey columnKeyBegin = ColumnKey.builder().table(tableId).key(pointer.getKey()).colIndex(0).build();
-    ColumnKey columnKeyEnd = ColumnKey.builder().table(tableId).key(maxKey).colIndex(0).build();
+    ColumnKey columnKeyBegin = ColumnKey.builder().tableId(tableId).blockId(pointer.getKey()).colId(0).build();
+    ColumnKey columnKeyEnd = ColumnKey.builder().tableId(tableId).blockId(maxBlockId).colId(0).build();
     EntityCursor<RMapping> cursor = rawDAO.getRMappingEntityCursor(columnKeyBegin, columnKeyEnd);
 
     try (cursor) {
       RMapping columnKey;
 
       while ((columnKey = cursor.next()) != null) {
-        long key = columnKey.getKey().getKey();
+        long blockId = columnKey.getColumnKey().getBlockId();
 
         if (getNextPointer) {
-          return Map.entry(Map.entry(key, 0), columnData);
+          return Map.entry(Map.entry(blockId, 0), columnData);
         }
 
         if (cProfile.getCsType().isTimeStamp()) { // timestamp
           int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
-          long[] timestamps = rawDAO.getRawLong(tableId, key, cProfile.getColId());
+          long[] timestamps = rawDAO.getRawLong(tableId, blockId, cProfile.getColId());
 
           for (int i = startPoint; i < timestamps.length; i++) {
             columnData.add(timestamps[i]);
@@ -142,7 +143,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
               if (i == timestamps.length - 1) {
                 getNextPointer = true;
               } else {
-                return Map.entry(Map.entry(key, i + 1), columnData);
+                return Map.entry(Map.entry(blockId, i + 1), columnData);
               }
             }
           }
@@ -154,7 +155,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
           int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
           String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
-              tableId, key, cProfile.getColId());
+              tableId, blockId, cProfile.getColId());
 
           for (int i = startPoint; i < column.length; i++) {
             columnData.add(column[i]);
@@ -163,7 +164,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
               if (i == column.length - 1) {
                 getNextPointer = true;
               } else {
-                return Map.entry(Map.entry(key, i + 1), columnData);
+                return Map.entry(Map.entry(blockId, i + 1), columnData);
               }
             }
           }
@@ -172,9 +173,9 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         }
 
         if (cProfile.getCsType().getSType() == SType.HISTOGRAM) { // indexed data
-          long[] timestamps = rawDAO.getRawLong(tableId, key, tsColIndex);
+          long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
 
-          int[][] h = histogramDAO.get(tableId, key, cProfile.getColId());
+          int[][] h = histogramDAO.get(tableId, blockId, cProfile.getColId());
 
           int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
@@ -185,7 +186,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
               if (i == timestamps.length - 1) {
                 getNextPointer = true;
               } else {
-                return Map.entry(Map.entry(key, i + 1), columnData);
+                return Map.entry(Map.entry(blockId, i + 1), columnData);
               }
             }
           }
@@ -194,11 +195,11 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         }
 
         if (cProfile.getCsType().getSType() == SType.ENUM) { // enum data
-          long[] timestamps = rawDAO.getRawLong(tableId, key, tsColIndex);
+          long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
 
-          byte[] bytes = this.rawDAO.getRawByte(tableId, key, cProfile.getColId());
+          byte[] bytes = this.rawDAO.getRawByte(tableId, blockId, cProfile.getColId());
 
-          int[] eColumn = enumDAO.getEColumnValues(tableId, key, cProfile.getColId());
+          int[] eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
           int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
@@ -209,7 +210,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
               if (i == timestamps.length - 1) {
                 getNextPointer = true;
               } else {
-                return Map.entry(Map.entry(key, i + 1), columnData);
+                return Map.entry(Map.entry(blockId, i + 1), columnData);
               }
             }
           }
@@ -224,12 +225,12 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
     cursor.close();
 
-    return Map.entry(Map.entry(maxKey + 1, 0), columnData);
+    return Map.entry(Map.entry(maxBlockId + 1, 0), columnData);
   }
 
   @Override
-  public long getMaxKey(byte tableId) {
-    return rawDAO.getMaxKey(tableId);
+  public long getMaxBlockId(byte tableId) {
+    return rawDAO.getLastBlockId(tableId);
   }
 
   private List<List<Object>> getRawData(String tableName, List<CProfile> cProfiles, long begin, long end) {
@@ -238,14 +239,14 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
     List<List<Object>> columnDataListOut = new ArrayList<>();
 
-    long prevKey = this.rawDAO.getPreviousKey(tableId, begin);
-    if (prevKey != begin & prevKey != 0) {
-      this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, prevKey, begin, end, columnDataListOut);
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    if (previousBlockId != begin & previousBlockId != 0) {
+      this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, previousBlockId, begin, end, columnDataListOut);
     }
 
-    this.rawDAO.getListKeys(tableId, begin, end)
-        .forEach(key ->
-            this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, key, begin, end, columnDataListOut));
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId ->
+            this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, blockId, begin, end, columnDataListOut));
 
     return columnDataListOut;
   }
@@ -258,10 +259,10 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   private void computeRawDataBeginEnd(byte tableId, CProfile tsProfile, List<CProfile> cProfiles,
-      long key, long begin, long end, List<List<Object>> columnDataListOut) {
+      long blockId, long begin, long end, List<List<Object>> columnDataListOut) {
     List<List<Object>> columnDataListLocal = new ArrayList<>();
 
-    long[] timestamps = rawDAO.getRawLong(tableId, key, tsProfile.getColId());
+    long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsProfile.getColId());
 
     cProfiles.forEach(cProfile -> {
 
@@ -282,7 +283,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
       if (cProfile.getCsType().getSType() == SType.RAW & !cProfile.getCsType().isTimeStamp()) { // raw data
 
         String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
-            tableId, key, cProfile.getColId());
+            tableId, blockId, cProfile.getColId());
 
         IntStream iRow = IntStream.range(0, timestamps.length);
         iRow.forEach(iR -> {
@@ -295,7 +296,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
       }
 
       if (cProfile.getCsType().getSType() == SType.HISTOGRAM) { // indexed data
-        int[][] h = histogramDAO.get(tableId, key, cProfile.getColId());
+        int[][] h = histogramDAO.get(tableId, blockId, cProfile.getColId());
 
         for (int i = 0; i < timestamps.length; i++) {
           if (timestamps[i] >= begin & timestamps[i] <= end) {
@@ -308,9 +309,9 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
       if (cProfile.getCsType().getSType() == SType.ENUM) { // enum data
 
-        byte[] bytes = this.rawDAO.getRawByte(tableId, key, cProfile.getColId());
+        byte[] bytes = this.rawDAO.getRawByte(tableId, blockId, cProfile.getColId());
 
-        int[] eColumn = enumDAO.getEColumnValues(tableId, key, cProfile.getColId());
+        int[] eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
         IntStream iRow = IntStream.range(0, timestamps.length);
 
@@ -329,14 +330,14 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   private void computeNoIndexBeginEnd(byte tableId, CProfile tProfile, CProfile cProfile,
-      long key, long begin, long end, List<StackedColumn> list) {
+      long blockId, long begin, long end, List<StackedColumn> list) {
 
     Map<String, Integer> map = new LinkedHashMap<>();
 
-    long[] timestamps = this.rawDAO.getRawLong(tableId, key, tProfile.getColId());
+    long[] timestamps = this.rawDAO.getRawLong(tableId, blockId, tProfile.getColId());
 
     String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
-        tableId, key, cProfile.getColId());
+        tableId, blockId, cProfile.getColId());
 
     long tail = timestamps[timestamps.length - 1];
 
@@ -348,7 +349,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     });
 
     list.add(StackedColumn.builder()
-        .key(key)
+        .key(blockId)
         .tail(tail)
         .keyCount(map).build());
   }

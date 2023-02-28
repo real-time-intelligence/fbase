@@ -328,27 +328,27 @@ public abstract class CommonServiceApi {
     return rawDataStringOut;
   }
 
-  public String[] getStringArrayValue(RawDAO rawDAO, CType cType, byte tableId, long key, int colIndex) {
+  public String[] getStringArrayValue(RawDAO rawDAO, CType cType, byte tableId, long blockId, int colId) {
     if (CType.INT == cType) {
-      return Arrays.stream(rawDAO.getRawInt(tableId, key, colIndex))
+      return Arrays.stream(rawDAO.getRawInt(tableId, blockId, colId))
           .mapToObj(val -> val == INT_NULL ? "" : String.valueOf(val))
           .toArray(String[]::new);
     } else if (CType.LONG == cType) {
-      return Arrays.stream(rawDAO.getRawLong(tableId, key, colIndex))
+      return Arrays.stream(rawDAO.getRawLong(tableId, blockId, colId))
           .mapToObj(val -> val == LONG_NULL ? "" : String.valueOf(val))
           .toArray(String[]::new);
     } else if (CType.FLOAT == cType) {
-      float[] floats = rawDAO.getRawFloat(tableId, key, colIndex);
+      float[] floats = rawDAO.getRawFloat(tableId, blockId, colId);
       return IntStream.range(0, floats.length)
           .mapToDouble(i -> floats[i])
           .mapToObj(val -> val == FLOAT_NULL ? "" : String.valueOf(val))
           .toArray(String[]::new);
     } else if (CType.DOUBLE == cType) {
-      return Arrays.stream(rawDAO.getRawDouble(tableId, key, colIndex))
+      return Arrays.stream(rawDAO.getRawDouble(tableId, blockId, colId))
           .mapToObj(val -> val == DOUBLE_NULL ? "" : String.valueOf(val))
           .toArray(String[]::new);
     } else if (CType.STRING == cType) {
-      return Stream.of(rawDAO.getRawString(tableId, key, colIndex))
+      return Stream.of(rawDAO.getRawString(tableId, blockId, colId))
           .map(val -> val == null ? "" : val)
           .toArray(String[]::new);
     }

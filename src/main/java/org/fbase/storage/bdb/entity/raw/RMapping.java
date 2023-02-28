@@ -16,5 +16,5 @@ import org.fbase.storage.bdb.entity.ColumnKey;
 public class RMapping {
 
   @PrimaryKey
-  private ColumnKey key;
+  private ColumnKey columnKey;
 }

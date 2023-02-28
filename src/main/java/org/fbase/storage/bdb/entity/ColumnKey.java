@@ -14,9 +14,9 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ColumnKey {
 
-  @KeyField(1) private byte table;
+  @KeyField(1) private byte tableId;
 
-  @KeyField(2) private long key;
+  @KeyField(2) private long blockId;
 
-  @KeyField(3) private int colIndex;
+  @KeyField(3) private int colId;
 }
