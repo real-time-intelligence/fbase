@@ -24,7 +24,7 @@ import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.entity.ColumnKey;
-import org.fbase.storage.bdb.entity.raw.RMapping;
+import org.fbase.storage.bdb.entity.CMetadata;
 import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
@@ -119,10 +119,10 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
     ColumnKey columnKeyBegin = ColumnKey.builder().tableId(tableId).blockId(pointer.getKey()).colId(0).build();
     ColumnKey columnKeyEnd = ColumnKey.builder().tableId(tableId).blockId(maxBlockId).colId(0).build();
-    EntityCursor<RMapping> cursor = rawDAO.getRMappingEntityCursor(columnKeyBegin, columnKeyEnd);
+    EntityCursor<CMetadata> cursor = rawDAO.getCMetadataEntityCursor(columnKeyBegin, columnKeyEnd);
 
     try (cursor) {
-      RMapping columnKey;
+      CMetadata columnKey;
 
       while ((columnKey = cursor.next()) != null) {
         long blockId = columnKey.getColumnKey().getBlockId();

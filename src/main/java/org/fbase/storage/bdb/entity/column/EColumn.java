@@ -1,4 +1,4 @@
-package org.fbase.storage.bdb.entity.dictionary;
+package org.fbase.storage.bdb.entity.column;
 
 import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.PrimaryKey;

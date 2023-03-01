@@ -1,6 +1,6 @@
 package org.fbase.storage;
 
-import org.fbase.storage.bdb.entity.dictionary.EColumn;
+import org.fbase.storage.bdb.entity.column.EColumn;
 
 public interface EnumDAO {
 

@@ -1,4 +1,4 @@
-package org.fbase.storage.bdb.entity.raw;
+package org.fbase.storage.bdb.entity.column;
 
 import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.PrimaryKey;
@@ -14,22 +14,16 @@ import org.fbase.storage.bdb.entity.ColumnKey;
 @NoArgsConstructor
 @Data
 @Builder
-public class RColumn {
+public class HColumn {
 
   @PrimaryKey
   private ColumnKey columnKey;
 
   private CompressType compressionType = CompressType.NONE;
 
-  private byte[] dataByte;
+  private int[][] data;
 
-  private int[] dataInt;
+  private byte[] keysCompressed;
 
-  private long[] dataLong;
-
-  private float[] dataFloat;
-
-  private double[] dataDouble;
-
-  private String[] dataString;
+  private byte[] valuesCompressed;
 }

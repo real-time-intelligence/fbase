@@ -13,25 +13,25 @@ import org.fbase.metadata.CompressType;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.QueryBdbApi;
 import org.fbase.storage.bdb.entity.ColumnKey;
-import org.fbase.storage.bdb.entity.raw.RColumn;
-import org.fbase.storage.bdb.entity.raw.RMapping;
+import org.fbase.storage.bdb.entity.column.RColumn;
+import org.fbase.storage.bdb.entity.CMetadata;
 import org.xerial.snappy.Snappy;
 
 @Log4j2
 public class RawBdbImpl extends QueryBdbApi implements RawDAO {
 
-  private PrimaryIndex<ColumnKey, RMapping> primaryIndex;
+  private PrimaryIndex<ColumnKey, CMetadata> primaryIndex;
   private PrimaryIndex<ColumnKey, RColumn> primaryIndexDataColumn;
 
   public RawBdbImpl(EntityStore store) {
-    this.primaryIndex = store.getPrimaryIndex(ColumnKey.class, RMapping.class);
+    this.primaryIndex = store.getPrimaryIndex(ColumnKey.class, CMetadata.class);
     this.primaryIndexDataColumn = store.getPrimaryIndex(ColumnKey.class, RColumn.class);
   }
 
   @Override
   public void putBlockId(byte tableId, long blockId) {
     this.primaryIndex.putNoOverwrite(
-        new RMapping(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(0).build()));
+        new CMetadata(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(0).build()));
   }
 
   @Override
@@ -302,11 +302,11 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
 
     ColumnKey beginCK = ColumnKey.builder().tableId(tableId).blockId(begin).colId(0).build();
     ColumnKey endCK = ColumnKey.builder().tableId(tableId).blockId(end).colId(0).build();
-    EntityCursor<RMapping> cursor = doRangeQuery(this.primaryIndex, beginCK, true, endCK, true);
+    EntityCursor<CMetadata> cursor = doRangeQuery(this.primaryIndex, beginCK, true, endCK, true);
 
     try (cursor) {
-      for (RMapping rm : cursor) {
-        list.add(rm.getColumnKey().getBlockId());
+      for (CMetadata metadata : cursor) {
+        list.add(metadata.getColumnKey().getBlockId());
       }
     } catch (Exception e) {
       log.error(e.getMessage());
@@ -316,7 +316,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public EntityCursor<RMapping> getRMappingEntityCursor(ColumnKey begin, ColumnKey end) {
+  public EntityCursor<CMetadata> getCMetadataEntityCursor(ColumnKey begin, ColumnKey end) {
     return doRangeQuery(this.primaryIndex, begin, true, end, true);
   }
 

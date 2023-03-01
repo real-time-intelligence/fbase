@@ -4,7 +4,7 @@ import com.sleepycat.persist.EntityCursor;
 import java.io.IOException;
 import java.util.List;
 import org.fbase.storage.bdb.entity.ColumnKey;
-import org.fbase.storage.bdb.entity.raw.RMapping;
+import org.fbase.storage.bdb.entity.CMetadata;
 
 public interface RawDAO {
 
@@ -48,7 +48,7 @@ public interface RawDAO {
 
   List<Long> getListBlockIds(byte tableId, long begin, long end);
 
-  EntityCursor<RMapping> getRMappingEntityCursor(ColumnKey begin, ColumnKey end);
+  EntityCursor<CMetadata> getCMetadataEntityCursor(ColumnKey begin, ColumnKey end);
 
   long getPreviousBlockId(byte tableId, long blockId);
 
