@@ -15,6 +15,7 @@ import org.fbase.service.CommonServiceApi;
 import org.fbase.service.EnumService;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.RawDAO;
+import org.fbase.storage.bdb.entity.column.EColumn;
 import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
@@ -72,22 +73,21 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
 
     long[] timestamps = this.rawDAO.getRawLong(tableId, blockId, tsProfile.getColId());
 
-    byte[] bytes = this.rawDAO.getRawByte(tableId, blockId, cProfile.getColId());
+    EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
     long tail = timestamps[timestamps.length - 1];
 
     IntStream iRow = IntStream.range(0, timestamps.length);
     iRow.forEach(iR -> {
       if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-        map.compute(bytes[iR], (k, val) -> val == null ? 1 : val + 1);
+        map.compute(eColumn.getDataByte()[iR], (k, val) -> val == null ? 1 : val + 1);
       }
     });
 
     Map<String, Integer> mapKeyCount = new LinkedHashMap<>();
-    int[] eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
     map.forEach((keyByte, value) -> mapKeyCount.put(converter.convertIntToRaw(
-        EnumHelper.getIndexValue(eColumn, keyByte), cProfile), value));
+        EnumHelper.getIndexValue(eColumn.getValues(), keyByte), cProfile), value));
 
     list.add(StackedColumn.builder()
         .key(blockId)

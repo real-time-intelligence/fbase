@@ -14,7 +14,7 @@ import org.xerial.snappy.Snappy;
 @Log4j2
 public class HistogramBdbImpl extends QueryBdbApi implements HistogramDAO {
 
-  private PrimaryIndex<ColumnKey, HColumn> primaryIndex;
+  private final PrimaryIndex<ColumnKey, HColumn> primaryIndex;
 
   public HistogramBdbImpl(EntityStore store) {
     this.primaryIndex = store.getPrimaryIndex(ColumnKey.class, HColumn.class);

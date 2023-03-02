@@ -787,15 +787,14 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
             rawDataStringMapping, Arrays.stream(rawDataString)
                 .map(ia -> Arrays.stream(ia)
                     .collect(Collectors.toList()))
-                .collect(Collectors.toList()),
-            rawDataEnumMapping, convert2DByteArrayToList(rawDataEnum));
+                .collect(Collectors.toList()));
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
 
       /* Store enum raw data metadata */
       if (colRawDataEnumCount > 0) {
-        this.storeEnum(tableId, blockId, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn);
+        this.storeEnum(tableId, compression, blockId, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn, rawDataEnum);
       }
 
       return;
@@ -818,15 +817,13 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
     /* Store enum raw data metadata and entity */
     if (colRawDataEnumCount > 0) {
-      this.rawDAO.putEnum(tableId, blockId, rawDataEnumMapping.stream().mapToInt(i -> i).toArray(), rawDataEnum);
-
-      this.storeEnum(tableId, blockId, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn);
+      this.storeEnum(tableId, compression, blockId, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn, rawDataEnum);
     }
   }
 
-  private void storeEnum(byte tableId, long blockId,
+  private void storeEnum(byte tableId, boolean compression, long blockId,
       int colRawDataEnumCount, List<Integer> rawDataEnumMapping,
-      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn) {
+      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn, byte[][] rawDataEnum) {
 
     if (colRawDataEnumCount > 0) {
       for (int i = 0; i < rawDataEnumMapping.size(); i++) {
@@ -838,7 +835,12 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(colId))
             .forEach((enumKey, enumValue) -> values[counter.getAndAdd(1)] = enumKey);
 
-        this.enumDAO.putEColumn(tableId, blockId, colId, values);
+        try {
+          this.enumDAO.putEColumn(tableId, blockId, colId, values, rawDataEnum[i], compression);
+        } catch (IOException e) {
+          log.catching(e);
+          throw new RuntimeException(e);
+        }
       }
     }
 
@@ -861,8 +863,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
             rawDataLongMapping, rawDataLong,
             Collections.emptyList(), Collections.emptyList(),
             rawDataDoubleMapping, rawDataDouble,
-            rawDataStringMapping, rawDataString,
-            Collections.emptyList(), Collections.emptyList());
+            rawDataStringMapping, rawDataString);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }

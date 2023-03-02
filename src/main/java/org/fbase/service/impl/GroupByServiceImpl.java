@@ -17,6 +17,7 @@ import org.fbase.service.GroupByService;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.RawDAO;
+import org.fbase.storage.bdb.entity.column.EColumn;
 import org.fbase.storage.helper.EnumHelper;
 
 public class GroupByServiceImpl extends CommonServiceApi implements GroupByService {
@@ -205,19 +206,17 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     long[] tsSecond = rawDAO.getRawLong(tableId, blockId, tsColId);
     byte[] eBytes = new byte[tsSecond.length];
 
-    byte[] bytes = this.rawDAO.getRawByte(tableId, blockId, cProfile.getColId());
+    EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
     IntStream iRow = IntStream.range(0, tsSecond.length);
 
     iRow.forEach(iR -> {
       if (tsSecond[iR] >= begin & tsSecond[iR] <= end) {
-        eBytes[iR] = bytes[iR];
+        eBytes[iR] = eColumn.getDataByte()[iR];
       }
     });
 
-    int[] eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
-
-    return Map.entry(eColumn, eBytes);
+    return Map.entry(eColumn.getValues(), eBytes);
   }
 
   private Map.Entry<int[], byte[]> computeEnumEnumBlock(byte tableId, CProfile cProfile,
@@ -226,19 +225,17 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     long[] tsSecond = rawDAO.getRawLong(tableId, blockId, tsColId);
     List<Byte> eBytes = new ArrayList<>();
 
-    byte[] bytes = this.rawDAO.getRawByte(tableId, blockId, cProfile.getColId());
+    EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
     IntStream iRow = IntStream.range(0, tsSecond.length);
 
     iRow.forEach(iR -> {
       if (tsSecond[iR] >= begin & tsSecond[iR] <= end) {
-        eBytes.add(bytes[iR]);
+        eBytes.add(eColumn.getDataByte()[iR]);
       }
     });
 
-    int[] eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
-
-    return Map.entry(eColumn, getByteFromList(eBytes));
+    return Map.entry(eColumn.getValues(), getByteFromList(eBytes));
   }
 
   private List<String> computeRaw(byte tableId, CProfile cProfile,

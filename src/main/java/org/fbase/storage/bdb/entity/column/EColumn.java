@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.fbase.metadata.CompressType;
 import org.fbase.storage.bdb.entity.ColumnKey;
 
 @Entity
@@ -18,5 +19,9 @@ public class EColumn {
   @PrimaryKey
   private ColumnKey columnKey;
 
+  private CompressType compressionType = CompressType.NONE;
+
   private int[] values;
+
+  private byte[] dataByte;
 }

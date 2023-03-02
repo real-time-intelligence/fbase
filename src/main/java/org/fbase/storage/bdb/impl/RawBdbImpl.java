@@ -20,8 +20,8 @@ import org.xerial.snappy.Snappy;
 @Log4j2
 public class RawBdbImpl extends QueryBdbApi implements RawDAO {
 
-  private PrimaryIndex<ColumnKey, CMetadata> primaryIndex;
-  private PrimaryIndex<ColumnKey, RColumn> primaryIndexDataColumn;
+  private final PrimaryIndex<ColumnKey, CMetadata> primaryIndex;
+  private final PrimaryIndex<ColumnKey, RColumn> primaryIndexDataColumn;
 
   public RawBdbImpl(EntityStore store) {
     this.primaryIndex = store.getPrimaryIndex(ColumnKey.class, CMetadata.class);
@@ -111,8 +111,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
       List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
       List<Integer> rawDataFloatMapping, List<List<Float>> rawDataFloat,
       List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
-      List<Integer> rawDataStringMapping, List<List<String>> rawDataString,
-      List<Integer> rawDataEnumMapping, List<List<Byte>> rawDataEnum)
+      List<Integer> rawDataStringMapping, List<List<String>> rawDataString)
       throws IOException {
 
     for (int i = 0; i < rawDataTimeStampMapping.size(); i++) {
@@ -167,15 +166,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
                   ColumnKey.builder().tableId(tableId).blockId(blockId).colId(rawDataStringMapping.get(i)).build())
               .compressionType(CompressType.STRING)
               .dataInt(lengthArray)
-              .dataByte(Snappy.compress(String.join("", rawDataString.get(i)))).build());
-    }
-
-    for (int i = 0; i < rawDataEnumMapping.size(); i++) {
-      this.primaryIndexDataColumn.putNoOverwrite(
-          RColumn.builder().columnKey(
-                  ColumnKey.builder().tableId(tableId).blockId(blockId).colId(rawDataEnumMapping.get(i)).build())
-              .compressionType(CompressType.BYTE)
-              .dataByte(Snappy.compress(getByteFromList(rawDataEnum.get(i))))
+              .dataByte(Snappy.compress(String.join("", rawDataString.get(i))))
               .build());
     }
   }

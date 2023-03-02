@@ -25,6 +25,7 @@ import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.entity.ColumnKey;
 import org.fbase.storage.bdb.entity.CMetadata;
+import org.fbase.storage.bdb.entity.column.EColumn;
 import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
@@ -197,14 +198,12 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         if (cProfile.getCsType().getSType() == SType.ENUM) { // enum data
           long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
 
-          byte[] bytes = this.rawDAO.getRawByte(tableId, blockId, cProfile.getColId());
-
-          int[] eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
+          EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
           int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
           for (int i = startPoint; i < timestamps.length; i++) {
-            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn, bytes[i]), cProfile));
+            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn.getValues(), eColumn.getDataByte()[i]), cProfile));
             fetchCounter.decrementAndGet();
             if (fetchCounter.get() == 0) {
               if (i == timestamps.length - 1) {
@@ -309,15 +308,13 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
       if (cProfile.getCsType().getSType() == SType.ENUM) { // enum data
 
-        byte[] bytes = this.rawDAO.getRawByte(tableId, blockId, cProfile.getColId());
-
-        int[] eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
+        EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
         IntStream iRow = IntStream.range(0, timestamps.length);
 
         iRow.forEach(iR -> {
           if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn, bytes[iR]), cProfile));
+            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn.getValues(), eColumn.getDataByte()[iR]), cProfile));
           }
         });
 

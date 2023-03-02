@@ -30,8 +30,7 @@ public interface RawDAO {
       List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
       List<Integer> rawDataFloatMapping, List<List<Float>> rawDataFloat,
       List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
-      List<Integer> rawDataStringMapping, List<List<String>> rawDataString,
-      List<Integer> rawDataEnumMapping, List<List<Byte>> rawDataEnum)
+      List<Integer> rawDataStringMapping, List<List<String>> rawDataString)
       throws IOException;
 
   byte[] getRawByte(byte tableId, long blockId, int colId);
