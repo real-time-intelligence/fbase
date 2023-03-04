@@ -23,8 +23,8 @@ import org.fbase.storage.Converter;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.RawDAO;
-import org.fbase.storage.bdb.entity.ColumnKey;
-import org.fbase.storage.bdb.entity.CMetadata;
+import org.fbase.storage.bdb.entity.Metadata;
+import org.fbase.storage.bdb.entity.MetadataKey;
 import org.fbase.storage.bdb.entity.column.EColumn;
 import org.fbase.storage.helper.EnumHelper;
 
@@ -118,15 +118,15 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
       }
     }
 
-    ColumnKey columnKeyBegin = ColumnKey.builder().tableId(tableId).blockId(pointer.getKey()).colId(0).build();
-    ColumnKey columnKeyEnd = ColumnKey.builder().tableId(tableId).blockId(maxBlockId).colId(0).build();
-    EntityCursor<CMetadata> cursor = rawDAO.getCMetadataEntityCursor(columnKeyBegin, columnKeyEnd);
+    MetadataKey beginMK = MetadataKey.builder().tableId(tableId).blockId(pointer.getKey()).build();
+    MetadataKey endMK = MetadataKey.builder().tableId(tableId).blockId(maxBlockId).build();
+    EntityCursor<Metadata> cursor = rawDAO.getMetadataEntityCursor(beginMK, endMK);
 
     try (cursor) {
-      CMetadata columnKey;
+      Metadata columnKey;
 
       while ((columnKey = cursor.next()) != null) {
-        long blockId = columnKey.getColumnKey().getBlockId();
+        long blockId = columnKey.getMetadataKey().getBlockId();
 
         if (getNextPointer) {
           return Map.entry(Map.entry(blockId, 0), columnData);

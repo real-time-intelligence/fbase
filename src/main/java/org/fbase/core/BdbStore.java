@@ -42,6 +42,7 @@ import org.fbase.service.impl.HistogramServiceImpl;
 import org.fbase.service.impl.MetadataServiceImpl;
 import org.fbase.service.impl.RawServiceImpl;
 import org.fbase.service.impl.StoreServiceImpl;
+import org.fbase.service.mapping.Mapper;
 import org.fbase.sql.BatchResultSet;
 import org.fbase.storage.Converter;
 import org.fbase.storage.DimensionDAO;
@@ -163,8 +164,18 @@ public class BdbStore implements FStore {
       List<CProfile> cProfileList = MetadataHandler.getJdbcCProfileList(connection, select);
 
       cProfileList.forEach(cProfile ->
-          cProfile.setCsType(sProfile.getCsTypeMap().getOrDefault(cProfile.getColName(),
-          new CSType().toBuilder().isTimeStamp(false).sType(SType.RAW).build())));
+          {
+            CSType csType = sProfile.getCsTypeMap().getOrDefault(cProfile.getColName(),
+                new CSType().toBuilder()
+                    .isTimeStamp(false)
+                    .sType(SType.RAW)
+                    .cType(Mapper.isCType(cProfile))
+                    .build());
+            csType.setCType(Mapper.isCType(cProfile));
+
+            cProfile.setCsType(csType);
+          }
+      );
 
       metaModel.getMetadata().put(tableName,
           new TableMetadata()

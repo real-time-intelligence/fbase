@@ -3,12 +3,13 @@ package org.fbase.storage;
 import com.sleepycat.persist.EntityCursor;
 import java.io.IOException;
 import java.util.List;
-import org.fbase.storage.bdb.entity.ColumnKey;
-import org.fbase.storage.bdb.entity.CMetadata;
+import org.fbase.storage.bdb.entity.Metadata;
+import org.fbase.storage.bdb.entity.MetadataKey;
 
 public interface RawDAO {
 
-  void putBlockId(byte tableId, long blockId);
+  void putMetadata(byte tableId, long blockId, byte[] rawCTypeKeys, int[] rawColIds,
+      int[] enumColIds, int[] histogramColIds);
 
   void putByte(byte tableId, long blockId, int[] mapping, byte[][] data);
 
@@ -47,7 +48,7 @@ public interface RawDAO {
 
   List<Long> getListBlockIds(byte tableId, long begin, long end);
 
-  EntityCursor<CMetadata> getCMetadataEntityCursor(ColumnKey begin, ColumnKey end);
+  EntityCursor<Metadata> getMetadataEntityCursor(MetadataKey begin, MetadataKey end);
 
   long getPreviousBlockId(byte tableId, long blockId);
 

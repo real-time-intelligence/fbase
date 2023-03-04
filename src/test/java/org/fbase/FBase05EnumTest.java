@@ -26,6 +26,7 @@ public class FBase05EnumTest extends AbstractH2Test {
 
     Map<String, SType> csTypeMap = new HashMap<>();
     csTypeMap.put("ID", SType.RAW);
+    csTypeMap.put("FIRSTNAME", SType.RAW);
     csTypeMap.put("LASTNAME", SType.ENUM);
     csTypeMap.put("HOUSE", SType.ENUM);
     csTypeMap.put("CITY", SType.ENUM);

@@ -19,6 +19,7 @@ public class FBase01StackedTest extends AbstractH2Test {
   public void init() {
     Map<String, SType> csTypeMap = new HashMap<>();
     csTypeMap.put("ID", SType.RAW);
+    csTypeMap.put("FIRSTNAME", SType.RAW);
     csTypeMap.put("LASTNAME", SType.HISTOGRAM);
     csTypeMap.put("HOUSE", SType.RAW);
     csTypeMap.put("CITY", SType.RAW);

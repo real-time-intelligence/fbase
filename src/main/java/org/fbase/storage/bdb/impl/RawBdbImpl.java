@@ -13,25 +13,31 @@ import org.fbase.metadata.CompressType;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.QueryBdbApi;
 import org.fbase.storage.bdb.entity.ColumnKey;
+import org.fbase.storage.bdb.entity.MetadataKey;
 import org.fbase.storage.bdb.entity.column.RColumn;
-import org.fbase.storage.bdb.entity.CMetadata;
+import org.fbase.storage.bdb.entity.Metadata;
 import org.xerial.snappy.Snappy;
 
 @Log4j2
 public class RawBdbImpl extends QueryBdbApi implements RawDAO {
 
-  private final PrimaryIndex<ColumnKey, CMetadata> primaryIndex;
+  private final PrimaryIndex<MetadataKey, Metadata> primaryIndex;
   private final PrimaryIndex<ColumnKey, RColumn> primaryIndexDataColumn;
 
   public RawBdbImpl(EntityStore store) {
-    this.primaryIndex = store.getPrimaryIndex(ColumnKey.class, CMetadata.class);
+    this.primaryIndex = store.getPrimaryIndex(MetadataKey.class, Metadata.class);
     this.primaryIndexDataColumn = store.getPrimaryIndex(ColumnKey.class, RColumn.class);
   }
 
   @Override
-  public void putBlockId(byte tableId, long blockId) {
+  public void putMetadata(byte tableId, long blockId, byte[] rawCTypeKeys, int[] rawColIds,
+      int[] enumColIds, int[] histogramColIds) {
     this.primaryIndex.putNoOverwrite(
-        new CMetadata(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(0).build()));
+        new Metadata(MetadataKey.builder()
+            .tableId(tableId)
+            .blockId(blockId)
+            .build(), rawCTypeKeys, rawColIds, enumColIds, histogramColIds)
+    );
   }
 
   @Override
@@ -291,13 +297,13 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   public List<Long> getListBlockIds(byte tableId, long begin, long end) {
     List<Long> list = new ArrayList<>();
 
-    ColumnKey beginCK = ColumnKey.builder().tableId(tableId).blockId(begin).colId(0).build();
-    ColumnKey endCK = ColumnKey.builder().tableId(tableId).blockId(end).colId(0).build();
-    EntityCursor<CMetadata> cursor = doRangeQuery(this.primaryIndex, beginCK, true, endCK, true);
+    MetadataKey beginMK = MetadataKey.builder().tableId(tableId).blockId(begin).build();
+    MetadataKey endMK = MetadataKey.builder().tableId(tableId).blockId(end).build();
+    EntityCursor<Metadata> cursor = doRangeQuery(this.primaryIndex, beginMK, true, endMK, true);
 
     try (cursor) {
-      for (CMetadata metadata : cursor) {
-        list.add(metadata.getColumnKey().getBlockId());
+      for (Metadata metadata : cursor) {
+        list.add(metadata.getMetadataKey().getBlockId());
       }
     } catch (Exception e) {
       log.error(e.getMessage());
@@ -307,7 +313,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public EntityCursor<CMetadata> getCMetadataEntityCursor(ColumnKey begin, ColumnKey end) {
+  public EntityCursor<Metadata> getMetadataEntityCursor(MetadataKey begin, MetadataKey end) {
     return doRangeQuery(this.primaryIndex, begin, true, end, true);
   }
 
@@ -338,11 +344,11 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   private long getLastBlockIdLocal(byte tableId, long begin, long end) {
     long lastBlockId = 0L;
 
-    ColumnKey beginCK = ColumnKey.builder().tableId(tableId).blockId(begin).colId(0).build();
-    ColumnKey endCK = ColumnKey.builder().tableId(tableId).blockId(end).colId(0).build();
+    MetadataKey beginMK = MetadataKey.builder().tableId(tableId).blockId(begin).build();
+    MetadataKey endMK = MetadataKey.builder().tableId(tableId).blockId(end).build();
 
-    EntityCursor<ColumnKey> cursor
-        = this.primaryIndex.keys(beginCK, true, endCK, true);
+    EntityCursor<MetadataKey> cursor
+        = this.primaryIndex.keys(beginMK, true, endMK, true);
 
     if (cursor != null) {
       try (cursor) {

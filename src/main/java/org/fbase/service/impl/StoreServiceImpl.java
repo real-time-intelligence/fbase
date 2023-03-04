@@ -200,6 +200,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
     long blockId = rawDataTimestamp[0][0];
 
+    /* Store metadata */
+    this.storeMetadata(tableId, blockId, cProfiles);
+
     this.storeHistograms(tableId, compression, blockId, mapOfHistograms);
 
     this.storeData(tableId, compression, blockId,
@@ -354,6 +357,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
       long blockId = rawDataTimestamp.get(0).get(0);
 
+      /* Store metadata */
+      this.storeMetadata(tableId, blockId, cProfiles);
+
       this.storeHistograms(tableId, compression, blockId, mapOfHistograms);
 
       this.storeData(tableId, compression, blockId,
@@ -440,6 +446,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         // Reinitialize
         if (iR == fBaseBatchSize) {
           long blockId = rawDataTimestamp[0][0];
+
+          /* Store metadata */
+          this.storeMetadata(tableId, blockId, cProfiles);
 
           storeHistogramsCachedLast(tableId, compression, blockId, mapOfHistograms);
 
@@ -571,6 +580,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       if (iRow.get() <= fBaseBatchSize) {
         long blockId = rawDataTimestamp[0][0];
 
+        /* Store metadata */
+        this.storeMetadata(tableId, blockId, cProfiles);
+
         this.storeHistogramsCachedLast(tableId, compression, blockId,  mapOfHistograms);
 
         int row = iRow.get();
@@ -638,6 +650,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         if (iR == fBaseBatchSize) {
           long blockId = counter.getAndAdd(1);
 
+          /* Store metadata */
+          this.storeMetadata(tableId, blockId, cProfiles);
+
           this.storeData(tableId, compression, blockId,
               colRawDataLongCount, rawDataLongMapping, rawDataLong,
               colRawDataDoubleCount, rawDataDoubleMapping, rawDataDouble,
@@ -694,6 +709,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       if (iRow.get() <= fBaseBatchSize) {
         long blockId = counter.getAndAdd(1);
 
+        /* Store metadata */
+        this.storeMetadata(tableId, blockId, cProfiles);
+
         this.storeData(tableId, compression, blockId,
             colRawDataLongCount, rawDataLongMapping, rawDataLong,
             colRawDataDoubleCount, rawDataDoubleMapping, rawDataDouble,
@@ -715,20 +733,43 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
     cProfiles.stream()
         .filter(isEnum)
-        .forEach(e -> {
+        .forEach(cProfile -> {
           int var = iRawDataEnumMapping.getAndAdd(1);
-          mapping.add(var, e.getColId());
+          mapping.add(var, cProfile.getColId());
           rawDataEnumEColumn.add(var, new CachedLastLinkedHashMap<>());
         });
   }
 
+  private void storeMetadata(byte tableId, long blockId, List<CProfile> cProfiles) {
+    List<Byte> rawCTypeKeys = new ArrayList<>();
+    List<Integer> rawColIds = new ArrayList<>();
+    List<Integer> enumColIds = new ArrayList<>();
+    List<Integer> histogramColIds = new ArrayList<>();
+
+    cProfiles.forEach(cProfile -> {
+      if (SType.RAW.equals(cProfile.getCsType().getSType())) {
+        rawCTypeKeys.add(cProfile.getCsType().getCType().getKey());
+        rawColIds.add(cProfile.getColId());
+      } else if (SType.ENUM.equals(cProfile.getCsType().getSType())) {
+        enumColIds.add(cProfile.getColId());
+      } else if (SType.HISTOGRAM.equals(cProfile.getCsType().getSType())) {
+        histogramColIds.add(cProfile.getColId());
+      }
+    });
+
+    this.rawDAO.putMetadata(tableId, blockId, getByteFromList(rawCTypeKeys),
+        rawColIds.stream().mapToInt(j -> j).toArray(),
+        enumColIds.stream().mapToInt(j -> j).toArray(),
+        histogramColIds.stream().mapToInt(j -> j).toArray());
+  }
+
   private void storeHistograms(byte tableID, boolean compression, long blockId, Map<Integer, Map<Integer, Integer>> mapOfHistograms) {
-    mapOfHistograms.forEach((k, v) -> {
-      if (!v.isEmpty()) {
+    mapOfHistograms.forEach((colId, hData) -> {
+      if (!hData.isEmpty()) {
         if (compression) {
-          this.histogramDAO.putCompressed(tableID, blockId, k, getArrayFromMap(v));
+          this.histogramDAO.putCompressed(tableID, blockId, colId, getArrayFromMap(hData));
         } else {
-          this.histogramDAO.put(tableID, blockId, k, getArrayFromMap(v));
+          this.histogramDAO.put(tableID, blockId, colId, getArrayFromMap(hData));
         }
       }
     });
@@ -736,12 +777,12 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
   private void storeHistogramsCachedLast(byte tableID, boolean compression, long blockId,
       Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms) {
-    mapOfHistograms.forEach((k, v) -> {
-      if (!v.isEmpty()) {
+    mapOfHistograms.forEach((colId, hData) -> {
+      if (!hData.isEmpty()) {
         if (compression) {
-          this.histogramDAO.putCompressed(tableID, blockId, k, getArrayFromMap(v));
+          this.histogramDAO.putCompressed(tableID, blockId, colId, getArrayFromMap(hData));
         } else {
-          this.histogramDAO.put(tableID, blockId, k, getArrayFromMap(v));
+          this.histogramDAO.put(tableID, blockId, colId, getArrayFromMap(hData));
         }
       }
     });
@@ -756,9 +797,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       int colRawDataStringCount, List<Integer> rawDataStringMapping, String[][] rawDataString,
       int colRawDataEnumCount, List<Integer> rawDataEnumMapping, byte[][] rawDataEnum,
       List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn) {
-
-    /* Store data in RMapping entity */
-    this.rawDAO.putBlockId(tableId, blockId);
 
     if (compression) {
       try {
@@ -792,7 +830,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         throw new RuntimeException(e);
       }
 
-      /* Store enum raw data metadata */
+      /* Store enum data */
       if (colRawDataEnumCount > 0) {
         this.storeEnum(tableId, compression, blockId, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn, rawDataEnum);
       }
@@ -815,7 +853,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     if (colRawDataStringCount > 0)
       this.rawDAO.putString(tableId, blockId, rawDataStringMapping.stream().mapToInt(i -> i).toArray(), rawDataString);
 
-    /* Store enum raw data metadata and entity */
+    /* Store enum data */
     if (colRawDataEnumCount > 0) {
       this.storeEnum(tableId, compression, blockId, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn, rawDataEnum);
     }
@@ -850,9 +888,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       int colRawDataLongCount, List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
       int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
       int colRawDataStringCount, List<Integer> rawDataStringMapping, List<List<String>> rawDataString) {
-
-    /* Store data in RMapping entity */
-    this.rawDAO.putBlockId(tableId, blockId);
 
     /* Store raw data entity */
     if (compression) {

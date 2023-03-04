@@ -22,6 +22,7 @@ public class FBase02GanttRawTest extends AbstractH2Test {
   public void init() {
     Map<String, SType> csTypeMap = new HashMap<>();
     csTypeMap.put("ID", SType.RAW);
+    csTypeMap.put("FIRSTNAME", SType.RAW);
     csTypeMap.put("LASTNAME", SType.RAW);
     csTypeMap.put("HOUSE", SType.RAW);
     csTypeMap.put("CITY", SType.RAW);

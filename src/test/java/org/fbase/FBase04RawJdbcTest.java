@@ -24,8 +24,8 @@ public class FBase04RawJdbcTest extends AbstractH2Test {
 
     Map<String, SType> csTypeMap = new HashMap<>();
     csTypeMap.put("ID", SType.RAW);
-    csTypeMap.put("LASTNAME", SType.HISTOGRAM);
     csTypeMap.put("FIRSTNAME", SType.ENUM);
+    csTypeMap.put("LASTNAME", SType.HISTOGRAM);
     csTypeMap.put("HOUSE", SType.RAW);
     csTypeMap.put("CITY", SType.RAW);
 

@@ -22,6 +22,7 @@ public class FBase02GanttHistogramTest extends AbstractH2Test {
   public void init() {
     Map<String, SType> csTypeMap = new HashMap<>();
     csTypeMap.put("ID", SType.RAW);
+    csTypeMap.put("FIRSTNAME", SType.RAW);
     csTypeMap.put("LASTNAME", SType.HISTOGRAM);
     csTypeMap.put("HOUSE", SType.HISTOGRAM);
     csTypeMap.put("CITY", SType.HISTOGRAM);

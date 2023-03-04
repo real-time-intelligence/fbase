@@ -26,6 +26,7 @@ import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.CSType;
+import org.fbase.service.mapping.Mapper;
 
 @Log4j2
 public class ClickHouseDatabase implements ClickHouse {
@@ -50,15 +51,16 @@ public class ClickHouseDatabase implements ClickHouse {
     cProfileList.forEach(v -> listsColStore.add(v.getColId(), new ArrayList<>()));
 
     List<CProfile> cProfiles = cProfileList.stream()
-        .map(col -> col.toBuilder()
-            .colId(col.getColId())
-            .colName(col.getColName())
-            .colDbTypeName(col.getColDbTypeName())
-            .colSizeDisplay(col.getColSizeDisplay())
-            .colSizeSqlType(col.getColSizeSqlType())
+        .map(cProfile -> cProfile.toBuilder()
+            .colId(cProfile.getColId())
+            .colName(cProfile.getColName())
+            .colDbTypeName(cProfile.getColDbTypeName())
+            .colSizeDisplay(cProfile.getColSizeDisplay())
+            .colSizeSqlType(cProfile.getColSizeSqlType())
             .csType(CSType.builder()
-                .isTimeStamp(col.getColName().equalsIgnoreCase("PICKUP_DATETIME"))
-                .sType(getSType(col.getColName()))
+                .isTimeStamp(cProfile.getColName().equalsIgnoreCase("PICKUP_DATETIME"))
+                .sType(getSType(cProfile.getColName()))
+                .cType(Mapper.isCType(cProfile))
                 .build())
             .build()).toList();
 
@@ -135,15 +137,16 @@ public class ClickHouseDatabase implements ClickHouse {
     List<CProfile> cProfileList = loadSqlColMetadataList(select);
 
     List<CProfile> cProfiles = cProfileList.stream()
-        .map(col -> col.toBuilder()
-            .colId(col.getColId())
-            .colName(col.getColName())
-            .colDbTypeName(col.getColDbTypeName())
-            .colSizeDisplay(col.getColSizeDisplay())
-            .colSizeSqlType(col.getColSizeSqlType())
+        .map(cProfile -> cProfile.toBuilder()
+            .colId(cProfile.getColId())
+            .colName(cProfile.getColName())
+            .colDbTypeName(cProfile.getColDbTypeName())
+            .colSizeDisplay(cProfile.getColSizeDisplay())
+            .colSizeSqlType(cProfile.getColSizeSqlType())
             .csType(CSType.builder()
-                .isTimeStamp(col.getColName().equalsIgnoreCase("PICKUP_DATETIME"))
-                .sType(getSType(col.getColName()))
+                .isTimeStamp(cProfile.getColName().equalsIgnoreCase("PICKUP_DATETIME"))
+                .sType(getSType(cProfile.getColName()))
+                .cType(Mapper.isCType(cProfile))
                 .build())
             .build()).toList();
 
@@ -169,7 +172,6 @@ public class ClickHouseDatabase implements ClickHouse {
   private void addToList(List<List<Object>> lists, CProfile v, ResultSet r ) throws SQLException {
     lists.get(v.getColId()).add(r.getObject(v.getColIdSql()));
   }
-
   
   private void storeResultSetToFile(List<CProfile> cProfileList, List<List<Object>> listsColStore)
       throws IOException {
@@ -187,7 +189,6 @@ public class ClickHouseDatabase implements ClickHouse {
     oosData.close();
     fosData.close();
   }
-
   
   public List<CProfile> loadSqlColMetadataList(String select) throws SQLException {
     Statement s;
