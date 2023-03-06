@@ -1,5 +1,6 @@
 package org.fbase.integration.ch;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -19,6 +20,7 @@ import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.output.GanttColumn;
+import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.TProfile;
 import org.fbase.source.ClickHouse;
@@ -250,6 +252,16 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     assertListEquals(expected, actual);
     assertMapEquals(expected, actual);
   }
+
+  @Test
+  public void getStackedHist() throws BeginEndWrongOrderException, GanttColumnNotSupportedException, SqlColMetadataException {
+    List<StackedColumn> actual = getListStackedColumnActual("TRIP_TYPE", Long.MIN_VALUE, Long.MAX_VALUE);
+
+    log.info("Actual size of StackedColumn list: " + actual.size());
+
+    assertEquals(3922, actual.size());
+  }
+
   private void assertMapEquals(List<GanttColumn> expected, List<GanttColumn> actual) {
     expected.forEach(exp -> Assert.equals(exp.getGantt(), actual.stream()
         .filter(f -> f.getKey().equalsIgnoreCase(exp.getKey()))
@@ -286,6 +298,19 @@ public class FBaseCHQueryDataTest implements ClickHouse {
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
       throws BeginEndWrongOrderException, GanttColumnNotSupportedException, SqlColMetadataException {
     return fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), firstLevelGroupBy, secondLevelGroupBy, begin, end);
+  }
+
+  private List<StackedColumn> getListStackedColumnActual(String firstColName, long begin, long end)
+      throws BeginEndWrongOrderException, SqlColMetadataException {
+    CProfile cProfile = cProfiles.stream()
+        .filter(k -> k.getColName().equalsIgnoreCase(firstColName))
+        .findAny().get();
+    return getListStackedColumn(fStore, cProfile, begin, end);
+  }
+
+  private List<StackedColumn> getListStackedColumn(FStore fStore,
+      CProfile cProfile, long begin, long end) throws BeginEndWrongOrderException, SqlColMetadataException {
+    return fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, begin, end);
   }
 
   private String getTestData(String fileName) throws IOException {

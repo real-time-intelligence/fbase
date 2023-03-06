@@ -167,8 +167,9 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
 
     int[][] histograms = histogramDAO.get(tableId, blockId, cProfile.getColId());
 
-    AtomicInteger cntForHistExt = new AtomicInteger(0);
-    List<List<Integer>> histogramsListExt = new ArrayList<>();
+    AtomicInteger cntForHist = new AtomicInteger(0);
+
+    int[] histogramsUnPack = new int[timestamps.length];
 
     AtomicInteger cnt = new AtomicInteger(0);
     for (int i = 0; i < histograms[0].length; i++) {
@@ -190,19 +191,10 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
         }
 
         IntStream iRow = IntStream.range(0, deltaValue);
-        iRow.forEach(iR -> {
-          List<Integer> obj = new ArrayList<>();
-          obj.add(0, cntForHistExt.getAndIncrement());
-          obj.add(1, currHistogramValue);
-          histogramsListExt.add(obj);
-        });
-
+        iRow.forEach(iR -> histogramsUnPack[cntForHist.getAndIncrement()] = currHistogramValue);
       } else {
         for (long timestamp : timestamps) {
-          List<Integer> tmp = new ArrayList<>();
-          tmp.add(0, (int) timestamp);
-          tmp.add(1, histograms[1][0]);
-          histogramsListExt.add(tmp);
+          histogramsUnPack[(int) timestamp] = histograms[1][0];
         }
       }
     }
@@ -213,7 +205,7 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
     if (blockId < begin) {
       iRow.forEach(iR -> {
         if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-          String keyCompute = this.converter.convertIntToRaw(histogramsListExt.get(iR).get(1), cProfile);
+          String keyCompute = this.converter.convertIntToRaw(histogramsUnPack[iR], cProfile);
           map.compute(keyCompute, (k, val) -> val == null ? 1 : val + 1);
         }
       });
@@ -222,7 +214,7 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
     if (blockId >= begin & tail > end) {
       iRow.forEach(iR -> {
         if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-          String keyCompute = this.converter.convertIntToRaw(histogramsListExt.get(iR).get(1), cProfile);
+          String keyCompute = this.converter.convertIntToRaw(histogramsUnPack[iR], cProfile);
           map.compute(keyCompute, (k, val) -> val == null ? 1 : val + 1);
         }
       });
