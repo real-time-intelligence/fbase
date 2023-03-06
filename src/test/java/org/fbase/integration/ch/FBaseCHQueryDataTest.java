@@ -9,7 +9,15 @@ import com.vividsolutions.jts.util.Assert;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.IntSummaryStatistics;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.FBase;
 import org.fbase.backend.BerkleyDB;
@@ -81,8 +89,8 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     log.info("Expected: " + expected);
     log.info("Actual: " + actual);
 
-    assertListEquals(expected, actual);
-    assertMapEquals(expected, actual);
+    assertGanttListEquals(expected, actual);
+    assertGanttMapEquals(expected, actual);
   }
 
   @Test
@@ -102,8 +110,8 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     log.info("Expected: " + expected);
     log.info("Actual: " + actual);
 
-    assertListEquals(expected, actual);
-    assertMapEquals(expected, actual);
+    assertGanttListEquals(expected, actual);
+    assertGanttMapEquals(expected, actual);
   }
 
   @Test
@@ -123,8 +131,8 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     log.info("Expected: " + expected);
     log.info("Actual: " + actual);
 
-    assertListEquals(expected, actual);
-    assertMapEquals(expected, actual);
+    assertGanttListEquals(expected, actual);
+    assertGanttMapEquals(expected, actual);
   }
 
   @Test
@@ -144,8 +152,8 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     log.info("Expected: " + expected);
     log.info("Actual: " + actual);
 
-    assertListEquals(expected, actual);
-    assertMapEquals(expected, actual);
+    assertGanttListEquals(expected, actual);
+    assertGanttMapEquals(expected, actual);
   }
 
   @Test
@@ -165,8 +173,8 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     log.info("Expected: " + expected);
     log.info("Actual: " + actual);
 
-    assertListEquals(expected, actual);
-    assertMapEquals(expected, actual);
+    assertGanttListEquals(expected, actual);
+    assertGanttMapEquals(expected, actual);
   }
 
   @Test
@@ -186,8 +194,8 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     log.info("Expected: " + expected);
     log.info("Actual: " + actual);
 
-    assertListEquals(expected, actual);
-    assertMapEquals(expected, actual);
+    assertGanttListEquals(expected, actual);
+    assertGanttMapEquals(expected, actual);
   }
 
   @Test
@@ -207,8 +215,8 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     log.info("Expected: " + expected);
     log.info("Actual: " + actual);
 
-    assertListEquals(expected, actual);
-    assertMapEquals(expected, actual);
+    assertGanttListEquals(expected, actual);
+    assertGanttMapEquals(expected, actual);
   }
 
   @Test
@@ -228,8 +236,8 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     log.info("Expected: " + expected);
     log.info("Actual: " + actual);
 
-    assertListEquals(expected, actual);
-    assertMapEquals(expected, actual);
+    assertGanttListEquals(expected, actual);
+    assertGanttMapEquals(expected, actual);
   }
 
   @Test
@@ -249,20 +257,64 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     log.info("Expected: " + expected);
     log.info("Actual: " + actual);
 
-    assertListEquals(expected, actual);
-    assertMapEquals(expected, actual);
+    assertGanttListEquals(expected, actual);
+    assertGanttMapEquals(expected, actual);
   }
 
   @Test
-  public void getStackedHist() throws BeginEndWrongOrderException, GanttColumnNotSupportedException, SqlColMetadataException {
+  public void getStackedHist() throws BeginEndWrongOrderException, SqlColMetadataException, IOException {
+    String query = """
+        SELECT trip_type, COUNT(trip_type)
+        FROM datasets.trips_mergetree
+        WHERE toYear(pickup_date) = 2016
+        GROUP BY trip_type;
+        """;
+    log.info("Query: " + "\n" + query);
+
+    List<StackedColumn> expected = getStackedDataExpected("trip_type.json");
     List<StackedColumn> actual = getListStackedColumnActual("TRIP_TYPE", Long.MIN_VALUE, Long.MAX_VALUE);
 
-    log.info("Actual size of StackedColumn list: " + actual.size());
+    StackedColumn stackedColumn = new StackedColumn();
+    stackedColumn.setKey(0);
+    stackedColumn.setTail(0);
+    List<StackedColumn> actualResult = new ArrayList<>();
+    actualResult.add(stackedColumn);
 
+    Set<String> series = new LinkedHashSet<>();
+    actual.stream()
+        .map(StackedColumn::getKeyCount)
+        .map(Map::keySet)
+        .flatMap(Collection::stream)
+        .forEach(series::add);
+
+    Map<String, IntSummaryStatistics> batchDataLocal = actual.stream()
+        .toList()
+        .stream()
+        .map(StackedColumn::getKeyCount)
+        .flatMap(sc -> sc.entrySet().stream())
+        .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.summarizingInt(Map.Entry::getValue)));
+
+    series.forEach(s -> {
+      Optional<IntSummaryStatistics> batch = Optional.ofNullable(batchDataLocal.get(s));
+      try {
+        actualResult.stream().findAny().get().getKeyCount().putIfAbsent(s,
+            Math.toIntExact(batch.map(IntSummaryStatistics::getSum).orElseThrow()));
+      } catch (Exception exception) {
+        log.info(exception);
+      }
+    });
+
+    log.info("Expected: " + expected);
+    log.info("Actual: " + actualResult);
+
+    assertStackedListEquals(expected, actualResult);
+    assertStackedMapEquals(expected, actualResult);
+
+    log.info("Actual size of StackedColumn list: " + actual.size());
     assertEquals(3922, actual.size());
   }
 
-  private void assertMapEquals(List<GanttColumn> expected, List<GanttColumn> actual) {
+  private void assertGanttMapEquals(List<GanttColumn> expected, List<GanttColumn> actual) {
     expected.forEach(exp -> Assert.equals(exp.getGantt(), actual.stream()
         .filter(f -> f.getKey().equalsIgnoreCase(exp.getKey()))
         .findFirst()
@@ -270,12 +322,27 @@ public class FBaseCHQueryDataTest implements ClickHouse {
         .getGantt()));
   }
 
-  public void assertListEquals(List<GanttColumn> expected, List<GanttColumn> actual) {
+  private void assertStackedMapEquals(List<StackedColumn> expected, List<StackedColumn> actual) {
+    expected.forEach(exp -> Assert.equals(exp.getKeyCount(), actual.stream()
+        .findFirst()
+        .orElseThrow()
+        .getKeyCount()));
+  }
+
+  public void assertGanttListEquals(List<GanttColumn> expected, List<GanttColumn> actual) {
     assertTrue(expected.size() == actual.size() && expected.containsAll(actual) && actual.containsAll(expected));
   }
 
+  public void assertStackedListEquals(List<StackedColumn> expected, List<StackedColumn> actual) {
+    assertEquals(expected.size(), actual.size());
+  }
+
   private List<GanttColumn> getGanttDataExpected(String fileName) throws IOException {
-    return objectMapper.readValue(getTestData(fileName), new TypeReference<>() {});
+    return objectMapper.readValue(getGanttTestData(fileName), new TypeReference<>() {});
+  }
+
+  private List<StackedColumn> getStackedDataExpected(String fileName) throws IOException {
+    return objectMapper.readValue(getStackedTestData(fileName), new TypeReference<>() {});
   }
 
   private List<GanttColumn> getGanttDataActual(String firstColName, String secondColName)
@@ -313,8 +380,12 @@ public class FBaseCHQueryDataTest implements ClickHouse {
     return fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, begin, end);
   }
 
-  private String getTestData(String fileName) throws IOException {
-    return Files.readString(Paths.get("src","test", "resources", "json", fileName));
+  private String getGanttTestData(String fileName) throws IOException {
+    return Files.readString(Paths.get("src","test", "resources", "json", "gantt", fileName));
+  }
+
+  private String getStackedTestData(String fileName) throws IOException {
+    return Files.readString(Paths.get("src","test", "resources", "json", "stacked", fileName));
   }
 
   @AfterAll
