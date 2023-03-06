@@ -23,4 +23,6 @@ public interface RawService {
       CProfile cProfile, int fetchSize, boolean isStarted, long maxBlockId, Entry<Long, Integer> pointer, AtomicInteger fetchCounter);
 
   long getMaxBlockId(byte tableId);
+
+  long getLastTimestamp(String tableName, long begin, long end);
 }

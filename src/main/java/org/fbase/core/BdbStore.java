@@ -32,14 +32,12 @@ import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.EnumService;
 import org.fbase.service.GroupByService;
-import org.fbase.service.HistogramsService;
-import org.fbase.service.MetadataService;
+import org.fbase.service.HistogramService;
 import org.fbase.service.RawService;
 import org.fbase.service.StoreService;
 import org.fbase.service.impl.EnumServiceImpl;
 import org.fbase.service.impl.GroupByServiceImpl;
 import org.fbase.service.impl.HistogramServiceImpl;
-import org.fbase.service.impl.MetadataServiceImpl;
 import org.fbase.service.impl.RawServiceImpl;
 import org.fbase.service.impl.StoreServiceImpl;
 import org.fbase.service.mapping.Mapper;
@@ -66,9 +64,8 @@ public class BdbStore implements FStore {
   private final DimensionDAO dimensionDAO;
   private final EnumDAO enumDAO;
 
-  private final MetadataService metadataService;
   private final GroupByService groupByService;
-  private final HistogramsService histogramsService;
+  private final HistogramService histogramsService;
   private final RawService rawService;
   private final StoreService storeService;
   private final EnumService enumService;
@@ -86,15 +83,14 @@ public class BdbStore implements FStore {
       throw new RuntimeException(e);
     }
 
-    this.histogramDAO = new HistogramBdbImpl(this.store);
     this.rawDAO = new RawBdbImpl(this.store);
-    this.dimensionDAO = new DimensionBdbImpl(this.store);
     this.enumDAO = new EnumBdbImpl(this.store);
+    this.histogramDAO = new HistogramBdbImpl(this.store);
+    this.dimensionDAO = new DimensionBdbImpl(this.store);
 
     this.converter = new Converter(dimensionDAO);
 
-    this.metadataService = new MetadataServiceImpl(metaModel, converter, histogramDAO, rawDAO);
-    this.histogramsService = new HistogramServiceImpl(metaModel, converter, histogramDAO);
+    this.histogramsService = new HistogramServiceImpl(metaModel, converter, histogramDAO, rawDAO);
     this.rawService = new RawServiceImpl(metaModel, converter, rawDAO, histogramDAO, enumDAO);
     this.enumService = new EnumServiceImpl(metaModel, converter, rawDAO, enumDAO);
     this.groupByService = new GroupByServiceImpl(metaModel, converter, histogramDAO, rawDAO, enumDAO);
@@ -371,7 +367,7 @@ public class BdbStore implements FStore {
     }
 
     if (cProfile.getCsType().getSType() == SType.HISTOGRAM) {
-      return this.metadataService.getListStackedColumn(tableName, cProfile, begin, end);
+      return this.histogramsService.getListStackedColumn(tableName, cProfile, begin, end);
     } else if (cProfile.getCsType().getSType() == SType.ENUM) {
       return this.enumService.getListStackedColumn(tableName, cProfile, begin, end);
     } else {
@@ -393,7 +389,7 @@ public class BdbStore implements FStore {
 
     if (firstLevelGroupBy.getCsType().getSType().equals(SType.HISTOGRAM) &
         secondLevelGroupBy.getCsType().getSType().equals(SType.HISTOGRAM)) {
-      return this.metadataService.getListGanttColumn(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
+      return this.histogramsService.getListGanttColumn(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
     } else {
       return this.groupByService.getListGanttColumnUniversal(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
     }
@@ -438,7 +434,7 @@ public class BdbStore implements FStore {
 
   @Override
   public long getLastTimestamp(String tableName, long begin, long end) {
-    return metadataService.getLastTimestamp(tableName, begin, end);
+    return rawService.getLastTimestamp(tableName, begin, end);
   }
 
   @Override

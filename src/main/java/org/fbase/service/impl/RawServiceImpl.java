@@ -232,6 +232,13 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     return rawDAO.getLastBlockId(tableId);
   }
 
+  @Override
+  public long getLastTimestamp(String tableName, long begin, long end) {
+    byte tableId = getTableId(tableName, metaModel);
+
+    return this.rawDAO.getLastBlockId(tableId, begin, end);
+  }
+
   private List<List<Object>> getRawData(String tableName, List<CProfile> cProfiles, long begin, long end) {
     byte tableId = getTableId(tableName, metaModel);
     CProfile tsProfile = getTsProfile(tableName);
