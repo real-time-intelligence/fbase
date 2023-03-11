@@ -2,7 +2,6 @@ package org.fbase.common;
 
 import static org.fbase.config.FileConfig.FILE_SEPARATOR;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -16,15 +15,14 @@ import org.fbase.backend.BerkleyDB;
 import org.fbase.config.FBaseConfig;
 import org.fbase.core.FStore;
 import org.fbase.model.profile.SProfile;
+import org.fbase.model.profile.TType;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.source.JdbcSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.junit.jupiter.api.io.TempDir;
 
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
@@ -71,7 +69,7 @@ public abstract class AbstractOracleTest implements JdbcSource {
     csTypeMap.put("VALUE_RAW", new CSType().toBuilder().sType(SType.RAW).build());
 
     return new SProfile().setTableName(tableNameRandom)
-        .setIsTimestamp(true)
+        .setTableType(TType.TIME_SERIES)
         .setCompression(false)
         .setCsTypeMap(csTypeMap);
   }
@@ -90,7 +88,7 @@ public abstract class AbstractOracleTest implements JdbcSource {
     });
 
     return new SProfile().setTableName(tableNameAsh)
-        .setIsTimestamp(true)
+        .setTableType(TType.TIME_SERIES)
         .setCompression(false)
         .setCsTypeMap(csTypeMap);
   }

@@ -25,6 +25,7 @@ import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
+import org.fbase.model.profile.TType;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.EnumService;
@@ -109,11 +110,11 @@ public class BdbStore implements FStore {
         .filter(cProfile -> cProfile.getCsType().isTimeStamp())
         .findAny()
         .ifPresentOrElse((value) -> {
-              tProfile.setIsTimestamp(true);
+              tProfile.setTableType(TType.TIME_SERIES);
               tProfile.setCProfiles(cProfiles);
             },
             () -> {
-              tProfile.setIsTimestamp(false);
+              tProfile.setTableType(TType.REGULAR);
               tProfile.setCProfiles(cProfiles);
             });
 
@@ -138,7 +139,7 @@ public class BdbStore implements FStore {
 
       updateTimestampMetadata(tableName, sProfile);
 
-      tProfile.setIsTimestamp(sProfile.getIsTimestamp());
+      tProfile.setTableType(sProfile.getTableType());
 
       try {
         tProfile.setCProfiles(getCProfileList(tableName));
@@ -209,7 +210,7 @@ public class BdbStore implements FStore {
 
       updateTimestampMetadata(tableName, sProfile);
 
-      tProfile.setIsTimestamp(sProfile.getIsTimestamp());
+      tProfile.setTableType(sProfile.getTableType());
       tProfile.setCompression(sProfile.getCompression());
 
       try {
@@ -244,7 +245,7 @@ public class BdbStore implements FStore {
 
     saveMetaModel();
 
-    tProfile.setIsTimestamp(sProfile.getIsTimestamp());
+    tProfile.setTableType(sProfile.getTableType());
     tProfile.setCompression(sProfile.getCompression());
     try {
       tProfile.setCProfiles(getCProfileList(tableName));
@@ -284,7 +285,8 @@ public class BdbStore implements FStore {
         }
       }
 
-    if (optionalTsCProfile.isEmpty() & optionalTsEntry.isEmpty() & sProfile.getIsTimestamp()) {
+    if (optionalTsCProfile.isEmpty() & optionalTsEntry.isEmpty()
+        & !TType.TIME_SERIES.equals(sProfile.getTableType())) {
       log.warn("Timestamp column not defined");
     }
   }

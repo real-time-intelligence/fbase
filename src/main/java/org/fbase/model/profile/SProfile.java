@@ -14,8 +14,9 @@ import org.fbase.model.profile.cstype.CSType;
 @Data
 @Builder(toBuilder = true)
 public class SProfile {
+
   private String tableName;
-  private Boolean isTimestamp = Boolean.TRUE;
+  private TType tableType = TType.TIME_SERIES;
   private Boolean compression = Boolean.FALSE;
   private Map<String, CSType> csTypeMap;
 }

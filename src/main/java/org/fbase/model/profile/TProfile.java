@@ -15,7 +15,7 @@ import lombok.experimental.Accessors;
 public class TProfile {
 
   private String tableName;
-  private Boolean isTimestamp;
+  private TType tableType;
   private Boolean compression;
   private List<CProfile> cProfiles;
 }

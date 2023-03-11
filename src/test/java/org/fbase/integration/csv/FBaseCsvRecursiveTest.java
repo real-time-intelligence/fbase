@@ -24,6 +24,7 @@ import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
+import org.fbase.model.profile.TType;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.sql.BatchResultSet;
 import org.junit.jupiter.api.Disabled;
@@ -129,7 +130,7 @@ public class FBaseCsvRecursiveTest {
       tProfile = fStore.loadCsvTableMetadata(fileName, csvSplitBy,
           SProfile.builder()
               .tableName(tableName)
-              .isTimestamp(false)
+              .tableType(TType.REGULAR)
               .compression(compression)
               .csTypeMap(new HashMap<>()).build());
     } catch (TableNameEmptyException e) {
@@ -143,7 +144,7 @@ public class FBaseCsvRecursiveTest {
     SProfile sProfile = new SProfile();
     sProfile.setTableName(tableName);
     sProfile.setCompression(false);
-    sProfile.setIsTimestamp(false);
+    sProfile.setTableType(TType.REGULAR);
 
     Map<String, CSType> csTypeMap = new HashMap<>();
     sProfile.setCsTypeMap(csTypeMap);

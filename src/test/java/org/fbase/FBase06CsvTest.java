@@ -22,6 +22,7 @@ import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
+import org.fbase.model.profile.TType;
 import org.fbase.sql.BatchResultSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -284,7 +285,7 @@ public class FBase06CsvTest {
       tProfile = fStore.loadCsvTableMetadata(fileName, csvSplitBy,
           SProfile.builder()
               .tableName(tableName)
-              .isTimestamp(false)
+              .tableType(TType.REGULAR)
               .compression(compression)
               .csTypeMap(new HashMap<>()).build());
     } catch (TableNameEmptyException e) {
