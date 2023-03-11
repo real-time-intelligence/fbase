@@ -14,16 +14,13 @@ import org.fbase.config.FBaseConfig;
 import org.fbase.config.FileConfig;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.EnumByteExceedException;
-import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.handler.MetaModelHandler;
 import org.fbase.handler.MetadataHandler;
 import org.fbase.model.MetaModel;
 import org.fbase.model.MetaModel.TableMetadata;
-import org.fbase.model.function.GBFunction;
 import org.fbase.model.output.GanttColumn;
-import org.fbase.model.output.GroupByColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -393,13 +390,6 @@ public class BdbStore implements FStore {
     } else {
       return this.groupByService.getListGanttColumnUniversal(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
     }
-  }
-
-  @Override
-  public List<GroupByColumn> getGBColumnListTwoLevelGroupBy(String tableName, CProfile firstLevelGroupBy,
-      CProfile secondLevelGroupBy, GBFunction gbFunction, long begin, long end)
-      throws SqlColMetadataException, BeginEndWrongOrderException, GanttColumnNotSupportedException {
-    return null;
   }
 
   @Override

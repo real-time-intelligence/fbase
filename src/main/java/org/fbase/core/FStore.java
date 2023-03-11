@@ -9,9 +9,7 @@ import org.fbase.exception.EnumByteExceedException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
-import org.fbase.model.function.GBFunction;
 import org.fbase.model.output.GanttColumn;
-import org.fbase.model.output.GroupByColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -105,22 +103,6 @@ public interface FStore {
    */
   List<GanttColumn> getGColumnListTwoLevelGroupBy(String tableName,
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
-      throws SqlColMetadataException, BeginEndWrongOrderException, GanttColumnNotSupportedException;
-
-  /**
-   * Get result of group by function
-   * @param tableName - Table name
-   * @param firstLevelGroupBy - Column profile for first level
-   * @param secondLevelGroupBy - Column profile for second level
-   * @param gbFunction - function (COUNT, SUM etc)
-   * @param begin - start of range
-   * @param end - end of range
-   * @return {@literal List<GanttColumn>} - list data in GanttColumn
-   * @throws SqlColMetadataException
-   * @throws BeginEndWrongOrderException
-   */
-  List<GroupByColumn> getGBColumnListTwoLevelGroupBy(String tableName,
-      CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, GBFunction gbFunction, long begin, long end)
       throws SqlColMetadataException, BeginEndWrongOrderException, GanttColumnNotSupportedException;
 
   /**
