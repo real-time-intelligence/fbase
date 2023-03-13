@@ -25,7 +25,8 @@ import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
-import org.fbase.model.profile.TType;
+import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.EnumService;
@@ -375,9 +376,13 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public List<GanttColumn> getGColumnListTwoLevelGroupBy(String tableName,
+  public List<GanttColumn> getGColumnListTwoLevelGroupBy(String tableName, IType iType,
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
+
+    if (firstLevelGroupBy.getCsType().isTimeStamp() | secondLevelGroupBy.getCsType().isTimeStamp()) {
+      throw new SqlColMetadataException("Group by not supported for timestamp column..");
+    }
 
     if (begin > end) {
       throw new BeginEndWrongOrderException("Begin value must be less the end one..");
@@ -386,11 +391,10 @@ public class BdbStore implements FStore {
     log.info("First column profile: " + firstLevelGroupBy);
     log.info("Second column profile: " + secondLevelGroupBy);
 
-    if (firstLevelGroupBy.getCsType().getSType().equals(SType.HISTOGRAM) &
-        secondLevelGroupBy.getCsType().getSType().equals(SType.HISTOGRAM)) {
-      return this.histogramsService.getListGanttColumn(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
+    if (IType.GLOBAL.equals(iType)) {
+      return this.groupByService.getListGanttColumnIndexGlobal(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
     } else {
-      return this.groupByService.getListGanttColumnUniversal(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
+      return this.groupByService.getListGanttColumnIndexLocal(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
     }
   }
 

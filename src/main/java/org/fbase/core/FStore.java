@@ -14,6 +14,7 @@ import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
+import org.fbase.model.profile.table.IType;
 import org.fbase.sql.BatchResultSet;
 
 /**
@@ -93,6 +94,7 @@ public interface FStore {
   /**
    * Get list of gantt data
    * @param tableName - Table name
+   * @param iType - Table index type
    * @param firstLevelGroupBy - Column profile for first level
    * @param secondLevelGroupBy - Column profile for second level
    * @param begin - start of range
@@ -101,7 +103,7 @@ public interface FStore {
    * @throws SqlColMetadataException
    * @throws BeginEndWrongOrderException
    */
-  List<GanttColumn> getGColumnListTwoLevelGroupBy(String tableName,
+  List<GanttColumn> getGColumnListTwoLevelGroupBy(String tableName, IType iType,
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
       throws SqlColMetadataException, BeginEndWrongOrderException, GanttColumnNotSupportedException;
 

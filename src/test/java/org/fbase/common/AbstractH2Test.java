@@ -30,6 +30,7 @@ import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.IType;
 import org.fbase.service.mapping.Mapper;
 import org.fbase.source.H2Database;
 import org.fbase.source.JdbcSource;
@@ -336,7 +337,7 @@ public abstract class AbstractH2Test implements JdbcSource {
   public List<GanttColumn> getListGanttColumnTwoLevelGrouping(FStore fStore, TProfile tProfile,
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
       throws BeginEndWrongOrderException, GanttColumnNotSupportedException, SqlColMetadataException {
-    return fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), firstLevelGroupBy, secondLevelGroupBy, begin, end);
+    return fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), IType.GLOBAL, firstLevelGroupBy, secondLevelGroupBy, begin, end);
   }
 
   protected void assertForGanttColumn(List<GanttColumn> expected, List<GanttColumn> actual) {

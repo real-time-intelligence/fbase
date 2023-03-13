@@ -7,6 +7,9 @@ import org.fbase.model.profile.CProfile;
 
 public interface GroupByService {
 
-  List<GanttColumn> getListGanttColumnUniversal(String tableName, CProfile firstLevelGroupBy, CProfile secondLevelGroupBy,
+  List<GanttColumn> getListGanttColumnIndexLocal(String tableName, CProfile firstLevelGroupBy, CProfile secondLevelGroupBy,
+      long begin, long end) throws SqlColMetadataException;
+
+  List<GanttColumn> getListGanttColumnIndexGlobal(String tableName, CProfile firstLevelGroupBy, CProfile secondLevelGroupBy,
       long begin, long end) throws SqlColMetadataException;
 }

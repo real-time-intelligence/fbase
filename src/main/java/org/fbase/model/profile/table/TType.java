@@ -1,4 +1,4 @@
-package org.fbase.model.profile;
+package org.fbase.model.profile.table;
 
 public enum TType {
   REGULAR,

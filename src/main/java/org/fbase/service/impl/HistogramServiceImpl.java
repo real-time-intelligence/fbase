@@ -1,7 +1,6 @@
 package org.fbase.service.impl;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,7 +9,6 @@ import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.MetaModel;
-import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.service.CommonServiceApi;
@@ -73,59 +71,6 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
         });
 
     return list;
-  }
-
-  @Override
-  public List<GanttColumn> getListGanttColumn(String tableName, CProfile firstGrpBy, CProfile secondGrpBy,
-      long begin, long end) throws SqlColMetadataException {
-
-    byte tableId = getTableId(tableName, metaModel);
-
-    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
-
-    CProfile tsProfile = getTimestampProfile(cProfiles);
-
-    if (firstGrpBy.getCsType().isTimeStamp() | secondGrpBy.getCsType().isTimeStamp()) {
-      throw new SqlColMetadataException("Group by not supported for timestamp column..");
-    }
-
-    List<GanttColumn> list = new ArrayList<>();
-
-    // firstLevelGroupBy = key, value = (secondLevelGroupBy = key2 : count = value2)
-    Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
-
-    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
-
-    if (previousBlockId != begin & previousBlockId != 0) {
-      long[] timestamps = rawDAO.getRawLong(tableId, previousBlockId, tsProfile.getColId());
-
-      this.computeForGanttFull(tableId, previousBlockId, firstGrpBy, secondGrpBy, timestamps, begin, end, map);
-    }
-
-    this.rawDAO.getListBlockIds(tableId, begin, end)
-        .forEach(blockId -> {
-          long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsProfile.getColId());
-          this.computeForGanttFull(tableId, blockId, firstGrpBy, secondGrpBy, timestamps, begin, end, map);
-        });
-
-    this.convertMapToDto(firstGrpBy, secondGrpBy, map, list);
-
-    return list;
-  }
-
-  private void convertMapToDto(CProfile firstGrpBy, CProfile secondGrpBy,
-      Map<Integer, Map<Integer, Integer>> mapSource, List<GanttColumn> listDest) {
-    mapSource.forEach((key, value) -> {
-      String keyVar = this.converter.convertIntToRaw(key, firstGrpBy);
-
-      Map<String, Integer> valueVar = new HashMap<>();
-      value.forEach((k, v) -> {
-        String kVar = this.converter.convertIntToRaw(k, secondGrpBy);
-        valueVar.put(kVar, v);
-      });
-
-      listDest.add(GanttColumn.builder().key(keyVar).gantt(valueVar).build());
-    });
   }
 
   private void computeIndexedForStackedFull(byte tableId, CProfile cProfile, long blockId, long[] timestamps,
@@ -224,87 +169,6 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
         .key(blockId)
         .tail(tail)
         .keyCount(map).build());
-  }
-
-  private void computeForGanttFull(byte tableId, long blockId, CProfile firstGrpBy, CProfile secondGrpBy,
-      long[] timestamps, long begin, long end, Map<Integer, Map<Integer, Integer>> map) {
-
-    int[][] f = histogramDAO.get(tableId, blockId, firstGrpBy.getColId());
-    int[][] l = histogramDAO.get(tableId, blockId, secondGrpBy.getColId());
-
-    boolean checkRange = timestamps[f[0][0]] >= begin & timestamps[f[0][f[0].length - 1]] <= end;
-
-    int lCurrent = 0;
-
-    for (int i = 0; i < f[0].length; i++) {
-      int fNextIndex = getNextIndex(i, f, timestamps);
-
-      if (checkRange) {
-        for (int j = lCurrent; j < l[0].length; j++) {
-          int lNextIndex = getNextIndex(j, l, timestamps);
-
-          if (lNextIndex <= fNextIndex) {
-            if (l[0][j] <= f[0][i]) {
-              setMapValue(map, f[1][i], l[1][j], (lNextIndex - f[0][i]) + 1);
-            } else {
-              setMapValue(map, f[1][i], l[1][j], (lNextIndex - l[0][j]) + 1);
-            }
-          } else {
-            if (f[0][i] <= l[0][j]) {
-              setMapValue(map, f[1][i], l[1][j], (fNextIndex - l[0][j]) + 1);
-            } else {
-              setMapValue(map, f[1][i], l[1][j], (fNextIndex - f[0][i]) + 1);
-            }
-          }
-
-          if (lNextIndex > fNextIndex) {
-            lCurrent = j;
-            break;
-          }
-
-          if (lNextIndex == fNextIndex) {
-            lCurrent = j + 1;
-            break;
-          }
-        }
-      } else {
-        for (int iR = f[0][i]; (f[0][i] == fNextIndex) ? iR < fNextIndex + 1 : iR <= fNextIndex; iR++) {
-          if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-
-            int valueFirst = f[1][i];
-            int valueSecond = getHistogramValue(iR, l, timestamps);
-
-            setMapValue(map, valueFirst, valueSecond, 1);
-          }
-        }
-      }
-    }
-  }
-
-  private int getNextIndex(int i, int[][] histogram, long[] timestamps) {
-    int nextIndex;
-
-    if (i + 1 < histogram[0].length) {
-      nextIndex = histogram[0][i + 1] - 1;
-    } else {
-      nextIndex = timestamps.length - 1;
-    }
-
-    return nextIndex;
-  }
-
-  private void setMapValue(Map<Integer, Map<Integer, Integer>> map, int valueFirst, int valueSecond,
-      int sum) {
-    if (map.get(valueFirst) == null) {
-      map.put(valueFirst, new HashMap<>());
-      map.get(valueFirst).putIfAbsent(valueSecond, sum);
-    } else {
-      if (map.get(valueFirst).get(valueSecond) == null) {
-        map.get(valueFirst).putIfAbsent(valueSecond, sum);
-      } else {
-        map.get(valueFirst).computeIfPresent(valueSecond, (k, v) -> v + sum);
-      }
-    }
   }
 
 }

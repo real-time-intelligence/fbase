@@ -24,7 +24,7 @@ import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
-import org.fbase.model.profile.TType;
+import org.fbase.model.profile.table.TType;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.sql.BatchResultSet;
 import org.junit.jupiter.api.Disabled;

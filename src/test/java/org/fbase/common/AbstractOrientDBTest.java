@@ -15,7 +15,7 @@ import org.fbase.backend.BerkleyDB;
 import org.fbase.config.FBaseConfig;
 import org.fbase.core.FStore;
 import org.fbase.model.profile.SProfile;
-import org.fbase.model.profile.TType;
+import org.fbase.model.profile.table.TType;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.source.JdbcSource;
