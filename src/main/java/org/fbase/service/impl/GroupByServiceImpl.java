@@ -78,8 +78,6 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
       while ((columnKey = cursor.next()) != null) {
         long blockId = columnKey.getMetadataKey().getBlockId();
 
-        long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
-
         SType firstSType = getSType(firstColId, columnKey);
         SType secondSType = getSType(secondColId, columnKey);
 
