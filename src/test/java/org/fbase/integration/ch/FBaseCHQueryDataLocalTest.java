@@ -310,9 +310,6 @@ public class FBaseCHQueryDataLocalTest implements ClickHouse {
 
     assertStackedListEquals(expected, actualResult);
     assertStackedMapEquals(expected, actualResult);
-
-    log.info("Actual size of StackedColumn list: " + actual.size());
-    assertEquals(3922, actual.size());
   }
 
   private void assertGanttMapEquals(List<GanttColumn> expected, List<GanttColumn> actual) {

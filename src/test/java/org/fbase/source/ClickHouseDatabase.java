@@ -12,8 +12,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -126,6 +128,65 @@ public class ClickHouseDatabase implements ClickHouse {
     r.close();
     ps.close();
 
+    return cProfiles;
+  }
+
+  public List<CProfile> loadDataJdbc(String select, FStore fStore, int resultSetFetchSize) throws SQLException {
+
+    log.info("Start time: " + LocalDateTime.now());
+
+    List<CProfile> cProfileList = loadSqlColMetadataList(select);
+
+    List<CProfile> cProfiles = cProfileList.stream()
+        .map(cProfile -> cProfile.toBuilder()
+            .colId(cProfile.getColId())
+            .colName(cProfile.getColName())
+            .colDbTypeName(cProfile.getColDbTypeName())
+            .colSizeDisplay(cProfile.getColSizeDisplay())
+            .colSizeSqlType(cProfile.getColSizeSqlType())
+            .csType(CSType.builder()
+                .isTimeStamp(cProfile.getColName().equalsIgnoreCase("PICKUP_DATETIME"))
+                .sType(getSType(cProfile.getColName()))
+                .cType(Mapper.isCType(cProfile))
+                .build())
+            .build()).toList();
+
+    try {
+      tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile(tableName));
+    } catch (TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
+
+    LocalDate start = LocalDate.of(2016, 1, 1);
+    LocalDate end = LocalDate.of(2017, 1, 1);
+
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+    String select2016template = "SELECT * FROM datasets.trips_mergetree where toYYYYMMDD(pickup_date) = ";
+    start.datesUntil(end).forEach(day -> {
+      String sDay = day.format(formatter);
+
+      try {
+        String query = select2016template + sDay;
+
+        log.info("Start query: " + query);
+        PreparedStatement ps = connection.prepareStatement(query);
+        ps.setFetchSize(resultSetFetchSize);
+        ResultSet r = ps.executeQuery();
+
+        fStore.putDataJdbc(tProfile.getTableName(), r);
+
+        r.close();
+        ps.close();
+
+        log.info("End query: " + query);
+      } catch (Exception e) {
+        log.catching(e);
+      }
+
+    });
+
+    log.info("End time: " + LocalDateTime.now());
     return cProfiles;
   }
 
