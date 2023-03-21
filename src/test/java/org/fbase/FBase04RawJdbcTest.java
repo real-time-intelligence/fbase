@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 import org.fbase.common.AbstractH2Test;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +31,7 @@ public class FBase04RawJdbcTest extends AbstractH2Test {
     csTypeMap.put("HOUSE", SType.RAW);
     csTypeMap.put("CITY", SType.RAW);
 
-    putDataJdbc(csTypeMap);
+    putDataJdbc(csTypeMap, TType.TIME_SERIES, IType.GLOBAL, true);
   }
 
   @Test

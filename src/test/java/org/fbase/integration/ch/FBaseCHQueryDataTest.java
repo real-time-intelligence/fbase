@@ -31,7 +31,6 @@ import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.TProfile;
-import org.fbase.model.profile.table.IType;
 import org.fbase.source.ClickHouse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,7 +42,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 @Disabled
-public class FBaseCHQueryDataLocalTest implements ClickHouse {
+public class FBaseCHQueryDataTest implements ClickHouse {
 
   private FStore fStore;
   private TProfile tProfile;
@@ -65,6 +64,7 @@ public class FBaseCHQueryDataLocalTest implements ClickHouse {
 
     try {
       tProfile = fBase.getFStore().getTProfile(tableName);
+      log.info(tProfile);
     } catch (TableNameEmptyException e) {
       throw new RuntimeException(e);
     }
@@ -362,7 +362,7 @@ public class FBaseCHQueryDataLocalTest implements ClickHouse {
   private List<GanttColumn> getListGanttColumnTwoLevelGrouping(FStore fStore,
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
       throws BeginEndWrongOrderException, GanttColumnNotSupportedException, SqlColMetadataException {
-    return fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), IType.LOCAL, firstLevelGroupBy, secondLevelGroupBy, begin, end);
+    return fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), firstLevelGroupBy, secondLevelGroupBy, begin, end);
   }
 
   private List<StackedColumn> getListStackedColumnActual(String firstColName, long begin, long end)

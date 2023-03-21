@@ -25,10 +25,9 @@ import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
-import org.fbase.model.profile.table.IType;
-import org.fbase.model.profile.table.TType;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.TType;
 import org.fbase.service.EnumService;
 import org.fbase.service.GroupByService;
 import org.fbase.service.HistogramService;
@@ -175,6 +174,8 @@ public class BdbStore implements FStore {
       metaModel.getMetadata().put(tableName,
           new TableMetadata()
               .setTableId(tableId)
+              .setTableType(sProfile.getTableType())
+              .setIndexType(sProfile.getIndexType())
               .setCompression(sProfile.getCompression())
               .setCProfiles(cProfileList));
 
@@ -237,6 +238,8 @@ public class BdbStore implements FStore {
       metaModel.getMetadata().put(tableName,
           new TableMetadata()
               .setTableId(tableId)
+              .setTableType(sProfile.getTableType())
+              .setIndexType(sProfile.getIndexType())
               .setCompression(sProfile.getCompression())
               .setCProfiles(cProfileList));
 
@@ -376,7 +379,7 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public List<GanttColumn> getGColumnListTwoLevelGroupBy(String tableName, IType iType,
+  public List<GanttColumn> getGColumnListTwoLevelGroupBy(String tableName,
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
 
@@ -391,11 +394,7 @@ public class BdbStore implements FStore {
     log.info("First column profile: " + firstLevelGroupBy);
     log.info("Second column profile: " + secondLevelGroupBy);
 
-    if (IType.GLOBAL.equals(iType)) {
-      return this.groupByService.getListGanttColumnIndexGlobal(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
-    } else {
-      return this.groupByService.getListGanttColumnIndexLocal(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
-    }
+    return this.groupByService.getListGanttColumn(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
   }
 
   @Override

@@ -11,6 +11,8 @@ import org.fbase.backend.BerkleyDB;
 import org.fbase.config.FBaseConfig;
 import org.fbase.core.FStore;
 import org.fbase.model.profile.CProfile;
+import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
 import org.fbase.source.ClickHouse;
 import org.fbase.source.ClickHouseDatabase;
 import org.junit.jupiter.api.AfterAll;
@@ -49,7 +51,8 @@ public class FBaseCHLoadDataTest implements ClickHouse {
   @Test
   public void loadDataDirect() {
     try {
-      cProfiles = clickHouseDB.loadDataDirect(ClickHouse.select2016, fStore, 20000, 20000);
+      cProfiles = clickHouseDB.loadDataDirect(ClickHouse.select2016, fStore,
+          TType.TIME_SERIES, IType.GLOBAL, true,20000, 20000);
     } catch (Exception e) {
       log.catching(e);
     }
@@ -57,9 +60,21 @@ public class FBaseCHLoadDataTest implements ClickHouse {
   }
 
   @Test
-  public void loadDataJdbc() {
+  public void loadDataJdbcTimeSeriesGlobalCompression() {
     try {
-      cProfiles = clickHouseDB.loadDataJdbc(ClickHouse.select2016, fStore, 20000);
+      cProfiles = clickHouseDB.loadDataJdbc(ClickHouse.select2016, fStore,
+          TType.TIME_SERIES, IType.GLOBAL, true, 20000);
+    } catch (Exception e) {
+      log.catching(e);
+    }
+    assertEquals(1, 1);
+  }
+
+  @Test
+  public void loadDataJdbcTimeSeriesLocalCompression() {
+    try {
+      cProfiles = clickHouseDB.loadDataJdbc(ClickHouse.select2016, fStore,
+          TType.TIME_SERIES, IType.LOCAL, true, 20000);
     } catch (Exception e) {
       log.catching(e);
     }
@@ -69,7 +84,8 @@ public class FBaseCHLoadDataTest implements ClickHouse {
   @Test
   public void loadDataBatchTest() {
     try {
-     cProfiles = clickHouseDB.loadDataJdbcBatch(ClickHouse.select2016, fStore, 20000, 20000);
+     cProfiles = clickHouseDB.loadDataJdbcBatch(ClickHouse.select2016, fStore,
+         TType.TIME_SERIES, IType.GLOBAL, true,20000, 20000);
     } catch (Exception e) {
       log.catching(e);
     }

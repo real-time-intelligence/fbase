@@ -19,6 +19,8 @@ import java.util.stream.Stream;
 import org.fbase.model.MetaModel;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
+import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
 import org.fbase.storage.RawDAO;
 
 public abstract class CommonServiceApi {
@@ -91,6 +93,14 @@ public abstract class CommonServiceApi {
 
   public byte getTableId(String tableName, MetaModel metaModel) {
     return metaModel.getMetadata().get(tableName).getTableId();
+  }
+
+  public TType getTableType(String tableName, MetaModel metaModel) {
+    return metaModel.getMetadata().get(tableName).getTableType();
+  }
+
+  public IType getIndexType(String tableName, MetaModel metaModel) {
+    return metaModel.getMetadata().get(tableName).getIndexType();
   }
 
   public Boolean getTableCompression(String tableName, MetaModel metaModel) {
@@ -247,6 +257,16 @@ public abstract class CommonServiceApi {
 
     cProfiles.stream()
         .filter(f -> f.getCsType().isTimeStamp())
+        .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
+  }
+
+  public void fillAllExceptTimestampMapping(List<CProfile> cProfiles, List<Integer> mapping,
+      Predicate<CProfile> isNotTimestamp, Predicate<CProfile> cType) {
+    final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
+
+    cProfiles.stream()
+        .filter(isNotTimestamp)
+        .filter(cType)
         .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
   }
 

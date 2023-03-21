@@ -6,14 +6,17 @@ import java.math.BigDecimal;
 import java.sql.Clob;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.DataType;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
+import org.fbase.model.profile.cstype.SType;
 
 @Log4j2
 public class Mapper {
@@ -72,6 +75,8 @@ public class Mapper {
           return ts.getTime();
         } else if (obj instanceof LocalDateTime localDateTime) {
           return localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+        } else if (obj instanceof LocalDate localDate) {
+          return localDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond();
         }
       case UINT32:
         return (Long) obj;
@@ -144,6 +149,25 @@ public class Mapper {
         .filter(isNotTimestamp)
         .filter(isRaw)
         .filter(isCustom)
+        .count();
+  }
+
+  public static int getColumnCountLocal(List<CProfile> cProfiles, Map<Integer, SType> colIdSTypeMap,
+      Predicate<CProfile> isNotTimestamp, Predicate<CProfile> isCustom) {
+
+    return Math.toIntExact(cProfiles.stream()
+        .filter(isNotTimestamp)
+        .filter(isCustom)
+        .filter(f -> colIdSTypeMap.containsKey(f.getColId()))
+        .count());
+  }
+
+  public static int getRawCTypeColumnCount(List<CProfile> cProfiles, Predicate<CProfile> isNotTimestamp,
+      Predicate<CProfile> cType) {
+
+    return (int) cProfiles.stream()
+        .filter(isNotTimestamp)
+        .filter(cType)
         .count();
   }
 

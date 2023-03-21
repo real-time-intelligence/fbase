@@ -28,6 +28,8 @@ import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.CSType;
+import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
 import org.fbase.service.mapping.Mapper;
 
 @Log4j2
@@ -44,8 +46,9 @@ public class ClickHouseDatabase implements ClickHouse {
     connection = DriverManager.getConnection(url);
   }
 
-  public List<CProfile> loadDataDirect(String select, FStore fStore, int fBaseBatchSize,
-      int resultSetFetchSize) throws SQLException, EnumByteExceedException, SqlColMetadataException {
+  public List<CProfile> loadDataDirect(String select, FStore fStore,
+      TType tType, IType iType, Boolean compression,
+      int fBaseBatchSize, int resultSetFetchSize) throws SQLException, EnumByteExceedException, SqlColMetadataException {
 
     List<List<Object>> listsColStore = new ArrayList<>();
     List<CProfile> cProfileList = loadSqlColMetadataList(select);
@@ -67,7 +70,8 @@ public class ClickHouseDatabase implements ClickHouse {
             .build()).toList();
 
     try {
-      tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile(tableName));
+      tProfile = fStore.loadJdbcTableMetadata(connection, select,
+          getSProfile(tableName, tType, iType, compression));
     } catch (TableNameEmptyException e) {
       throw new RuntimeException(e);
     }
@@ -131,7 +135,8 @@ public class ClickHouseDatabase implements ClickHouse {
     return cProfiles;
   }
 
-  public List<CProfile> loadDataJdbc(String select, FStore fStore, int resultSetFetchSize) throws SQLException {
+  public List<CProfile> loadDataJdbc(String select, FStore fStore, TType tType, IType iType, Boolean compression,
+      int resultSetFetchSize) throws SQLException {
 
     log.info("Start time: " + LocalDateTime.now());
 
@@ -152,7 +157,7 @@ public class ClickHouseDatabase implements ClickHouse {
             .build()).toList();
 
     try {
-      tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile(tableName));
+      tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile(tableName, tType, iType, compression));
     } catch (TableNameEmptyException e) {
       throw new RuntimeException(e);
     }
@@ -190,8 +195,9 @@ public class ClickHouseDatabase implements ClickHouse {
     return cProfiles;
   }
 
-  public List<CProfile> loadDataJdbcBatch(String select, FStore fStore, int fBaseBatchSize,
-      int resultSetFetchSize) throws SQLException, EnumByteExceedException, SqlColMetadataException {
+  public List<CProfile> loadDataJdbcBatch(String select, FStore fStore,
+      TType tType, IType iType, Boolean compression,
+      int fBaseBatchSize, int resultSetFetchSize) throws SQLException, EnumByteExceedException, SqlColMetadataException {
 
     log.info("Start time: " + LocalDateTime.now());
 
@@ -212,7 +218,7 @@ public class ClickHouseDatabase implements ClickHouse {
             .build()).toList();
 
     try {
-      tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile(tableName));
+      tProfile = fStore.loadJdbcTableMetadata(connection, select, getSProfile(tableName, tType, iType, compression));
     } catch (TableNameEmptyException e) {
       throw new RuntimeException(e);
     }

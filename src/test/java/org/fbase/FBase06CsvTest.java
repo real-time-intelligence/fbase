@@ -22,6 +22,7 @@ import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
+import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.fbase.sql.BatchResultSet;
 import org.junit.jupiter.api.AfterEach;
@@ -286,6 +287,7 @@ public class FBase06CsvTest {
           SProfile.builder()
               .tableName(tableName)
               .tableType(TType.REGULAR)
+              .indexType(IType.GLOBAL)
               .compression(compression)
               .csTypeMap(new HashMap<>()).build());
     } catch (TableNameEmptyException e) {

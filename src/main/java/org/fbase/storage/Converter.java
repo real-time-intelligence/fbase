@@ -12,7 +12,6 @@ import java.time.ZoneOffset;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.DataType;
 import org.fbase.model.profile.CProfile;
-import org.fbase.storage.DimensionDAO;
 
 @Log4j2
 public class Converter {
@@ -46,6 +45,8 @@ public class Converter {
           return (int) ts.getTime() / 1000;
         } else if (obj instanceof LocalDateTime localDateTime) {
           return (int) localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli() / 1000;
+        } else if (obj instanceof LocalDate localDate) {
+          return (int) localDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond();
         }
       case UINT32:
         Long var = (Long) obj;
@@ -116,6 +117,8 @@ public class Converter {
           return ts.getTime();
         } else if (obj instanceof LocalDateTime localDateTime) {
           return localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+        } else if (obj instanceof LocalDate localDate) {
+          return localDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond();
         }
       default:
         return 0L;

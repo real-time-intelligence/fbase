@@ -12,6 +12,8 @@ import java.util.Map;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
 
 public interface ClickHouse {
   String tableName = "ch_table_test";
@@ -65,10 +67,12 @@ public interface ClickHouse {
     }
   }
   
-  default SProfile getSProfile(String tableName) {
+  default SProfile getSProfile(String tableName, TType tType, IType iType, Boolean compression) {
     SProfile sProfile = new SProfile();
     sProfile.setTableName(tableName);
-    sProfile.setCompression(true);
+    sProfile.setTableType(tType);
+    sProfile.setIndexType(iType);
+    sProfile.setCompression(compression);
     Map<String, CSType> csTypeMap = new HashMap<>();
 
     csTypeMap.put("PICKUP_DATETIME", new CSType().toBuilder().isTimeStamp(true).sType(SType.RAW).build());

@@ -10,6 +10,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.fbase.model.profile.CProfile;
+import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -27,6 +29,8 @@ public class MetaModel implements Serializable {
   @Builder(toBuilder = true)
   public static class TableMetadata implements Serializable {
     private Byte tableId;
+    private TType tableType = TType.TIME_SERIES;
+    private IType indexType = IType.GLOBAL;
     private Boolean compression = Boolean.FALSE;
     private List<CProfile> cProfiles;
   }

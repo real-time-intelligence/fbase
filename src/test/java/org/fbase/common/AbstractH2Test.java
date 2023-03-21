@@ -31,6 +31,7 @@ import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
 import org.fbase.service.mapping.Mapper;
 import org.fbase.source.H2Database;
 import org.fbase.source.JdbcSource;
@@ -145,6 +146,8 @@ public abstract class AbstractH2Test implements JdbcSource {
     try {
       SProfile sProfile = new SProfile();
       sProfile.setTableName(tableName);
+      sProfile.setTableType(TType.TIME_SERIES);
+      sProfile.setIndexType(IType.GLOBAL);
       sProfile.setCompression(isCompressed);
       sProfile.setCsTypeMap(new HashMap<>());
 
@@ -181,7 +184,7 @@ public abstract class AbstractH2Test implements JdbcSource {
     }
   }
 
-  protected void putDataJdbc(Map<String, SType> csTypeMap) {
+  protected void putDataJdbc(Map<String, SType> csTypeMap, TType tableType, IType indexType, Boolean compression) {
     fStore = fBase.getFStore();
 
     cProfiles = h2Db.getCProfileList().stream()
@@ -201,7 +204,9 @@ public abstract class AbstractH2Test implements JdbcSource {
     try {
       SProfile sProfile = new SProfile();
       sProfile.setTableName(tableName);
-      sProfile.setCompression(true);
+      sProfile.setTableType(tableType);
+      sProfile.setIndexType(indexType);
+      sProfile.setCompression(compression);
       sProfile.setCsTypeMap(new HashMap<>());
 
       csTypeMap.forEach((k,v) -> {
@@ -264,6 +269,9 @@ public abstract class AbstractH2Test implements JdbcSource {
     try {
       SProfile sProfile = new SProfile();
       sProfile.setTableName(tableName);
+      sProfile.setTableType(TType.TIME_SERIES);
+      sProfile.setIndexType(IType.GLOBAL);
+      sProfile.setCompression(true);
       sProfile.setCsTypeMap(new HashMap<>());
 
       csTypeMap.forEach((k,v) -> {
@@ -337,7 +345,7 @@ public abstract class AbstractH2Test implements JdbcSource {
   public List<GanttColumn> getListGanttColumnTwoLevelGrouping(FStore fStore, TProfile tProfile,
       CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
       throws BeginEndWrongOrderException, GanttColumnNotSupportedException, SqlColMetadataException {
-    return fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), IType.GLOBAL, firstLevelGroupBy, secondLevelGroupBy, begin, end);
+    return fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), firstLevelGroupBy, secondLevelGroupBy, begin, end);
   }
 
   protected void assertForGanttColumn(List<GanttColumn> expected, List<GanttColumn> actual) {

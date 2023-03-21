@@ -14,6 +14,8 @@ import org.fbase.model.MetaModel;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.GroupByService;
 import org.fbase.service.mapping.Mapper;
@@ -45,7 +47,20 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
   }
 
   @Override
-  public List<GanttColumn> getListGanttColumnIndexLocal(String tableName, CProfile firstLevelGroupBy,
+  public List<GanttColumn> getListGanttColumn(String tableName, CProfile firstLevelGroupBy,
+      CProfile secondLevelGroupBy, long begin, long end) {
+    TType tableType = getTableType(tableName, metaModel);
+
+    if (IType.GLOBAL.equals(tableType)) {
+      return getListGanttColumnIndexGlobal(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
+    } else if (IType.LOCAL.equals(tableType)) {
+      return getListGanttColumnIndexLocal(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
+    } else {
+      return getListGanttColumnIndexLocal(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
+    }
+  }
+
+  private List<GanttColumn> getListGanttColumnIndexLocal(String tableName, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end) {
 
     byte tableId = getTableId(tableName, metaModel);
@@ -175,8 +190,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     throw new RuntimeException("Undefined storage type for column id: " + colId);
   }
 
-  @Override
-  public List<GanttColumn> getListGanttColumnIndexGlobal(String tableName, CProfile firstLevelGroupBy,
+  private List<GanttColumn> getListGanttColumnIndexGlobal(String tableName, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end) {
 
     byte tableId = getTableId(tableName, metaModel);

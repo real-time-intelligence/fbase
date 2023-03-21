@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +24,7 @@ import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.IType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.StoreService;
 import org.fbase.service.mapping.Mapper;
@@ -175,9 +175,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     });
 
     // Fill histogram data
-    Map<Integer, Map<Integer, Integer>> mapOfHistograms = new HashMap<>(colCount);
+    Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms = new HashMap<>(colCount);
     cProfiles.stream().filter(isHistogram)
-        .forEach(cProfile -> mapOfHistograms.put(cProfile.getColId(), new LinkedHashMap<>()));
+        .forEach(cProfile -> mapOfHistograms.put(cProfile.getColId(), new CachedLastLinkedHashMap<>()));
 
     cProfiles.stream()
         .filter(f -> f.getCsType().getSType() == SType.HISTOGRAM)
@@ -217,6 +217,12 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
   @Override
   public long putDataJdbc(String tableName, ResultSet resultSet) {
+    IType indexType = getIndexType(tableName, metaModel);
+    if (IType.LOCAL.equals(indexType)) {
+      log.info(IType.LOCAL);
+      return putDataJdbcLocal(tableName, resultSet);
+    }
+
     byte tableId = getTableId(tableName, metaModel);
     boolean compression = getTableCompression(tableName, metaModel);
 
@@ -274,8 +280,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     fillEnumMapping(cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
 
     // Fill histogram data
-    Map<Integer, Map<Integer, Integer>> mapOfHistograms = new HashMap<>();
-    cProfiles.stream().filter(isHistogram).forEach(e -> mapOfHistograms.put(e.getColId(), new LinkedHashMap<>()));
+    Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms = new HashMap<>();
+    cProfiles.stream().filter(isHistogram).forEach(e -> mapOfHistograms.put(e.getColId(), new CachedLastLinkedHashMap<>()));
 
     try {
       final AtomicInteger iRow = new AtomicInteger(0);
@@ -333,7 +339,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
               int currInt = this.converter.convertRawToInt(currObject, cProfile);
 
               if (iR != 0) {
-                Integer prevObject = mapOfHistograms.get(cProfile.getColId()).get(iR - 1);
+                Integer prevObject = mapOfHistograms.get(cProfile.getColId()).getLast();
                 int prevInt = prevObject == null ?  Integer.MIN_VALUE : prevObject;
 
                 if (prevInt != currInt) {
@@ -378,6 +384,284 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       throw new RuntimeException(e);
     }
 
+  }
+
+  // TODO WIP
+  private long putDataJdbcLocal(String tableName, ResultSet resultSet) {
+    byte tableId = getTableId(tableName, metaModel);
+    boolean compression = getTableCompression(tableName, metaModel);
+
+    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    int colCount = cProfiles.size();
+
+    /* Timestamp */
+    List<List<Long>> rawDataTimestamp = new ArrayList<>(1);
+    fillArrayList(rawDataTimestamp, 1);
+    List<Integer> rawDataTimeStampMapping = new ArrayList<>(1);
+    fillTimestampMapping(cProfiles, rawDataTimeStampMapping);
+
+    /* Int */
+    int colRawDataIntCount = Mapper.getRawCTypeColumnCount(cProfiles, isNotTimestamp, isInt);
+    List<List<Integer>> rawDataInt = new ArrayList<>(colRawDataIntCount);
+    fillArrayList(rawDataInt, colRawDataIntCount);
+    List<Integer> rawDataIntMapping = new ArrayList<>(colRawDataIntCount);
+    fillAllExceptTimestampMapping(cProfiles, rawDataIntMapping, isNotTimestamp, isInt);
+
+    /* Long */
+    int colRawDataLongCount = Mapper.getRawCTypeColumnCount(cProfiles, isNotTimestamp, isLong);
+    List<List<Long>> rawDataLong = new ArrayList<>(colRawDataLongCount);
+    fillArrayList(rawDataLong, colRawDataLongCount);
+    List<Integer> rawDataLongMapping = new ArrayList<>(colRawDataLongCount);
+    fillAllExceptTimestampMapping(cProfiles, rawDataLongMapping, isNotTimestamp, isLong);
+
+    /* Float */
+    int colRawDataFloatCount = Mapper.getRawCTypeColumnCount(cProfiles, isNotTimestamp, isFloat);
+    List<List<Float>> rawDataFloat = new ArrayList<>(colRawDataFloatCount);
+    fillArrayList(rawDataFloat, colRawDataFloatCount);
+    List<Integer> rawDataFloatMapping = new ArrayList<>(colRawDataFloatCount);
+    fillAllExceptTimestampMapping(cProfiles, rawDataFloatMapping, isNotTimestamp, isFloat);
+
+    /* Double */
+    int colRawDataDoubleCount = Mapper.getRawCTypeColumnCount(cProfiles, isNotTimestamp, isDouble);
+    List<List<Double>> rawDataDouble = new ArrayList<>(colRawDataDoubleCount);
+    fillArrayList(rawDataDouble, colRawDataDoubleCount);
+    List<Integer> rawDataDoubleMapping = new ArrayList<>(colRawDataDoubleCount);
+    fillAllExceptTimestampMapping(cProfiles, rawDataDoubleMapping, isNotTimestamp, isDouble);
+
+    /* String */
+    int colRawDataStringCount = Mapper.getRawCTypeColumnCount(cProfiles, isNotTimestamp, isString);
+    List<List<String>> rawDataString = new ArrayList<>(colRawDataStringCount);
+    fillArrayList(rawDataString, colRawDataStringCount);
+    List<Integer> rawDataStringMapping = new ArrayList<>(colRawDataStringCount);
+    fillAllExceptTimestampMapping(cProfiles, rawDataStringMapping, isNotTimestamp, isString);
+
+    /* Enums */
+    int colRawDataEnumCount = colCount - 1;
+    List<List<Byte>> rawDataEnum = new ArrayList<>(colRawDataEnumCount);
+    fillArrayList(rawDataEnum, colRawDataEnumCount);
+
+    List<Integer> rawDataEnumMapping = new ArrayList<>(colRawDataEnumCount);
+    List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn = new ArrayList<>(colRawDataEnumCount);
+    fillAllEnumMapping(cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
+
+    // Fill histogram data
+    Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms = new HashMap<>();
+    cProfiles.stream().filter(isNotTimestamp).forEach(e -> mapOfHistograms.put(e.getColId(), new CachedLastLinkedHashMap<>()));
+
+    try {
+      final AtomicInteger iRow = new AtomicInteger(0);
+
+      while (resultSet.next()) {
+        int iR = iRow.getAndAdd(1);
+
+        IntStream iColumn = IntStream.range(0, colCount);
+        iColumn.forEach(iC -> {
+
+          try {
+            CProfile cProfile = cProfiles.get(iC);
+            CSType csType = cProfile.getCsType();
+
+            Object currObject = resultSet.getObject(cProfile.getColIdSql());
+
+            // Fill timestamps
+            if (csType.isTimeStamp()) {
+              if (csType.getSType() == SType.RAW){
+                rawDataTimestamp.get(rawDataTimeStampMapping.indexOf(iC)).add(iR, this.converter.getKeyValue(currObject, cProfile));
+              }
+            }
+
+            if (!csType.isTimeStamp()) {
+              // Fill raw data
+              if (CType.INT == Mapper.isCType(cProfiles.get(iC))) {
+                rawDataInt.get(rawDataIntMapping.indexOf(iC)).add(iR, Mapper.convertRawToInt(currObject, cProfile));
+              } else if (CType.LONG == Mapper.isCType(cProfiles.get(iC))) {
+                rawDataLong.get(rawDataLongMapping.indexOf(iC)).add(iR, Mapper.convertRawToLong(currObject, cProfile));
+              } else if (CType.FLOAT == Mapper.isCType(cProfiles.get(iC))) {
+                rawDataFloat.get(rawDataFloatMapping.indexOf(iC)).add(iR, Mapper.convertRawToFloat(currObject, cProfile));
+              } else if (CType.DOUBLE == Mapper.isCType(cProfiles.get(iC))) {
+                rawDataDouble.get(rawDataDoubleMapping.indexOf(iC)).add(iR, Mapper.convertRawToDouble(currObject, cProfile));
+              } else if (CType.STRING == Mapper.isCType(cProfiles.get(iC))) {
+                rawDataString.get(rawDataStringMapping.indexOf(iC)).add(iR, Mapper.convertRawToString(currObject, cProfile));
+              }
+
+              // Fill enum data
+              // TODO WIP
+
+              // Fill histogram data
+              int currInt = this.converter.convertRawToInt(currObject, cProfile);
+
+              if (iR != 0) {
+                Integer prevObject = mapOfHistograms.get(cProfile.getColId()).getLast();
+                int prevInt = prevObject == null ?  Integer.MIN_VALUE : prevObject;
+
+                if (prevInt != currInt) {
+                  mapOfHistograms.get(cProfile.getColId()).put(iR, currInt);
+                }
+              } else {
+                mapOfHistograms.get(cProfile.getColId()).put(iR, currInt);
+              }
+            }
+
+          } catch (SQLException e) {
+            log.catching(e);
+            throw new RuntimeException(e);
+          }
+        });
+      }
+
+      if (rawDataTimestamp.get(0).size() == 0) {
+        return -1;
+      }
+
+      long blockId = rawDataTimestamp.get(0).get(0);
+
+      /* Store data and metadata */
+      this.storeDataLocal(tableId, compression, blockId, cProfiles,
+          rawDataTimeStampMapping, rawDataTimestamp,
+          rawDataIntMapping, rawDataInt,
+          rawDataLongMapping, rawDataLong,
+          rawDataFloatMapping, rawDataFloat,
+          rawDataDoubleMapping, rawDataDouble,
+          rawDataStringMapping, rawDataString,
+          mapOfHistograms,
+          colRawDataEnumCount, rawDataEnumMapping, rawDataEnum, rawDataEnumEColumn);
+
+      return rawDataTimestamp.get(0).get(rawDataTimestamp.get(0).size() - 1);
+
+    } catch (Exception e) {
+      log.catching(e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void storeDataLocal(byte tableId, boolean compression, long blockId, List<CProfile> cProfiles,
+      List<Integer> rawDataTimeStampMapping, List<List<Long>> rawDataTimestamp,
+      List<Integer> rawDataIntMapping, List<List<Integer>> rawDataInt,
+      List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
+      List<Integer> rawDataFloatMapping, List<List<Float>> rawDataFloat,
+      List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
+      List<Integer> rawDataStringMapping, List<List<String>> rawDataString,
+      Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms,
+      int colRawDataEnumCount, List<Integer> rawDataEnumMapping, List<List<Byte>> rawDataEnum,
+      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn) {
+
+    Map<Integer, CProfile> cProfileMap =
+        cProfiles.stream().filter(isNotTimestamp)
+            .collect(Collectors.toMap(CProfile::getColId, cProfile -> cProfile));
+        
+    Map<Integer, SType> colIdSTypeMap = new HashMap<>();
+
+    Map<Integer, Integer> rawDataIntMap = mappingIndexToColId(rawDataIntMapping);
+    Map<Integer, Integer> rawDataLongMap = mappingIndexToColId(rawDataLongMapping);
+    Map<Integer, Integer> rawDataFloatMap = mappingIndexToColId(rawDataFloatMapping);
+    Map<Integer, Integer> rawDataDoubleMap = mappingIndexToColId(rawDataDoubleMapping);
+    Map<Integer, Integer> rawDataStringMap = mappingIndexToColId(rawDataStringMapping);
+
+    mapOfHistograms.forEach((key, value) -> {
+      CProfile cProfile = cProfileMap.get(key);
+
+      int sizeOfHist = value.size();
+      
+      int sizeOfRaw = 0;
+
+      if (CType.INT.equals(Mapper.isCType(cProfile))) {
+        sizeOfRaw = rawDataInt.get(rawDataIntMap.get(key)).size();
+      } else if (CType.LONG.equals(Mapper.isCType(cProfile))) {
+        sizeOfRaw = rawDataLong.get(rawDataLongMap.get(key)).size();
+      } else if (CType.FLOAT.equals(Mapper.isCType(cProfile))) {
+        sizeOfRaw = rawDataFloat.get(rawDataFloatMap.get(key)).size();
+      } else if (CType.DOUBLE.equals(Mapper.isCType(cProfile))) {
+        sizeOfRaw = rawDataDouble.get(rawDataDoubleMap.get(key)).size();
+      } else if (CType.STRING.equals(Mapper.isCType(cProfile))) {
+        sizeOfRaw = rawDataString.get(rawDataStringMap.get(key)).size();
+      }
+
+      if (sizeOfHist < (sizeOfRaw / 2)) {
+        colIdSTypeMap.put(key, SType.HISTOGRAM);
+      } else {
+        colIdSTypeMap.put(key, SType.RAW);
+      }
+
+    });
+
+    this.storeMetadataLocal(tableId, blockId, cProfiles, colIdSTypeMap);
+
+    /* Int */
+    int colRawDataIntLocalCount = Mapper.getColumnCountLocal(cProfiles, colIdSTypeMap, isNotTimestamp, isInt);
+    List<List<Integer>> rawDataIntLocal = new ArrayList<>(colRawDataIntLocalCount);
+    fillArrayList(rawDataIntLocal, colRawDataIntLocalCount);
+    List<Integer> rawDataIntMappingLocal = new ArrayList<>(colRawDataIntLocalCount);
+    fillAllExceptTimestampMapping(cProfiles, rawDataIntMappingLocal, isNotTimestamp, isInt);
+
+    /* Long */
+    int colRawDataLongLocalCount = Mapper.getColumnCountLocal(cProfiles, colIdSTypeMap, isNotTimestamp, isLong);
+    List<List<Long>> rawDataLongLocal = new ArrayList<>(colRawDataLongLocalCount);
+    fillArrayList(rawDataLongLocal, colRawDataLongLocalCount);
+    List<Integer> rawDataLongMappingLocal = new ArrayList<>(colRawDataLongLocalCount);
+    fillAllExceptTimestampMapping(cProfiles, rawDataLongMappingLocal, isNotTimestamp, isLong);
+
+    /* Float */
+    int colRawDataFloatLocalCount = Mapper.getColumnCountLocal(cProfiles, colIdSTypeMap, isNotTimestamp, isFloat);
+    List<List<Float>> rawDataFloatLocal = new ArrayList<>(colRawDataFloatLocalCount);
+    fillArrayList(rawDataFloatLocal, colRawDataFloatLocalCount);
+    List<Integer> rawDataFloatMappingLocal = new ArrayList<>(colRawDataFloatLocalCount);
+    fillAllExceptTimestampMapping(cProfiles, rawDataFloatMappingLocal, isNotTimestamp, isFloat);
+
+    /* Double */
+    int colRawDataDoubleLocalCount = Mapper.getColumnCountLocal(cProfiles, colIdSTypeMap, isNotTimestamp, isDouble);
+    List<List<Double>> rawDataDoubleLocal = new ArrayList<>(colRawDataDoubleLocalCount);
+    fillArrayList(rawDataDoubleLocal, colRawDataDoubleLocalCount);
+    List<Integer> rawDataDoubleMappingLocal = new ArrayList<>(colRawDataDoubleLocalCount);
+    fillAllExceptTimestampMapping(cProfiles, rawDataDoubleMappingLocal, isNotTimestamp, isDouble);
+
+    /* String */
+    int colRawDataStringLocalCount = Mapper.getColumnCountLocal(cProfiles, colIdSTypeMap, isNotTimestamp, isString);
+    List<List<String>> rawDataStringLocal = new ArrayList<>(colRawDataStringLocalCount);
+    fillArrayList(rawDataStringLocal, colRawDataStringLocalCount);
+    List<Integer> rawDataStringMappingLocal = new ArrayList<>(colRawDataStringLocalCount);
+    fillAllExceptTimestampMapping(cProfiles, rawDataStringMappingLocal, isNotTimestamp, isString);
+
+    cProfiles.forEach(cProfile -> {
+      if (SType.RAW.equals(colIdSTypeMap.get(cProfile.getColId()))) {
+        if (CType.INT == Mapper.isCType(cProfile)) {
+          int index = rawDataIntMappingLocal.indexOf(cProfile.getColId());
+          rawDataIntLocal.get(index).addAll(rawDataInt.get(index));
+        } else if (CType.LONG == Mapper.isCType(cProfile)) {
+          int index = rawDataLongMappingLocal.indexOf(cProfile.getColId());
+          rawDataLongLocal.get(index).addAll(rawDataLong.get(index));
+        } else if (CType.FLOAT == Mapper.isCType(cProfile)) {
+          int index = rawDataFloatMappingLocal.indexOf(cProfile.getColId());
+          rawDataFloatLocal.get(index).addAll(rawDataFloat.get(index));
+        } else if (CType.DOUBLE == Mapper.isCType(cProfile)) {
+          int index = rawDataDoubleMappingLocal.indexOf(cProfile.getColId());
+          rawDataDoubleLocal.get(index).addAll(rawDataDouble.get(index));
+        } else if (CType.STRING == Mapper.isCType(cProfile)) {
+          int index = rawDataStringMappingLocal.indexOf(cProfile.getColId());
+          rawDataStringLocal.get(index).addAll(rawDataString.get(index));
+        }
+      }
+    });
+
+    this.storeData(tableId, compression, blockId,
+        rawDataTimeStampMapping, getArrayLong(rawDataTimestamp),
+        colRawDataIntLocalCount, rawDataIntMappingLocal, getArrayInt(rawDataIntLocal),
+        colRawDataLongLocalCount, rawDataLongMappingLocal, getArrayLong(rawDataLongLocal),
+        colRawDataFloatLocalCount, rawDataFloatMappingLocal, getArrayFloat(rawDataFloatLocal),
+        colRawDataDoubleLocalCount, rawDataDoubleMappingLocal, getArrayDouble(rawDataDoubleLocal),
+        colRawDataStringLocalCount, rawDataStringMappingLocal, getArrayString(rawDataStringLocal),
+        0, rawDataEnumMapping, getArrayByte(rawDataEnum), rawDataEnumEColumn);
+
+    colIdSTypeMap.entrySet().stream()
+        .filter(f -> !SType.HISTOGRAM.equals(f.getValue()))
+        .forEach(obj -> mapOfHistograms.remove(obj.getKey()));
+
+    this.storeHistograms(tableId, compression, blockId, mapOfHistograms);
+  }
+
+  private Map<Integer, Integer> mappingIndexToColId(List<Integer> rawMapping) {
+    return IntStream.range(0, rawMapping.size())
+            .boxed()
+            .collect(Collectors.toMap(rawMapping::get, i -> i));
   }
 
   @Override
@@ -450,7 +734,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
           /* Store metadata */
           this.storeMetadata(tableId, blockId, cProfiles);
 
-          storeHistogramsCachedLast(tableId, compression, blockId, mapOfHistograms);
+          this.storeHistograms(tableId, compression, blockId, mapOfHistograms);
 
           this.storeData(tableId, compression, blockId,
               rawDataTimeStampMapping, rawDataTimestamp,
@@ -583,7 +867,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         /* Store metadata */
         this.storeMetadata(tableId, blockId, cProfiles);
 
-        this.storeHistogramsCachedLast(tableId, compression, blockId,  mapOfHistograms);
+        this.storeHistograms(tableId, compression, blockId,  mapOfHistograms);
 
         int row = iRow.get();
 
@@ -740,6 +1024,20 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         });
   }
 
+  private void fillAllEnumMapping(List<CProfile> cProfiles, List<Integer> mapping,
+      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn) {
+
+    final AtomicInteger iRawDataEnumMapping = new AtomicInteger(0);
+
+    cProfiles.stream()
+        .filter(isNotTimestamp)
+        .forEach(cProfile -> {
+          int var = iRawDataEnumMapping.getAndAdd(1);
+          mapping.add(var, cProfile.getColId());
+          rawDataEnumEColumn.add(var, new CachedLastLinkedHashMap<>());
+        });
+  }
+
   private void storeMetadata(byte tableId, long blockId, List<CProfile> cProfiles) {
     List<Byte> rawCTypeKeys = new ArrayList<>();
     List<Integer> rawColIds = new ArrayList<>();
@@ -763,20 +1061,31 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         histogramColIds.stream().mapToInt(j -> j).toArray());
   }
 
-  private void storeHistograms(byte tableID, boolean compression, long blockId, Map<Integer, Map<Integer, Integer>> mapOfHistograms) {
-    mapOfHistograms.forEach((colId, hData) -> {
-      if (!hData.isEmpty()) {
-        if (compression) {
-          this.histogramDAO.putCompressed(tableID, blockId, colId, getArrayFromMap(hData));
-        } else {
-          this.histogramDAO.put(tableID, blockId, colId, getArrayFromMap(hData));
-        }
+  private void storeMetadataLocal(byte tableId, long blockId, List<CProfile> cProfiles,
+      Map<Integer, SType> colIdSTypeMap) {
+    List<Byte> rawCTypeKeys = new ArrayList<>();
+    List<Integer> rawColIds = new ArrayList<>();
+    List<Integer> enumColIds = new ArrayList<>();
+    List<Integer> histogramColIds = new ArrayList<>();
+
+    cProfiles.forEach(cProfile -> {
+      if (SType.RAW.equals(colIdSTypeMap.get(cProfile.getColId()))) {
+        rawCTypeKeys.add(cProfile.getCsType().getCType().getKey());
+        rawColIds.add(cProfile.getColId());
+      } else if (SType.ENUM.equals(colIdSTypeMap.get(cProfile.getColId()))) {
+        enumColIds.add(cProfile.getColId());
+      } else if (SType.HISTOGRAM.equals(colIdSTypeMap.get(cProfile.getColId()))) {
+        histogramColIds.add(cProfile.getColId());
       }
     });
+
+    this.rawDAO.putMetadata(tableId, blockId, getByteFromList(rawCTypeKeys),
+        rawColIds.stream().mapToInt(j -> j).toArray(),
+        enumColIds.stream().mapToInt(j -> j).toArray(),
+        histogramColIds.stream().mapToInt(j -> j).toArray());
   }
 
-  private void storeHistogramsCachedLast(byte tableID, boolean compression, long blockId,
-      Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms) {
+  private void storeHistograms(byte tableID, boolean compression, long blockId, Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms) {
     mapOfHistograms.forEach((colId, hData) -> {
       if (!hData.isEmpty()) {
         if (compression) {
