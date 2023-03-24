@@ -17,6 +17,7 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.fbase.model.MetaModel;
+import org.fbase.model.histogram.IVEntry;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.table.IType;
@@ -88,6 +89,17 @@ public abstract class CommonServiceApi {
       array[1][i] = entry.getValue();
       i++;
     }
+    return array;
+  }
+
+  public int[][] getArrayFromMapIVEntry(IVEntry ivEntry) {
+    int[][] array = new int[2][ivEntry.getIndex().size()];
+
+    for (int i = 0; i < ivEntry.getIndex().size(); i++) {
+      array[0][i] = ivEntry.getIndex().get(i);
+      array[1][i] = ivEntry.getValue().get(i);
+    }
+
     return array;
   }
 
@@ -169,7 +181,6 @@ public abstract class CommonServiceApi {
       }
     }
   }
-
 
   protected <T> void fillArrayList(List<List<T>> array, int colCount) {
     for (int i = 0; i < colCount; i++) {
@@ -268,6 +279,15 @@ public abstract class CommonServiceApi {
         .filter(isNotTimestamp)
         .filter(cType)
         .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
+  }
+
+  public void fillHistMapping(List<CProfile> cProfiles, Map<Integer, Integer> mapping,
+      Predicate<CProfile> isNotTimestamp) {
+    final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
+
+    cProfiles.stream()
+        .filter(isNotTimestamp)
+        .forEach(e -> mapping.put(e.getColId(), iRawDataLongMapping.getAndAdd(1)));
   }
 
   public void fillMapping(List<CProfile> cProfiles, List<Integer> mapping,

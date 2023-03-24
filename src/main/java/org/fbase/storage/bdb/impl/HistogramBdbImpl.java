@@ -38,6 +38,17 @@ public class HistogramBdbImpl extends QueryBdbApi implements HistogramDAO {
   }
 
   @Override
+  public void putCompressedKeysValues(byte tableId, long blockId, int colId, int[] keys, int[] values) {
+    try {
+      this.primaryIndex.put(new HColumn(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build(),
+          CompressType.INT, null, Snappy.compress(keys), Snappy.compress(values)));
+    } catch (IOException e) {
+      log.catching(e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
   public int[][] get(byte tableId, long blockId, int colId) {
     HColumn hColumn = this.primaryIndex.get(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
