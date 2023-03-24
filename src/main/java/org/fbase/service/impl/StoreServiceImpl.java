@@ -403,50 +403,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     List<Integer> rawDataTimeStampMapping = new ArrayList<>(1);
     fillTimestampMapping(cProfiles, rawDataTimeStampMapping);
 
-    /* Int */
-    int colRawDataIntCount = Mapper.getRawCTypeColumnCount(cProfiles, isNotTimestamp, isInt);
-    List<List<Integer>> rawDataInt = new ArrayList<>(colRawDataIntCount);
-    fillArrayList(rawDataInt, colRawDataIntCount);
-    List<Integer> rawDataIntMapping = new ArrayList<>(colRawDataIntCount);
-    fillAllExceptTimestampMapping(cProfiles, rawDataIntMapping, isNotTimestamp, isInt);
-
-    /* Long */
-    int colRawDataLongCount = Mapper.getRawCTypeColumnCount(cProfiles, isNotTimestamp, isLong);
-    List<List<Long>> rawDataLong = new ArrayList<>(colRawDataLongCount);
-    fillArrayList(rawDataLong, colRawDataLongCount);
-    List<Integer> rawDataLongMapping = new ArrayList<>(colRawDataLongCount);
-    fillAllExceptTimestampMapping(cProfiles, rawDataLongMapping, isNotTimestamp, isLong);
-
-    /* Float */
-    int colRawDataFloatCount = Mapper.getRawCTypeColumnCount(cProfiles, isNotTimestamp, isFloat);
-    List<List<Float>> rawDataFloat = new ArrayList<>(colRawDataFloatCount);
-    fillArrayList(rawDataFloat, colRawDataFloatCount);
-    List<Integer> rawDataFloatMapping = new ArrayList<>(colRawDataFloatCount);
-    fillAllExceptTimestampMapping(cProfiles, rawDataFloatMapping, isNotTimestamp, isFloat);
-
-    /* Double */
-    int colRawDataDoubleCount = Mapper.getRawCTypeColumnCount(cProfiles, isNotTimestamp, isDouble);
-    List<List<Double>> rawDataDouble = new ArrayList<>(colRawDataDoubleCount);
-    fillArrayList(rawDataDouble, colRawDataDoubleCount);
-    List<Integer> rawDataDoubleMapping = new ArrayList<>(colRawDataDoubleCount);
-    fillAllExceptTimestampMapping(cProfiles, rawDataDoubleMapping, isNotTimestamp, isDouble);
-
-    /* String */
-    int colRawDataStringCount = Mapper.getRawCTypeColumnCount(cProfiles, isNotTimestamp, isString);
-    List<List<String>> rawDataString = new ArrayList<>(colRawDataStringCount);
-    fillArrayList(rawDataString, colRawDataStringCount);
-    List<Integer> rawDataStringMapping = new ArrayList<>(colRawDataStringCount);
-    fillAllExceptTimestampMapping(cProfiles, rawDataStringMapping, isNotTimestamp, isString);
-
-    /* Enums */
-    int colRawDataEnumCount = colCount - 1;
-    List<List<Byte>> rawDataEnum = new ArrayList<>(colRawDataEnumCount);
-    fillArrayList(rawDataEnum, colRawDataEnumCount);
-
-    List<Integer> rawDataEnumMapping = new ArrayList<>(colRawDataEnumCount);
-    List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn = new ArrayList<>(colRawDataEnumCount);
-    fillAllEnumMapping(cProfiles, rawDataEnumMapping, rawDataEnumEColumn);
-
     // Fill histogram data
     Map<Integer, IVEntry> histograms = new HashMap<>();
     cProfiles.stream().filter(isNotTimestamp).forEach(e -> {
@@ -546,12 +502,10 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       }
     });
 
-    this.storeMetadataLocal(tableId, blockId, cProfiles, colIdSTypeMap);
-
     /* Enums */
     int colRawDataEnumCountLocal = Math.toIntExact(cProfiles.stream()
         .filter(isNotTimestamp)
-        .filter(f -> colIdSTypeMap.containsKey(f.getColId()))
+        .filter(f -> SType.ENUM.equals(colIdSTypeMap.get(f.getColId())))
         .count());
 
     List<List<Byte>> rawDataEnumLocal = new ArrayList<>(colRawDataEnumCountLocal);
@@ -608,6 +562,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
       }
 
     });
+
+    /* Store metadata */
+    this.storeMetadataLocal(tableId, blockId, cProfiles, colIdSTypeMap);
 
     /* Store timestamp raw data entity */
     this.rawDAO.putLong(tableId, blockId, rawDataTimeStampMapping.stream().mapToInt(i -> i).toArray(), arrayLong);
@@ -1008,7 +965,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
     cProfiles.stream()
         .filter(isNotTimestamp)
-        .filter(f -> colIdSTypeMap.containsKey(f.getColId()))
+        .filter(f -> SType.ENUM.equals(colIdSTypeMap.get(f.getColId())))
         .forEach(cProfile -> {
           int var = iRawDataEnumMapping.getAndAdd(1);
           mapping.add(var, cProfile.getColId());
