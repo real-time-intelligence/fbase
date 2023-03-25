@@ -17,12 +17,14 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.fbase.model.MetaModel;
-import org.fbase.model.histogram.IVEntry;
+import org.fbase.service.store.HEntry;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
+import org.fbase.model.profile.cstype.SType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.fbase.storage.RawDAO;
+import org.fbase.util.CachedLastLinkedHashMap;
 
 public abstract class CommonServiceApi {
 
@@ -92,12 +94,12 @@ public abstract class CommonServiceApi {
     return array;
   }
 
-  public int[][] getArrayFromMapIVEntry(IVEntry ivEntry) {
-    int[][] array = new int[2][ivEntry.getIndex().size()];
+  public int[][] getArrayFromMapIVEntry(HEntry hEntry) {
+    int[][] array = new int[2][hEntry.getIndex().size()];
 
-    for (int i = 0; i < ivEntry.getIndex().size(); i++) {
-      array[0][i] = ivEntry.getIndex().get(i);
-      array[1][i] = ivEntry.getValue().get(i);
+    for (int i = 0; i < hEntry.getIndex().size(); i++) {
+      array[0][i] = hEntry.getIndex().get(i);
+      array[1][i] = hEntry.getValue().get(i);
     }
 
     return array;
@@ -261,6 +263,29 @@ public abstract class CommonServiceApi {
       stringArray[index++] = b;
     }
     return stringArray;
+  }
+
+  public void fillTimestampMap(List<CProfile> cProfiles, CachedLastLinkedHashMap<Integer, Integer> mapping) {
+    final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
+
+    cProfiles.stream()
+        .filter(f -> f.getCsType().isTimeStamp())
+        .forEach(e -> mapping.put(e.getColId(), iRawDataLongMapping.getAndAdd(1)));
+  }
+
+  public void fillAllEnumMappingSType(List<CProfile> cProfiles, CachedLastLinkedHashMap<Integer, Integer> mapping,
+      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn, Map<Integer, SType> colIdSTypeMap) {
+
+    final AtomicInteger iRawDataEnumMapping = new AtomicInteger(0);
+
+    cProfiles.stream()
+        .filter(f -> !f.getCsType().isTimeStamp())
+        .filter(f -> SType.ENUM.equals(colIdSTypeMap.get(f.getColId())))
+        .forEach(cProfile -> {
+          int var = iRawDataEnumMapping.getAndAdd(1);
+          mapping.put(cProfile.getColId(), var);
+          rawDataEnumEColumn.add(var, new CachedLastLinkedHashMap<>());
+        });
   }
 
   public void fillTimestampMapping(List<CProfile> cProfiles, List<Integer> mapping) {
