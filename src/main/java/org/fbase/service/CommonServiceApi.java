@@ -17,12 +17,12 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.fbase.model.MetaModel;
-import org.fbase.service.store.HEntry;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
+import org.fbase.service.store.HEntry;
 import org.fbase.storage.RawDAO;
 import org.fbase.util.CachedLastLinkedHashMap;
 
@@ -94,13 +94,13 @@ public abstract class CommonServiceApi {
     return array;
   }
 
-  public int[][] getArrayFromMapIVEntry(HEntry hEntry) {
+  public int[][] getArrayFromMapHEntry(HEntry hEntry) {
     int[][] array = new int[2][hEntry.getIndex().size()];
 
-    for (int i = 0; i < hEntry.getIndex().size(); i++) {
-      array[0][i] = hEntry.getIndex().get(i);
-      array[1][i] = hEntry.getValue().get(i);
-    }
+    System.arraycopy(hEntry.getIndex()
+        .stream().mapToInt(Integer::intValue).toArray(), 0, array[0], 0, hEntry.getIndex().size());
+    System.arraycopy(hEntry.getValue().stream()
+        .mapToInt(Integer::intValue).toArray(), 0, array[1], 0, hEntry.getValue().size());
 
     return array;
   }

@@ -33,7 +33,7 @@ public class FBase09IndexJdbcTest extends AbstractH2Test {
     csTypeMap.put("HOUSE", SType.RAW);
     csTypeMap.put("CITY", SType.RAW);
 
-    putDataJdbc(csTypeMap, TType.TIME_SERIES, IType.LOCAL, false);
+    putDataJdbc(csTypeMap, TType.TIME_SERIES, IType.LOCAL, true);
   }
 
   @Test

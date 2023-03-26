@@ -453,6 +453,8 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         });
       }
 
+      log.info("Rows: " + iRow.get());
+
       if (tStore.size() == 0) {
         return -1;
       }
@@ -560,7 +562,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         .filter(f -> !SType.HISTOGRAM.equals(f.getValue()))
         .forEach(obj -> histograms.remove(obj.getKey()));
 
-    this.storeHistogramsIVEntry(tableId, compression, blockId, histograms);
+    this.storeHistogramsEntry(tableId, compression, blockId, histograms);
   }
 
   @Override
@@ -982,7 +984,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     });
   }
 
-  private void storeHistogramsIVEntry(byte tableID, boolean compression, long blockId,
+  private void storeHistogramsEntry(byte tableID, boolean compression, long blockId,
       Map<Integer, HEntry> histograms) {
 
     histograms.forEach((colId, hEntry) -> {
@@ -992,7 +994,7 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
                 hEntry.getIndex().stream().mapToInt(Integer::intValue).toArray(),
                 hEntry.getValue().stream().mapToInt(Integer::intValue).toArray());
           } else {
-            this.histogramDAO.put(tableID, blockId, colId, getArrayFromMapIVEntry(hEntry));
+            this.histogramDAO.put(tableID, blockId, colId, getArrayFromMapHEntry(hEntry));
           }
         }
     });
