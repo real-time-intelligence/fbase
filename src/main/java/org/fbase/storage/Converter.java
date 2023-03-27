@@ -45,8 +45,6 @@ public class Converter {
           return (int) ts.getTime() / 1000;
         } else if (obj instanceof LocalDateTime localDateTime) {
           return (int) localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli() / 1000;
-        } else if (obj instanceof LocalDate localDate) {
-          return (int) localDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond();
         }
       case UINT32:
         Long var = (Long) obj;
@@ -98,6 +96,13 @@ public class Converter {
       case TIMESTAMP, TIMESTAMPTZ, DATETIME -> getDateForLongShorted(objIndex);
       case FLOAT64, FLOAT32 -> String.valueOf(dimensionDAO.getDoubleById(objIndex));
       default -> String.valueOf(objIndex);
+    };
+  }
+
+  public double convertIntToDouble(int objIndex, CProfile cProfile) {
+    return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
+      case FLOAT64, FLOAT32 -> dimensionDAO.getDoubleById(objIndex);
+      default -> objIndex;
     };
   }
 

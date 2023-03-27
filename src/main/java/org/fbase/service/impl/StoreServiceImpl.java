@@ -16,13 +16,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.exception.EnumByteExceedException;
 import org.fbase.model.MetaModel;
-import org.fbase.service.store.HEntry;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.CType;
@@ -32,6 +30,8 @@ import org.fbase.service.CommonServiceApi;
 import org.fbase.service.StoreService;
 import org.fbase.service.mapping.Mapper;
 import org.fbase.service.store.EStore;
+import org.fbase.service.store.HEntry;
+import org.fbase.service.store.RStore;
 import org.fbase.service.store.TStore;
 import org.fbase.storage.Converter;
 import org.fbase.storage.EnumDAO;
@@ -52,16 +52,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   private final RawDAO rawDAO;
 
   private final HistogramDAO histogramDAO;
-
-  Predicate<CProfile> isNotTimestamp = Predicate.not(f -> f.getCsType().isTimeStamp());
-  Predicate<CProfile> isRaw = Predicate.not(f -> f.getCsType().getSType() != SType.RAW);
-  Predicate<CProfile> isEnum = Predicate.not(f -> f.getCsType().getSType() != SType.ENUM);
-  Predicate<CProfile> isHistogram = Predicate.not(f -> f.getCsType().getSType() != SType.HISTOGRAM);
-  Predicate<CProfile> isInt = Predicate.not(f -> Mapper.isCType(f) != CType.INT);
-  Predicate<CProfile> isLong = Predicate.not(f -> Mapper.isCType(f) != CType.LONG);
-  Predicate<CProfile> isFloat = Predicate.not(f -> Mapper.isCType(f) != CType.FLOAT);
-  Predicate<CProfile> isDouble = Predicate.not(f -> Mapper.isCType(f) != CType.DOUBLE);
-  Predicate<CProfile> isString = Predicate.not(f -> Mapper.isCType(f) != CType.STRING);
 
   public StoreServiceImpl(MetaModel metaModel, Converter converter, RawDAO rawDAO, EnumDAO enumDAO, HistogramDAO histogramDAO) {
     this.metaModel = metaModel;
@@ -93,31 +83,31 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     int colRawDataIntCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isInt);
     int[][] rawDataInt = new int[colRawDataIntCount][rowCount];
     List<Integer> rawDataIntMapping = new ArrayList<>(colRawDataIntCount);
-    fillMapping(cProfiles, rawDataIntMapping, isNotTimestamp, isRaw, isInt);
+    fillMappingRaw(cProfiles, rawDataIntMapping, isNotTimestamp, isRaw, isInt);
 
     /* Long */
     int colRawDataLongCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isLong);
     long[][] rawDataLong = new long[colRawDataLongCount][rowCount];
     List<Integer> rawDataLongMapping = new ArrayList<>(colRawDataLongCount);
-    fillMapping(cProfiles, rawDataLongMapping, isNotTimestamp, isRaw, isLong);
+    fillMappingRaw(cProfiles, rawDataLongMapping, isNotTimestamp, isRaw, isLong);
 
     /* Float */
     int colRawDataFloatCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isFloat);
     float[][] rawDataFloat = new float[colRawDataFloatCount][rowCount];
     List<Integer> rawDataFloatMapping = new ArrayList<>(colRawDataFloatCount);
-    fillMapping(cProfiles, rawDataFloatMapping, isNotTimestamp, isRaw, isFloat);
+    fillMappingRaw(cProfiles, rawDataFloatMapping, isNotTimestamp, isRaw, isFloat);
 
     /* Double */
     int colRawDataDoubleCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isDouble);
     double[][] rawDataDouble = new double[colRawDataDoubleCount][rowCount];
     List<Integer> rawDataDoubleMapping = new ArrayList<>(colRawDataDoubleCount);
-    fillMapping(cProfiles, rawDataDoubleMapping, isNotTimestamp, isRaw, isDouble);
+    fillMappingRaw(cProfiles, rawDataDoubleMapping, isNotTimestamp, isRaw, isDouble);
 
     /* String */
     int colRawDataStringCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isString);
     String[][] rawDataString = new String[colRawDataStringCount][rowCount];
     List<Integer> rawDataStringMapping = new ArrayList<>(colRawDataStringCount);
-    fillMapping(cProfiles, rawDataStringMapping, isNotTimestamp, isRaw, isString);
+    fillMappingRaw(cProfiles, rawDataStringMapping, isNotTimestamp, isRaw, isString);
 
     /* Enums */
     int colRawDataEnumCount = (int) cProfiles.stream().filter(isEnum).count();
@@ -245,35 +235,35 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     List<List<Integer>> rawDataInt = new ArrayList<>(colRawDataIntCount);
     fillArrayList(rawDataInt, colRawDataIntCount);
     List<Integer> rawDataIntMapping = new ArrayList<>(colRawDataIntCount);
-    fillMapping(cProfiles, rawDataIntMapping, isNotTimestamp, isRaw, isInt);
+    fillMappingRaw(cProfiles, rawDataIntMapping, isNotTimestamp, isRaw, isInt);
 
     /* Long */
     int colRawDataLongCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isLong);
     List<List<Long>> rawDataLong = new ArrayList<>(colRawDataLongCount);
     fillArrayList(rawDataLong, colRawDataLongCount);
     List<Integer> rawDataLongMapping = new ArrayList<>(colRawDataLongCount);
-    fillMapping(cProfiles, rawDataLongMapping, isNotTimestamp, isRaw, isLong);
+    fillMappingRaw(cProfiles, rawDataLongMapping, isNotTimestamp, isRaw, isLong);
 
     /* Float */
     int colRawDataFloatCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isFloat);
     List<List<Float>> rawDataFloat = new ArrayList<>(colRawDataFloatCount);
     fillArrayList(rawDataFloat, colRawDataFloatCount);
     List<Integer> rawDataFloatMapping = new ArrayList<>(colRawDataFloatCount);
-    fillMapping(cProfiles, rawDataFloatMapping, isNotTimestamp, isRaw, isFloat);
+    fillMappingRaw(cProfiles, rawDataFloatMapping, isNotTimestamp, isRaw, isFloat);
 
     /* Double */
     int colRawDataDoubleCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isDouble);
     List<List<Double>> rawDataDouble = new ArrayList<>(colRawDataDoubleCount);
     fillArrayList(rawDataDouble, colRawDataDoubleCount);
     List<Integer> rawDataDoubleMapping = new ArrayList<>(colRawDataDoubleCount);
-    fillMapping(cProfiles, rawDataDoubleMapping, isNotTimestamp, isRaw, isDouble);
+    fillMappingRaw(cProfiles, rawDataDoubleMapping, isNotTimestamp, isRaw, isDouble);
 
     /* String */
     int colRawDataStringCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isString);
     List<List<String>> rawDataString = new ArrayList<>(colRawDataStringCount);
     fillArrayList(rawDataString, colRawDataStringCount);
     List<Integer> rawDataStringMapping = new ArrayList<>(colRawDataStringCount);
-    fillMapping(cProfiles, rawDataStringMapping, isNotTimestamp, isRaw, isString);
+    fillMappingRaw(cProfiles, rawDataStringMapping, isNotTimestamp, isRaw, isString);
 
     /* Enums */
     int colRawDataEnumCount = (int) cProfiles.stream().filter(isEnum).count();
@@ -493,66 +483,105 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         colIdSTypeMap.put(colId, SType.HISTOGRAM);
       } else {
         if (value.getValue().stream().distinct().count() > 255) {
-          colIdSTypeMap.put(colId, SType.HISTOGRAM);
+          colIdSTypeMap.put(colId, SType.RAW);
         } else {
           colIdSTypeMap.put(colId, SType.ENUM);
         }
       }
     });
 
+    /* Raw */
+    RStore rStore = new RStore(converter, cProfiles, colIdSTypeMap);
+
     /* Enums */
     EStore eStore = new EStore(cProfiles, colIdSTypeMap);
 
     cProfiles.forEach(cProfile -> {
-      int colId = cProfile.getColId();
+          int colId = cProfile.getColId();
 
-      if (SType.ENUM.equals(colIdSTypeMap.get(colId))) {
-        int iMapping = eStore.getMapping().get(colId);
+          if (SType.ENUM.equals(colIdSTypeMap.get(colId))) {
+            int iMapping = eStore.getMapping().get(colId);
 
-        List<Integer> indexList = histograms.get(colId).getIndex();
-        List<Integer> valueList = histograms.get(colId).getValue();
+            List<Integer> indexList = histograms.get(colId).getIndex();
+            List<Integer> valueList = histograms.get(colId).getValue();
 
-        for (int i = 0; i < indexList.size(); i++) {
-          int curIndex = indexList.get(i);
-          int nextIndex;
+            for (int i = 0; i < indexList.size(); i++) {
+              int curIndex = indexList.get(i);
+              int nextIndex;
 
-          int curValue = valueList.get(i);
+              int curValue = valueList.get(i);
 
-          if (indexList.size() != i + 1) {
-            nextIndex = indexList.get(i + 1);
+              if (indexList.size() != i + 1) {
+                nextIndex = indexList.get(i + 1);
 
-            for (int j = curIndex; j < nextIndex; j++) {
-              try {
-                eStore.add(iMapping, j, curValue);
-              } catch (EnumByteExceedException e) {
-                throw new RuntimeException(e);
+                for (int j = curIndex; j < nextIndex; j++) {
+                  try {
+                    eStore.add(iMapping, j, curValue);
+                  } catch (EnumByteExceedException e) {
+                    throw new RuntimeException(e);
+                  }
+                }
+              } else {
+                nextIndex = tStore.size() - 1;
+
+                for (int j = curIndex; j <= nextIndex; j++) {
+                  try {
+                    eStore.add(iMapping, j, curValue);
+                  } catch (EnumByteExceedException e) {
+                    throw new RuntimeException(e);
+                  }
+                }
               }
             }
-          } else {
-            nextIndex = tStore.size() - 1;
+          } else if (SType.RAW.equals(colIdSTypeMap.get(cProfile.getColId()))) {
+            List<Integer> indexList = histograms.get(colId).getIndex();
+            List<Integer> valueList = histograms.get(colId).getValue();
 
-            for (int j = curIndex; j <= nextIndex; j++) {
-              try {
-                eStore.add(iMapping, j, curValue);
-              } catch (EnumByteExceedException e) {
-                throw new RuntimeException(e);
+            for (int i = 0; i < indexList.size(); i++) {
+              int curIndex = indexList.get(i);
+              int nextIndex;
+
+              int curValue = valueList.get(i);
+
+              if (indexList.size() != i + 1) {
+                nextIndex = indexList.get(i + 1);
+
+                for (int j = curIndex; j < nextIndex; j++) {
+                  rStore.add(Mapper.isCType(cProfile), cProfile, j, curValue);
+                }
+              } else {
+                nextIndex = tStore.size() - 1;
+
+                for (int j = curIndex; j <= nextIndex; j++) {
+                  rStore.add(Mapper.isCType(cProfile), cProfile, j, curValue);
+                }
               }
             }
           }
-
-        }
-
-      } else if (SType.RAW.equals(colIdSTypeMap.get(cProfile.getColId()))) {
-
-      }
-
     });
 
     /* Store metadata */
     this.storeMetadataLocal(tableId, blockId, cProfiles, colIdSTypeMap);
 
-    /* Store timestamp raw data entity */
+    /* Store timestamp */
     this.rawDAO.putLong(tableId, blockId, tStore.mappingToArray(), tStore.dataToArray());
+
+    /* Store raw data */
+    if (rStore.getInitialCapacityInt() > 0)
+      this.rawDAO.putInt(tableId, blockId,
+          rStore.getMappingInt().keySet().stream().mapToInt(i -> i).toArray(), getArrayInt(rStore.getRawDataInt()));
+    if (rStore.getInitialCapacityLong() > 0)
+      this.rawDAO.putLong(tableId, blockId,
+          rStore.getMappingLong().keySet().stream().mapToInt(i -> i).toArray(), getArrayLong(rStore.getRawDataLong()));
+    if (rStore.getInitialCapacityFloat() > 0)
+      this.rawDAO.putFloat(tableId, blockId,
+          rStore.getMappingFloat().keySet().stream().mapToInt(i -> i).toArray(), getArrayFloat(rStore.getRawDataFloat()));
+    if (rStore.getInitialCapacityDouble() > 0)
+      this.rawDAO.putDouble(tableId, blockId,
+          rStore.getMappingDouble().keySet().stream().mapToInt(i -> i).toArray(), getArrayDouble(rStore.getRawDataDouble()));
+    if (rStore.getInitialCapacityString() > 0)
+      this.rawDAO.putString(tableId, blockId,
+          rStore.getMappingString().keySet().stream().mapToInt(i -> i).toArray(), getArrayString(rStore.getRawDataString()));
 
     /* Store enum data */
     this.storeEnum(tableId, compression, blockId, eStore);
@@ -584,31 +613,31 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     int colRawDataIntCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isInt);
     int[][] rawDataInt = new int[colRawDataIntCount][rowCount];
     List<Integer> rawDataIntMapping = new ArrayList<>(colRawDataIntCount);
-    fillMapping(cProfiles, rawDataIntMapping, isNotTimestamp, isRaw, isInt);
+    fillMappingRaw(cProfiles, rawDataIntMapping, isNotTimestamp, isRaw, isInt);
 
     /* Long */
     int colRawDataLongCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isLong);
     long[][] rawDataLong = new long[colRawDataLongCount][rowCount];
     List<Integer> rawDataLongMapping = new ArrayList<>(colRawDataLongCount);
-    fillMapping(cProfiles, rawDataLongMapping, isNotTimestamp, isRaw, isLong);
+    fillMappingRaw(cProfiles, rawDataLongMapping, isNotTimestamp, isRaw, isLong);
 
     /* Float */
     int colRawDataFloatCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isFloat);
     float[][] rawDataFloat = new float[colRawDataFloatCount][rowCount];
     List<Integer> rawDataFloatMapping = new ArrayList<>(colRawDataFloatCount);
-    fillMapping(cProfiles, rawDataFloatMapping, isNotTimestamp, isRaw, isFloat);
+    fillMappingRaw(cProfiles, rawDataFloatMapping, isNotTimestamp, isRaw, isFloat);
 
     /* Double */
     int colRawDataDoubleCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isDouble);
     double[][] rawDataDouble = new double[colRawDataDoubleCount][rowCount];
     List<Integer> rawDataDoubleMapping = new ArrayList<>(colRawDataDoubleCount);
-    fillMapping(cProfiles, rawDataDoubleMapping, isNotTimestamp, isRaw, isDouble);
+    fillMappingRaw(cProfiles, rawDataDoubleMapping, isNotTimestamp, isRaw, isDouble);
 
     /* String */
     int colRawDataStringCount = Mapper.getColumnCount(cProfiles, isNotTimestamp, isRaw, isString);
     String[][] rawDataString = new String[colRawDataStringCount][rowCount];
     List<Integer> rawDataStringMapping = new ArrayList<>(colRawDataStringCount);
-    fillMapping(cProfiles, rawDataStringMapping, isNotTimestamp, isRaw, isString);
+    fillMappingRaw(cProfiles, rawDataStringMapping, isNotTimestamp, isRaw, isString);
 
     /* Enums */
     int colRawDataEnumCount = (int) cProfiles.stream().filter(isEnum).count();
@@ -657,27 +686,27 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
           /* Int */
           rawDataInt = new int[colRawDataIntCount][rowCount];
           rawDataIntMapping = new ArrayList<>(colRawDataIntCount);
-          fillMapping(cProfiles, rawDataIntMapping, isNotTimestamp, isRaw, isInt);
+          fillMappingRaw(cProfiles, rawDataIntMapping, isNotTimestamp, isRaw, isInt);
 
           /* Long */
           rawDataLong = new long[colRawDataLongCount][rowCount];
           rawDataLongMapping = new ArrayList<>(colRawDataLongCount);
-          fillMapping(cProfiles, rawDataLongMapping, isNotTimestamp, isRaw, isLong);
+          fillMappingRaw(cProfiles, rawDataLongMapping, isNotTimestamp, isRaw, isLong);
 
           /* Float */
           rawDataFloat = new float[colRawDataFloatCount][rowCount];
           rawDataFloatMapping = new ArrayList<>(colRawDataFloatCount);
-          fillMapping(cProfiles, rawDataFloatMapping, isNotTimestamp, isRaw, isFloat);
+          fillMappingRaw(cProfiles, rawDataFloatMapping, isNotTimestamp, isRaw, isFloat);
 
           /* Double */
           rawDataDouble = new double[colRawDataDoubleCount][rowCount];
           rawDataDoubleMapping = new ArrayList<>(colRawDataDoubleCount);
-          fillMapping(cProfiles, rawDataDoubleMapping, isNotTimestamp, isRaw, isDouble);
+          fillMappingRaw(cProfiles, rawDataDoubleMapping, isNotTimestamp, isRaw, isDouble);
 
           /* String */
           rawDataString = new String[colRawDataStringCount][rowCount];
           rawDataStringMapping = new ArrayList<>(colRawDataStringCount);
-          fillMapping(cProfiles, rawDataStringMapping, isNotTimestamp, isRaw, isString);
+          fillMappingRaw(cProfiles, rawDataStringMapping, isNotTimestamp, isRaw, isString);
 
           /* Enums */
           rawDataEnum = new byte[colRawDataEnumCount][rowCount];
@@ -804,21 +833,21 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     List<List<Long>> rawDataLong = new ArrayList<>(colRawDataLongCount);
     fillArrayList(rawDataLong, colRawDataLongCount);
     List<Integer> rawDataLongMapping = new ArrayList<>(colRawDataLongCount);
-    fillMapping(cProfiles, rawDataLongMapping, isRaw, isLong);
+    fillMappingRaw(cProfiles, rawDataLongMapping, isRaw, isLong);
 
     /* Double */
     int colRawDataDoubleCount = Mapper.getColumnCount(cProfiles, isRaw, isDouble);
     List<List<Double>> rawDataDouble = new ArrayList<>(colRawDataDoubleCount);
     fillArrayList(rawDataDouble, colRawDataDoubleCount);
     List<Integer> rawDataDoubleMapping = new ArrayList<>(colRawDataDoubleCount);
-    fillMapping(cProfiles, rawDataDoubleMapping, isRaw, isDouble);
+    fillMappingRaw(cProfiles, rawDataDoubleMapping, isRaw, isDouble);
 
     /* String */
     int colRawDataStringCount = Mapper.getColumnCount(cProfiles, isRaw, isString);
     List<List<String>> rawDataString = new ArrayList<>(colRawDataStringCount);
     fillArrayList(rawDataString, colRawDataStringCount);
     List<Integer> rawDataStringMapping = new ArrayList<>(colRawDataStringCount);
-    fillMapping(cProfiles, rawDataStringMapping, isRaw, isString);
+    fillMappingRaw(cProfiles, rawDataStringMapping, isRaw, isString);
 
     String line = "";
     try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
@@ -850,19 +879,19 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
           rawDataLong = new ArrayList<>(colRawDataLongCount);
           fillArrayList(rawDataLong, colRawDataLongCount);
           rawDataLongMapping = new ArrayList<>(colRawDataLongCount);
-          fillMapping(cProfiles, rawDataLongMapping, isRaw, isLong);
+          fillMappingRaw(cProfiles, rawDataLongMapping, isRaw, isLong);
 
           /* Double */
           rawDataDouble = new ArrayList<>(colRawDataDoubleCount);
           fillArrayList(rawDataDouble, colRawDataDoubleCount);
           rawDataDoubleMapping = new ArrayList<>(colRawDataDoubleCount);
-          fillMapping(cProfiles, rawDataDoubleMapping, isRaw, isDouble);
+          fillMappingRaw(cProfiles, rawDataDoubleMapping, isRaw, isDouble);
 
           /* String */
           rawDataString = new ArrayList<>(colRawDataStringCount);
           fillArrayList(rawDataString, colRawDataStringCount);
           rawDataStringMapping = new ArrayList<>(colRawDataStringCount);
-          fillMapping(cProfiles, rawDataStringMapping, isRaw, isString);
+          fillMappingRaw(cProfiles, rawDataStringMapping, isRaw, isString);
         }
 
         String[] data = line.split(csvSplitBy);

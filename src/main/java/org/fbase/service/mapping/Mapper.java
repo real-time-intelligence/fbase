@@ -152,22 +152,13 @@ public class Mapper {
         .count();
   }
 
-  public static int getColumnCountLocal(List<CProfile> cProfiles, Map<Integer, SType> colIdSTypeMap,
+  public static int getColumnCount(List<CProfile> cProfiles, Map<Integer, SType> colIdSTypeMap,
       Predicate<CProfile> isNotTimestamp, Predicate<CProfile> isCustom) {
-
-    return Math.toIntExact(cProfiles.stream()
-        .filter(isNotTimestamp)
-        .filter(isCustom)
-        .filter(f -> colIdSTypeMap.containsKey(f.getColId()))
-        .count());
-  }
-
-  public static int getRawCTypeColumnCount(List<CProfile> cProfiles, Predicate<CProfile> isNotTimestamp,
-      Predicate<CProfile> cType) {
 
     return (int) cProfiles.stream()
         .filter(isNotTimestamp)
-        .filter(cType)
+        .filter(f -> SType.RAW.equals(colIdSTypeMap.get(f.getColId())))
+        .filter(isCustom)
         .count();
   }
 

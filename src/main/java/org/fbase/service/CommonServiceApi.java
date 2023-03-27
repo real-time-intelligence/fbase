@@ -22,11 +22,22 @@ import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
+import org.fbase.service.mapping.Mapper;
 import org.fbase.service.store.HEntry;
 import org.fbase.storage.RawDAO;
 import org.fbase.util.CachedLastLinkedHashMap;
 
 public abstract class CommonServiceApi {
+
+  public Predicate<CProfile> isNotTimestamp = Predicate.not(f -> f.getCsType().isTimeStamp());
+  public Predicate<CProfile> isRaw = Predicate.not(f -> f.getCsType().getSType() != SType.RAW);
+  public Predicate<CProfile> isEnum = Predicate.not(f -> f.getCsType().getSType() != SType.ENUM);
+  public Predicate<CProfile> isHistogram = Predicate.not(f -> f.getCsType().getSType() != SType.HISTOGRAM);
+  public Predicate<CProfile> isInt = Predicate.not(f -> Mapper.isCType(f) != CType.INT);
+  public Predicate<CProfile> isLong = Predicate.not(f -> Mapper.isCType(f) != CType.LONG);
+  public Predicate<CProfile> isFloat = Predicate.not(f -> Mapper.isCType(f) != CType.FLOAT);
+  public Predicate<CProfile> isDouble = Predicate.not(f -> Mapper.isCType(f) != CType.DOUBLE);
+  public Predicate<CProfile> isString = Predicate.not(f -> Mapper.isCType(f) != CType.STRING);
 
   protected int getHistogramValue(int iR, int[][] histogram, long[] timestamps) {
     int curValue = 0;
@@ -315,7 +326,7 @@ public abstract class CommonServiceApi {
         .forEach(e -> mapping.put(e.getColId(), iRawDataLongMapping.getAndAdd(1)));
   }
 
-  public void fillMapping(List<CProfile> cProfiles, List<Integer> mapping,
+  public void fillMappingRaw(List<CProfile> cProfiles, List<Integer> mapping,
       Predicate<CProfile> isNotTimestamp, Predicate<CProfile> isRaw, Predicate<CProfile> isCustom) {
     final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
 
@@ -324,7 +335,19 @@ public abstract class CommonServiceApi {
         .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
   }
 
-  public void fillMapping(List<CProfile> cProfiles, List<Integer> mapping,
+  public void fillMappingRaw(List<CProfile> cProfiles,
+      CachedLastLinkedHashMap<Integer, Integer> mapping, Map<Integer, SType> colIdSTypeMap,
+      Predicate<CProfile> isNotTimestamp, Predicate<CProfile> isRaw, Predicate<CProfile> isCustom) {
+    final AtomicInteger iRaw = new AtomicInteger(0);
+
+    cProfiles.stream()
+        .filter(isNotTimestamp)
+        .filter(isCustom)
+        .filter(f -> SType.RAW.equals(colIdSTypeMap.get(f.getColId())))
+        .forEach(cProfile -> mapping.put(cProfile.getColId(), iRaw.getAndAdd(1)));
+  }
+
+  public void fillMappingRaw(List<CProfile> cProfiles, List<Integer> mapping,
       Predicate<CProfile> isRaw, Predicate<CProfile> isCustom) {
     final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
 

@@ -28,10 +28,6 @@ public class FBase09IndexJdbcTest extends AbstractH2Test {
 
     Map<String, SType> csTypeMap = new HashMap<>();
     csTypeMap.put("ID", SType.RAW);
-    csTypeMap.put("FIRSTNAME", SType.ENUM);
-    csTypeMap.put("LASTNAME", SType.HISTOGRAM);
-    csTypeMap.put("HOUSE", SType.RAW);
-    csTypeMap.put("CITY", SType.RAW);
 
     putDataJdbc(csTypeMap, TType.TIME_SERIES, IType.LOCAL, true);
   }
