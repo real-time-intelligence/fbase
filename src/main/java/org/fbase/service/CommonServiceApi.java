@@ -202,30 +202,21 @@ public abstract class CommonServiceApi {
   }
 
   protected int[][] getArrayInt(List<List<Integer>> rawDataInt) {
-    int[][] array = new int[rawDataInt.size()][];
-    for (int i = 0; i < rawDataInt.size(); i++) {
-      List<Integer> row = rawDataInt.get(i);
-      array[i] = row.stream().mapToInt(j -> j).toArray();
-    }
-    return array;
+    return rawDataInt.stream()
+        .map(l -> l.stream().mapToInt(Integer::intValue).toArray())
+        .toArray(int[][]::new);
   }
 
   protected long[][] getArrayLong(List<List<Long>> rawDataLong) {
-    long[][] array = new long[rawDataLong.size()][];
-    for (int i = 0; i < rawDataLong.size(); i++) {
-      List<Long> row = rawDataLong.get(i);
-      array[i] = row.stream().mapToLong(j -> j).toArray();
-    }
-    return array;
+    return rawDataLong.stream()
+        .map(l -> l.stream().mapToLong(Long::longValue).toArray())
+        .toArray(long[][]::new);
   }
 
   protected double[][] getArrayDouble(List<List<Double>> rawDataDouble) {
-    double[][] array = new double[rawDataDouble.size()][];
-    for (int i = 0; i < rawDataDouble.size(); i++) {
-      List<Double> row = rawDataDouble.get(i);
-      array[i] = row.stream().mapToDouble(j -> j).toArray();
-    }
-    return array;
+    return rawDataDouble.stream()
+        .map(l -> l.stream().mapToDouble(Double::doubleValue).toArray())
+        .toArray(double[][]::new);
   }
 
   protected float[][] getArrayFloat(List<List<Float>> rawDataFloat) {

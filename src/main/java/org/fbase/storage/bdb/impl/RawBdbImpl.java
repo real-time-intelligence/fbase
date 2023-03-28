@@ -16,6 +16,7 @@ import org.fbase.storage.bdb.entity.ColumnKey;
 import org.fbase.storage.bdb.entity.MetadataKey;
 import org.fbase.storage.bdb.entity.column.RColumn;
 import org.fbase.storage.bdb.entity.Metadata;
+import org.fbase.util.CachedLastLinkedHashMap;
 import org.xerial.snappy.Snappy;
 
 @Log4j2
@@ -175,6 +176,98 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
               .dataByte(Snappy.compress(String.join("", rawDataString.get(i))))
               .build());
     }
+  }
+
+  @Override
+  public void putCompressed(byte tableId, long blockId,
+      CachedLastLinkedHashMap<Integer, Integer> rawDataTimeStampMapping, List<List<Long>> rawDataTimestamp,
+      CachedLastLinkedHashMap<Integer, Integer> rawDataIntMapping, List<List<Integer>> rawDataInt,
+      CachedLastLinkedHashMap<Integer, Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
+      CachedLastLinkedHashMap<Integer, Integer> rawDataFloatMapping, List<List<Float>> rawDataFloat,
+      CachedLastLinkedHashMap<Integer, Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
+      CachedLastLinkedHashMap<Integer, Integer> rawDataStringMapping, List<List<String>> rawDataString) {
+
+    rawDataTimeStampMapping.forEach((colId, i) -> {
+      try {
+        this.primaryIndexDataColumn.putNoOverwrite(
+            RColumn.builder().columnKey(
+                    ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                .compressionType(CompressType.LONG)
+                .dataByte(Snappy.compress(rawDataTimestamp.get(i).stream().mapToLong(j -> j).toArray())).build());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
+
+    rawDataIntMapping.forEach((colId, i) -> {
+      try {
+        this.primaryIndexDataColumn.putNoOverwrite(
+            RColumn.builder().columnKey(
+                    ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                .compressionType(CompressType.INT)
+                .dataByte(Snappy.compress(rawDataInt.get(i).stream().mapToInt(j -> j).toArray()))
+                .build());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
+
+    rawDataLongMapping.forEach((colId, i) -> {
+      try {
+        this.primaryIndexDataColumn.putNoOverwrite(
+            RColumn.builder().columnKey(
+                    ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                .compressionType(CompressType.LONG)
+                .dataByte(Snappy.compress(rawDataLong.get(i).stream().mapToLong(j -> j).toArray()))
+                .build());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
+
+    rawDataFloatMapping.forEach((colId, i) -> {
+      try {
+        this.primaryIndexDataColumn.putNoOverwrite(
+            RColumn.builder().columnKey(
+                    ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                .compressionType(CompressType.FLOAT)
+                .dataByte(Snappy.compress(rawDataFloat.get(i).stream().mapToDouble(j -> j).toArray()))
+                .build());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
+
+    rawDataDoubleMapping.forEach((colId, i) -> {
+      try {
+        this.primaryIndexDataColumn.putNoOverwrite(
+            RColumn.builder().columnKey(
+                    ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                .compressionType(CompressType.DOUBLE)
+                .dataByte(Snappy.compress(rawDataDouble.get(i).stream().mapToDouble(j -> j).toArray()))
+                .build());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
+
+    rawDataStringMapping.forEach((colId, i) -> {
+      try {
+        int[] lengthArray = rawDataString.get(i).stream()
+            .mapToInt(s -> (int) s.codePoints().count())
+            .toArray();
+
+        this.primaryIndexDataColumn.putNoOverwrite(
+            RColumn.builder().columnKey(
+                    ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                .compressionType(CompressType.STRING)
+                .dataInt(lengthArray)
+                .dataByte(Snappy.compress(String.join("", rawDataString.get(i))))
+                .build());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 
   @Override

@@ -71,6 +71,17 @@ public class FBaseCHLoadDataTest implements ClickHouse {
   }
 
   @Test
+  public void loadDataJdbcTimeSeriesGlobalNoCompression() {
+    try {
+      cProfiles = clickHouseDB.loadDataJdbc(ClickHouse.select2016, fStore,
+          TType.TIME_SERIES, IType.GLOBAL, false, 20000);
+    } catch (Exception e) {
+      log.catching(e);
+    }
+    assertEquals(1, 1);
+  }
+
+  @Test
   public void loadDataJdbcTimeSeriesLocalCompression() {
     try {
       cProfiles = clickHouseDB.loadDataJdbc(ClickHouse.select2016, fStore,

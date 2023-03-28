@@ -91,4 +91,20 @@ public class RStore extends CommonServiceApi {
     }
   }
 
+  public void add(CProfile cProfile, int iR, Object currObject) {
+    CType cType = Mapper.isCType(cProfile);
+    int colId = cProfile.getColId();
+    if (CType.INT == cType) {
+      rawDataInt.get(mappingInt.get(colId)).add(iR, Mapper.convertRawToInt(currObject, cProfile));
+    } else if (CType.LONG == cType) {
+      rawDataLong.get(mappingLong.get(colId)).add(iR, Mapper.convertRawToLong(currObject, cProfile));
+    } else if (CType.FLOAT == cType) {
+      rawDataFloat.get(mappingFloat.get(colId)).add(iR, Mapper.convertRawToFloat(currObject, cProfile));
+    } else if (CType.DOUBLE == cType) {
+      rawDataDouble.get(mappingDouble.get(colId)).add(iR, Mapper.convertRawToDouble(currObject, cProfile));
+    } else if (CType.STRING == cType) {
+      rawDataString.get(mappingString.get(colId)).add(iR, Mapper.convertRawToString(currObject, cProfile));
+    }
+  }
+
 }
