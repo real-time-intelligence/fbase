@@ -70,41 +70,6 @@ public abstract class CommonServiceApi {
     return curValue;
   }
 
-  public static List<List<Float>> convert2DFloatArrayToList(float[][] input) {
-    List<List<Float>> result = new ArrayList<>();
-    for (float[] innerArray : input) {
-      List<Float> innerList = new ArrayList<>();
-      for (float value : innerArray) {
-        innerList.add(value);
-      }
-      result.add(innerList);
-    }
-    return result;
-  }
-
-  public static List<List<Byte>> convert2DByteArrayToList(byte[][] input) {
-    List<List<Byte>> result = new ArrayList<>();
-    for (byte[] innerArray : input) {
-      List<Byte> innerList = new ArrayList<>();
-      for (byte value : innerArray) {
-        innerList.add(value);
-      }
-      result.add(innerList);
-    }
-    return result;
-  }
-
-  public int[][] getArrayFromMap(Map<Integer, Integer> map) {
-    int[][] array = new int[2][map.size()];
-    int i = 0;
-    for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
-      array[0][i] = entry.getKey();
-      array[1][i] = entry.getValue();
-      i++;
-    }
-    return array;
-  }
-
   public int[][] getArrayFromMapHEntry(HEntry hEntry) {
     int[][] array = new int[2][hEntry.getIndex().size()];
 
@@ -231,15 +196,6 @@ public abstract class CommonServiceApi {
     return array;
   }
 
-  protected byte[][] getArrayByte(List<List<Byte>> rawDataByte) {
-    byte[][] array = new byte[rawDataByte.size()][];
-    for (int i = 0; i < rawDataByte.size(); i++) {
-      List<Byte> row = rawDataByte.get(i);
-      array[i] = getByteFromList(row);
-    }
-    return array;
-  }
-
   protected String[][] getArrayString(List<List<String>> rawDataString) {
     String[][] array = new String[rawDataString.size()][];
     for (int i = 0; i < rawDataString.size(); i++) {
@@ -290,42 +246,6 @@ public abstract class CommonServiceApi {
         });
   }
 
-  public void fillTimestampMapping(List<CProfile> cProfiles, List<Integer> mapping) {
-    final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
-
-    cProfiles.stream()
-        .filter(f -> f.getCsType().isTimeStamp())
-        .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
-  }
-
-  public void fillAllExceptTimestampMapping(List<CProfile> cProfiles, List<Integer> mapping,
-      Predicate<CProfile> isNotTimestamp, Predicate<CProfile> cType) {
-    final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
-
-    cProfiles.stream()
-        .filter(isNotTimestamp)
-        .filter(cType)
-        .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
-  }
-
-  public void fillHistMapping(List<CProfile> cProfiles, Map<Integer, Integer> mapping,
-      Predicate<CProfile> isNotTimestamp) {
-    final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
-
-    cProfiles.stream()
-        .filter(isNotTimestamp)
-        .forEach(e -> mapping.put(e.getColId(), iRawDataLongMapping.getAndAdd(1)));
-  }
-
-  public void fillMappingRaw(List<CProfile> cProfiles, List<Integer> mapping,
-      Predicate<CProfile> isNotTimestamp, Predicate<CProfile> isRaw, Predicate<CProfile> isCustom) {
-    final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
-
-    cProfiles.stream()
-        .filter(isNotTimestamp).filter(isRaw).filter(isCustom)
-        .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
-  }
-
   public void fillMappingRaw(List<CProfile> cProfiles,
       CachedLastLinkedHashMap<Integer, Integer> mapping, Map<Integer, SType> colIdSTypeMap,
       Predicate<CProfile> isNotTimestamp, Predicate<CProfile> isRaw, Predicate<CProfile> isCustom) {
@@ -345,66 +265,6 @@ public abstract class CommonServiceApi {
     cProfiles.stream()
         .filter(isRaw).filter(isCustom)
         .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
-  }
-
-  public String[][] copyOfString(String[][] rawDataString, int row) {
-    String[][] rawDataStringOut = new String[rawDataString.length][];
-    for(int i = 0; i < rawDataString.length; i++) {
-      rawDataStringOut[i] = new String[row];
-      System.arraycopy(Arrays.copyOf(rawDataString[i], row), 0, rawDataStringOut[i], 0, row);
-    }
-
-    return rawDataStringOut;
-  }
-
-  public byte[][] copyOfByte(byte[][] rawDataEnum, int row) {
-    byte[][] rawDataStringOut = new byte[rawDataEnum.length][];
-    for(int i = 0; i < rawDataEnum.length; i++) {
-      rawDataStringOut[i] = new byte[row];
-      System.arraycopy(Arrays.copyOf(rawDataEnum[i], row), 0, rawDataStringOut[i], 0, row);
-    }
-
-    return rawDataStringOut;
-  }
-
-  public int[][] copyOfInt(int[][] rawDataInt, int row) {
-    int[][] rawDataStringOut = new int[rawDataInt.length][];
-    for(int i = 0; i < rawDataInt.length; i++) {
-      rawDataStringOut[i] = new int[row];
-      System.arraycopy(Arrays.copyOf(rawDataInt[i], row), 0, rawDataStringOut[i], 0, row);
-    }
-
-    return rawDataStringOut;
-  }
-
-  public long[][] copyOfLong(long[][] rawDataLong, int row) {
-    long[][] rawDataStringOut = new long[rawDataLong.length][];
-    for(int i = 0; i < rawDataLong.length; i++) {
-      rawDataStringOut[i] = new long[row];
-      System.arraycopy(Arrays.copyOf(rawDataLong[i], row), 0, rawDataStringOut[i], 0, row);
-    }
-
-    return rawDataStringOut;
-  }
-
-  public float[][] copyOfFloat(float[][] rawDataFloat, int row) {
-    float[][] rawDataStringOut = new float[rawDataFloat.length][];
-    for(int i = 0; i < rawDataFloat.length; i++) {
-      rawDataStringOut[i] = new float[row];
-      System.arraycopy(Arrays.copyOf(rawDataFloat[i], row), 0, rawDataStringOut[i], 0, row);
-    }
-
-    return rawDataStringOut;
-  }
-
-  public double[][] copyOfDouble(double[][] rawDataDouble, int row) {
-    double[][] rawDataStringOut = new double[rawDataDouble.length][];
-    for(int i = 0; i < rawDataDouble.length; i++) {
-      rawDataStringOut[i] = new double[row];
-      System.arraycopy(Arrays.copyOf(rawDataDouble[i], row), 0, rawDataStringOut[i], 0, row);
-    }
-
-    return rawDataStringOut;
   }
 
   public String[] getStringArrayValue(RawDAO rawDAO, CType cType, byte tableId, long blockId, int colId) {

@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.exception.EnumByteExceedException;
@@ -37,7 +36,6 @@ import org.fbase.storage.Converter;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.RawDAO;
-import org.fbase.util.CachedLastLinkedHashMap;
 
 @Log4j2
 public class StoreServiceImpl extends CommonServiceApi implements StoreService {
@@ -757,20 +755,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
   }
 
-  private void fillEnumMapping(List<CProfile> cProfiles, List<Integer> mapping,
-      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn) {
-
-    final AtomicInteger iRawDataEnumMapping = new AtomicInteger(0);
-
-    cProfiles.stream()
-        .filter(isEnum)
-        .forEach(cProfile -> {
-          int var = iRawDataEnumMapping.getAndAdd(1);
-          mapping.add(var, cProfile.getColId());
-          rawDataEnumEColumn.add(var, new CachedLastLinkedHashMap<>());
-        });
-  }
-
   private void storeMetadata(byte tableId, long blockId, List<CProfile> cProfiles) {
     List<Byte> rawCTypeKeys = new ArrayList<>();
     List<Integer> rawColIds = new ArrayList<>();
@@ -818,18 +802,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         histogramColIds.stream().mapToInt(j -> j).toArray());
   }
 
-  private void storeHistograms(byte tableID, boolean compression, long blockId, Map<Integer, CachedLastLinkedHashMap<Integer, Integer>> mapOfHistograms) {
-    mapOfHistograms.forEach((colId, hData) -> {
-      if (!hData.isEmpty()) {
-        if (compression) {
-          this.histogramDAO.putCompressed(tableID, blockId, colId, getArrayFromMap(hData));
-        } else {
-          this.histogramDAO.put(tableID, blockId, colId, getArrayFromMap(hData));
-        }
-      }
-    });
-  }
-
   private void storeHistogramsEntry(byte tableID, boolean compression, long blockId,
       Map<Integer, HEntry> histograms) {
 
@@ -845,77 +817,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
         }
     });
 
-  }
-
-  private void storeData(byte tableId, boolean compression, long blockId,
-      List<Integer> rawDataTimeStampMapping, long[][] rawDataTimestamp,
-      int colRawDataIntCount, List<Integer> rawDataIntMapping, int[][] rawDataInt,
-      int colRawDataLongCount, List<Integer> rawDataLongMapping, long[][] rawDataLong,
-      int colRawDataFloatCount, List<Integer> rawDataFloatMapping, float[][] rawDataFloat,
-      int colRawDataDoubleCount, List<Integer> rawDataDoubleMapping, double[][] rawDataDouble,
-      int colRawDataStringCount, List<Integer> rawDataStringMapping, String[][] rawDataString,
-      int colRawDataEnumCount, List<Integer> rawDataEnumMapping, byte[][] rawDataEnum,
-      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn) {
-
-    if (compression) {
-      try {
-        rawDAO.putCompressed(tableId, blockId,
-            rawDataTimeStampMapping, Arrays.stream(rawDataTimestamp)
-                .map(ia -> Arrays.stream(ia)
-                    .boxed()
-                    .collect(Collectors.toList()))
-                .collect(Collectors.toList()),
-            rawDataIntMapping, Arrays.stream(rawDataInt)
-                .map(ia -> Arrays.stream(ia)
-                    .boxed()
-                    .collect(Collectors.toList()))
-                .collect(Collectors.toList()),
-            rawDataLongMapping, Arrays.stream(rawDataLong)
-                .map(ia -> Arrays.stream(ia)
-                    .boxed()
-                    .collect(Collectors.toList()))
-                .collect(Collectors.toList()),
-            rawDataFloatMapping, convert2DFloatArrayToList(rawDataFloat),
-            rawDataDoubleMapping, Arrays.stream(rawDataDouble)
-                .map(ia -> Arrays.stream(ia)
-                    .boxed()
-                    .collect(Collectors.toList()))
-                .collect(Collectors.toList()),
-            rawDataStringMapping, Arrays.stream(rawDataString)
-                .map(ia -> Arrays.stream(ia)
-                    .collect(Collectors.toList()))
-                .collect(Collectors.toList()));
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-
-      /* Store enum data */
-      if (colRawDataEnumCount > 0) {
-        this.storeEnum(tableId, compression, blockId, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn, rawDataEnum);
-      }
-
-      return;
-    }
-
-    /* Store timestamp raw data entity */
-    this.rawDAO.putLong(tableId, blockId, rawDataTimeStampMapping.stream().mapToInt(i -> i).toArray(), rawDataTimestamp);
-
-    /* Store raw data entity */
-    if (colRawDataIntCount > 0)
-      this.rawDAO.putInt(tableId, blockId, rawDataIntMapping.stream().mapToInt(i -> i).toArray(), rawDataInt);
-    if (colRawDataLongCount > 0)
-      this.rawDAO.putLong(tableId, blockId, rawDataLongMapping.stream().mapToInt(i -> i).toArray(), rawDataLong);
-    if (colRawDataFloatCount > 0)
-      this.rawDAO.putFloat(tableId, blockId, rawDataFloatMapping.stream().mapToInt(i -> i).toArray(), rawDataFloat);
-    if (colRawDataDoubleCount > 0)
-      this.rawDAO.putDouble(tableId, blockId, rawDataDoubleMapping.stream().mapToInt(i -> i).toArray(), rawDataDouble);
-    if (colRawDataStringCount > 0)
-      this.rawDAO.putString(tableId, blockId, rawDataStringMapping.stream().mapToInt(i -> i).toArray(), rawDataString);
-
-    /* Store enum data */
-    if (colRawDataEnumCount > 0) {
-      this.storeEnum(tableId, compression, blockId, colRawDataEnumCount, rawDataEnumMapping, rawDataEnumEColumn, rawDataEnum);
-    }
   }
 
   private void storeEnum(byte tableId, boolean compression, long blockId, EStore eStore) {
@@ -937,31 +838,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
           throw new RuntimeException(e);
         }
       });
-    }
-
-  }
-
-  private void storeEnum(byte tableId, boolean compression, long blockId,
-      int colRawDataEnumCount, List<Integer> rawDataEnumMapping,
-      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn, byte[][] rawDataEnum) {
-
-    if (colRawDataEnumCount > 0) {
-      for (int i = 0; i < rawDataEnumMapping.size(); i++) {
-        int colId = rawDataEnumMapping.get(i);
-
-        int[] values = new int[rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(colId)).size()];
-
-        AtomicInteger counter = new AtomicInteger(0);
-        rawDataEnumEColumn.get(rawDataEnumMapping.indexOf(colId))
-            .forEach((enumKey, enumValue) -> values[counter.getAndAdd(1)] = enumKey);
-
-        try {
-          this.enumDAO.putEColumn(tableId, blockId, colId, values, rawDataEnum[i], compression);
-        } catch (IOException e) {
-          log.catching(e);
-          throw new RuntimeException(e);
-        }
-      }
     }
 
   }
