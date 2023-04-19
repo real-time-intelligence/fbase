@@ -105,7 +105,7 @@ public abstract class CommonServiceApi {
    return cProfileList.stream()
           .filter(k -> k.getCsType().isTimeStamp())
           .findAny()
-          .orElse(CProfile.builder().colId(-1).build());
+          .orElseThrow(() -> new RuntimeException("Not found timestamp column"));
   }
 
   protected <T, V> void setMapValue(Map<T, Map<V, Integer>> map, T vFirst, V vSecond, int sum) {

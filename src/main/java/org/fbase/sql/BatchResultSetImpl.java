@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.fbase.model.profile.CProfile;
@@ -69,7 +70,9 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
     AtomicReference<Entry<Long, Integer>> pointerLocal
         = new AtomicReference<>(Map.entry(isStarted ? 0L : pointer.getKey(), isStarted ? 0 : pointer.getValue()));
 
-    CProfile tsProfile = getTimestampProfile(cProfiles);
+    Optional<CProfile> optionalCProfile = cProfiles.stream()
+        .filter(k -> k.getCsType().isTimeStamp())
+        .findAny();
 
     cProfiles.stream()
         .sorted(Comparator.comparing(CProfile::getColId))
@@ -78,8 +81,9 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
           AtomicInteger fetchCounter = new AtomicInteger(fetchSize);
 
           Map.Entry<Map.Entry<Long, Integer>, List<Object>> columnData =
-              rawService.getColumnData(tableId, cProfile.getColId(), tsProfile.getColId(), cProfile,
-                  fetchSize, isStarted, maxBlockId, pointer, fetchCounter);
+              rawService.getColumnData(tableId, cProfile.getColId(),
+                  optionalCProfile.map(CProfile::getColId).orElse(-1),
+                  cProfile, fetchSize, isStarted, maxBlockId, pointer, fetchCounter);
 
           pointerLocal.set(columnData.getKey());
 
