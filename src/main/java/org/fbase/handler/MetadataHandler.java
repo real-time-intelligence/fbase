@@ -10,9 +10,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -56,9 +60,11 @@ public class MetadataHandler {
   public static List<CProfile> getCsvCProfileList(SProfile sProfile) {
     List<CProfile> cProfileList = new ArrayList<>();
 
+    AtomicInteger counter = new AtomicInteger(0);
+
     sProfile.getCsTypeMap().forEach((k, csType) ->
         cProfileList.add(CProfile.builder()
-            .colId(csType.getColId())
+            .colId(counter.getAndAdd(1))
             .colDbTypeName(csType.getCType().name().toUpperCase())
             .colName(k)
             .csType(CSType.builder()
@@ -72,7 +78,9 @@ public class MetadataHandler {
 
   public static void loadMetadataFromCsv(String csvFile, String csvSplitBy, SProfile sProfile) {
     String line = "";
-    Map<String, CSType> csTypeMap = new HashMap<>();
+    Map<String, CSType> csTypeMapSorted = new LinkedHashMap<>();
+
+    Map<Map.Entry<Integer, String>, CSType> csTypeMapEntry = new HashMap<>();
 
     try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
       line = br.readLine();
@@ -88,27 +96,29 @@ public class MetadataHandler {
         String colData = data[i];
 
         if (isParsableAsLong(colData)) {
-          csTypeMap.put(header, CSType.builder()
-                  .colId(i)
+          csTypeMapEntry.put(Map.entry(i, header), CSType.builder()
                   .sType(SType.RAW)
                   .cType(CType.LONG)
                   .build());
         } else if (isParsableAsDouble(colData)) {
-          csTypeMap.put(header, CSType.builder()
-              .colId(i)
+          csTypeMapEntry.put(Map.entry(i, header), CSType.builder()
               .sType(SType.RAW)
               .cType(CType.DOUBLE)
               .build());
         } else {
-          csTypeMap.put(header, CSType.builder()
-              .colId(i)
+          csTypeMapEntry.put(Map.entry(i, header), CSType.builder()
               .sType(SType.RAW)
               .cType(CType.STRING)
               .build());
         }
       }
 
-      sProfile.setCsTypeMap(csTypeMap);
+      csTypeMapEntry.entrySet()
+          .stream()
+          .sorted(Map.Entry.comparingByKey(Comparator.comparingInt(Entry::getKey)))
+          .forEach(entry -> csTypeMapSorted.put(entry.getKey().getValue(), entry.getValue()));
+
+      sProfile.setCsTypeMap(csTypeMapSorted);
 
     } catch (IOException e) {
       log.catching(e);

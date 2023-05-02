@@ -125,7 +125,11 @@ public class ClickHouseDatabase implements ClickHouse {
 
     if (cnt.get() != 0) {
       // todo uncomment if you need to create test case for clickhouse FBase05ClickHouseMockTest
-      // storeResultSetToFile(cProfileList, listsColStore);
+      try {
+        storeResultSetToFile(cProfileList, listsColStore);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
       fStore.putDataDirect(tProfile.getTableName(), listsColStore);
     }
 
