@@ -122,16 +122,16 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public TProfile loadJdbcTableMetadata(Connection connection, String select, SProfile sProfile)
-      throws TableNameEmptyException {
+  public TProfile loadJdbcTableMetadata(Connection connection, String select, SProfile sProfile) throws TableNameEmptyException {
     checkIsTableNameEmpty(sProfile);
 
     TProfile tProfile = new TProfile().setTableName(sProfile.getTableName());
-    String tableName = sProfile.getTableName();
 
     if (metaModel.getMetadata().isEmpty()) {
       saveMetaModel();
     }
+
+    String tableName = sProfile.getTableName();
 
     if (!metaModel.getMetadata().isEmpty()
         && metaModel.getMetadata().get(tableName) != null
@@ -139,13 +139,7 @@ public class BdbStore implements FStore {
 
       updateTimestampMetadata(tableName, sProfile);
 
-      tProfile.setTableType(sProfile.getTableType());
-
-      try {
-        tProfile.setCProfiles(getCProfileList(tableName));
-      } catch (TableNameEmptyException e) {
-        throw new RuntimeException(e);
-      }
+      fillTProfile(tableName, sProfile, tProfile);
 
       saveMetaModel();
 
@@ -183,11 +177,7 @@ public class BdbStore implements FStore {
       log.catching(e);
     }
 
-    try {
-      tProfile.setCProfiles(getCProfileList(tableName));
-    } catch (TableNameEmptyException e) {
-      throw new RuntimeException(e);
-    }
+    fillTProfile(tableName, sProfile, tProfile);
 
     saveMetaModel();
 
@@ -266,6 +256,17 @@ public class BdbStore implements FStore {
     }
   }
 
+  private void fillTProfile(String tableName, SProfile sProfile, TProfile tProfile) {
+    try {
+      tProfile.setTableType(sProfile.getTableType());
+      tProfile.setIndexType(sProfile.getIndexType());
+      tProfile.setCompression(sProfile.getCompression());
+      tProfile.setCProfiles(getCProfileList(tableName));
+    } catch (TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private void updateTimestampMetadata(String tableName, SProfile sProfile) {
       Optional<CProfile> optionalTsCProfile = metaModel.getMetadata().get(tableName)
           .getCProfiles()
@@ -288,6 +289,10 @@ public class BdbStore implements FStore {
           }
         }
       }
+
+    metaModel.getMetadata().get(tableName).setTableType(sProfile.getTableType());
+    metaModel.getMetadata().get(tableName).setIndexType(sProfile.getIndexType());
+    metaModel.getMetadata().get(tableName).setCompression(sProfile.getCompression());
 
     if (optionalTsCProfile.isEmpty() & optionalTsEntry.isEmpty()
         & !TType.TIME_SERIES.equals(sProfile.getTableType())) {
