@@ -275,6 +275,11 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
+    if (rColumn == null) {
+      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      return new byte[0];
+    }
+
     if (isNotBlockCompressed(rColumn)) {
       return rColumn.getDataByte();
     }
@@ -292,6 +297,11 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   public int[] getRawInt(byte tableId, long blockId, int colId) {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
+
+    if (rColumn == null) {
+      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      return new int[0];
+    }
 
     if (isNotBlockCompressed(rColumn)) {
       return rColumn.getDataInt();
@@ -311,6 +321,11 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
+    if (rColumn == null) {
+      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      return new long[0];
+    }
+
     if (isNotBlockCompressed(rColumn)) {
       return rColumn.getDataLong();
     }
@@ -328,6 +343,11 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   public float[] getRawFloat(byte tableId, long blockId, int colId) {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
+
+    if (rColumn == null) {
+      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      return new float[0];
+    }
 
     if (isNotBlockCompressed(rColumn)) {
       return rColumn.getDataFloat();
@@ -347,6 +367,11 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
+    if (rColumn == null) {
+      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      return new double[0];
+    }
+
     if (isNotBlockCompressed(rColumn)) {
       return rColumn.getDataDouble();
     }
@@ -364,6 +389,11 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   public String[] getRawString(byte tableId, long blockId, int colId) {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
+
+    if (rColumn == null) {
+      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      return new String[0];
+    }
 
     if (isNotBlockCompressed(rColumn)) {
       return rColumn.getDataString();

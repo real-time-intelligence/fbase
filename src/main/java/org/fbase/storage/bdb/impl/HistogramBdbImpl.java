@@ -52,6 +52,11 @@ public class HistogramBdbImpl extends QueryBdbApi implements HistogramDAO {
   public int[][] get(byte tableId, long blockId, int colId) {
     HColumn hColumn = this.primaryIndex.get(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
+    if (hColumn == null) {
+      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      return new int[0][0];
+    }
+
     if (isNotBlockCompressed(hColumn)) {
       return hColumn.getData();
     }

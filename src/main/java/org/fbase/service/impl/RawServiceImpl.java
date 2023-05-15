@@ -291,12 +291,14 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
             tableId, blockId, cProfile.getColId());
 
-        IntStream iRow = IntStream.range(0, timestamps.length);
-        iRow.forEach(iR -> {
-          if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-            columnData.add(column[iR]);
-          }
-        });
+        if (column.length != 0) {
+          IntStream iRow = IntStream.range(0, timestamps.length);
+          iRow.forEach(iR -> {
+            if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+              columnData.add(column[iR]);
+            }
+          });
+        }
 
         columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
       }
@@ -345,12 +347,14 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
     long tail = timestamps[timestamps.length - 1];
 
-    IntStream iRow = IntStream.range(0, timestamps.length);
-    iRow.forEach(iR -> {
-      if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-        map.compute(column[iR], (k, val) -> val == null ? 1 : val + 1);
-      }
-    });
+    if (column.length != 0) {
+      IntStream iRow = IntStream.range(0, timestamps.length);
+      iRow.forEach(iR -> {
+        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+          map.compute(column[iR], (k, val) -> val == null ? 1 : val + 1);
+        }
+      });
+    }
 
     list.add(StackedColumn.builder()
         .key(blockId)

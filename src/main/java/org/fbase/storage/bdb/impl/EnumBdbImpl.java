@@ -38,8 +38,11 @@ public class EnumBdbImpl extends QueryBdbApi implements EnumDAO {
   @Override
   public EColumn getEColumnValues(byte tableId, long blockId, int colId) {
     EColumn eColumn =
-        this.primaryIndexEnumColumn.get(
-            ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
+        this.primaryIndexEnumColumn.get(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
+
+    if (eColumn == null) {
+      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+    }
 
     if (isNotBlockCompressed(eColumn)) {
       return eColumn;

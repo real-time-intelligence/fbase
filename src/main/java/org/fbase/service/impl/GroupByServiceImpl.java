@@ -287,12 +287,14 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     String[] second = getStringArrayValue(rawDAO, Mapper.isCType(secondLevelGroupBy),
         tableId, blockId, secondLevelGroupBy.getColId());
 
-    IntStream iRow = IntStream.range(0, timestamps.length);
-    iRow.forEach(iR -> {
-      if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-        setMapValue(map, first[iR], second[iR], 1);
-      }
-    });
+    if (first.length != 0 & second.length != 0) {
+      IntStream iRow = IntStream.range(0, timestamps.length);
+      iRow.forEach(iR -> {
+        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+          setMapValue(map, first[iR], second[iR], 1);
+        }
+      });
+    }
   }
 
   public void histEnum(byte tableId, int tsColId, CProfile firstLevelGroupBy,
@@ -398,12 +400,14 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     String[] columnData = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
         tableId, blockId, cProfile.getColId());
 
-    IntStream iRow = IntStream.range(0, timestamp.length);
-    iRow.forEach(iR -> {
-      if (timestamp[iR] >= begin & timestamp[iR] <= end) {
-        list.add(columnData[iR]);
-      }
-    });
+    if (columnData.length != 0) {
+      IntStream iRow = IntStream.range(0, timestamp.length);
+      iRow.forEach(iR -> {
+        if (timestamp[iR] >= begin & timestamp[iR] <= end) {
+          list.add(columnData[iR]);
+        }
+      });
+    }
 
     return list;
   }
