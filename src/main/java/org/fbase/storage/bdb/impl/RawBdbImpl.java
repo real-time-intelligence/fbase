@@ -14,6 +14,7 @@ import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.QueryBdbApi;
 import org.fbase.storage.bdb.entity.ColumnKey;
 import org.fbase.storage.bdb.entity.MetadataKey;
+import org.fbase.storage.bdb.entity.column.HColumn;
 import org.fbase.storage.bdb.entity.column.RColumn;
 import org.fbase.storage.bdb.entity.Metadata;
 import org.fbase.util.CachedLastLinkedHashMap;
@@ -438,6 +439,18 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   @Override
   public EntityCursor<Metadata> getMetadataEntityCursor(MetadataKey begin, MetadataKey end) {
     return doRangeQuery(this.primaryIndex, begin, true, end, true);
+  }
+
+  @Override
+  public Metadata getMetadata(MetadataKey metadataKey) {
+    Metadata metadata = this.primaryIndex.get(metadataKey);
+
+    if (metadata == null) {
+      log.info("No data found for metadata key -> " + metadataKey);
+      return new Metadata();
+    }
+
+    return metadata;
   }
 
   public String[] getStringFromList(List<String> list) {

@@ -114,7 +114,7 @@ public class H2Database {
     return listsColStore;
   }
 
-  public List<List<Object>> putDataBatch(FStore fStore, TProfile tProfile, String select, Integer fBaseBatchSize) throws SQLException {
+  public List<List<Object>> putDataJdbcBatch(FStore fStore, TProfile tProfile, String select, Integer fBaseBatchSize) throws SQLException {
     List<List<Object>> listsColStore = new ArrayList<>();
 
     cProfileList.forEach(v -> listsColStore.add(v.getColId(), new ArrayList<>()));

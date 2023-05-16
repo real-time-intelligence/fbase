@@ -249,7 +249,7 @@ public abstract class AbstractH2Test implements JdbcSource {
     }
   }
 
-  protected void putDataBatch(Map<String, SType> csTypeMap) {
+  protected void putDataJdbcBatch(Map<String, SType> csTypeMap) {
     fStore = fBase.getFStore();
 
     cProfiles = h2Db.getCProfileList().stream()
@@ -296,17 +296,17 @@ public abstract class AbstractH2Test implements JdbcSource {
       }
 
       Integer fBaseBatchSize = 3;
-      h2Db.putDataBatch(fStore, tProfile,
+      h2Db.putDataJdbcBatch(fStore, tProfile,
           "SELECT * FROM person WHERE id=1 OR id=2 OR id=3 OR id=4 OR id=5 OR id=6", fBaseBatchSize);
-      h2Db.putDataBatch(fStore, tProfile,
+      h2Db.putDataJdbcBatch(fStore, tProfile,
           "SELECT * FROM person WHERE id=7", fBaseBatchSize);
-      h2Db.putDataBatch(fStore, tProfile,
+      h2Db.putDataJdbcBatch(fStore, tProfile,
           "SELECT * FROM person WHERE id=10 OR id=8 OR id=9", fBaseBatchSize);
-      h2Db.putDataBatch(fStore, tProfile,
+      h2Db.putDataJdbcBatch(fStore, tProfile,
           "SELECT * FROM person WHERE id=11", fBaseBatchSize);
-      h2Db.putDataBatch(fStore, tProfile,
+      h2Db.putDataJdbcBatch(fStore, tProfile,
           "SELECT * FROM person WHERE id=12 OR id=13 OR id=14", fBaseBatchSize);
-      h2Db.putDataBatch(fStore, tProfile,
+      h2Db.putDataJdbcBatch(fStore, tProfile,
           "SELECT * FROM person WHERE id=15 OR id=16 OR id=17 OR id=18 OR id=19 OR id=20"
               + " OR id=21 OR id=22 OR id=23 OR id=24 OR id=25", fBaseBatchSize);
 

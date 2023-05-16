@@ -152,7 +152,9 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
           if (isPointerFirst) isPointerFirst = false;
         }
 
-        if (cProfile.getCsType().getSType() == SType.RAW & !cProfile.getCsType().isTimeStamp()) { // raw data
+        SType sType = getSType(colId, columnKey);
+
+        if (SType.RAW.equals(sType) & !cProfile.getCsType().isTimeStamp()) { // raw data
           int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
           String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
@@ -173,7 +175,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
           if (isPointerFirst) isPointerFirst = false;
         }
 
-        if (cProfile.getCsType().getSType() == SType.HISTOGRAM) { // indexed data
+        if (SType.HISTOGRAM.equals(sType)) { // indexed data
           long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
 
           int[][] h = histogramDAO.get(tableId, blockId, cProfile.getColId());
@@ -195,7 +197,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
           if (isPointerFirst) isPointerFirst = false;
         }
 
-        if (cProfile.getCsType().getSType() == SType.ENUM) { // enum data
+        if (SType.ENUM.equals(sType)) { // enum data
           long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
 
           EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
@@ -243,18 +245,18 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     byte tableId = getTableId(tableName, metaModel);
     CProfile tsProfile = getTsProfile(tableName);
 
-    List<List<Object>> columnDataListOut = new ArrayList<>();
+    List<List<Object>> columnDataList = new ArrayList<>();
 
     long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
     if (previousBlockId != begin & previousBlockId != 0) {
-      this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, previousBlockId, begin, end, columnDataListOut);
+      this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, previousBlockId, begin, end, columnDataList);
     }
 
     this.rawDAO.getListBlockIds(tableId, begin, end)
         .forEach(blockId ->
-            this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, blockId, begin, end, columnDataListOut));
+            this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, blockId, begin, end, columnDataList));
 
-    return columnDataListOut;
+    return columnDataList;
   }
 
   private CProfile getTsProfile(String tableName) {
@@ -282,52 +284,56 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         }
 
         columnDataListLocal.add(cProfiles.size() == 2 ? 0 : cProfile.getColId(), columnData);
-      }
+      } else {
+        List<Object> columnData = new ArrayList<>();
 
-      List<Object> columnData = new ArrayList<>();
+        MetadataKey metadataKey = MetadataKey.builder().tableId(tableId).blockId(blockId).build();
 
-      if (cProfile.getCsType().getSType() == SType.RAW & !cProfile.getCsType().isTimeStamp()) { // raw data
+        SType sType = getSType(cProfile.getColId(), rawDAO.getMetadata(metadataKey));
 
-        String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
-            tableId, blockId, cProfile.getColId());
+        if (SType.RAW.equals(sType) & !cProfile.getCsType().isTimeStamp()) { // raw data
 
-        if (column.length != 0) {
+          String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
+                  tableId, blockId, cProfile.getColId());
+
+          if (column.length != 0) {
+            IntStream iRow = IntStream.range(0, timestamps.length);
+            iRow.forEach(iR -> {
+              if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+                columnData.add(column[iR]);
+              }
+            });
+          }
+
+          columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
+        }
+
+        if (SType.HISTOGRAM.equals(sType)) { // indexed data
+          int[][] h = histogramDAO.get(tableId, blockId, cProfile.getColId());
+
+          for (int i = 0; i < timestamps.length; i++) {
+            if (timestamps[i] >= begin & timestamps[i] <= end) {
+              columnData.add(this.converter.convertIntToRaw(getHistogramValue(i, h, timestamps), cProfile));
+            }
+          }
+
+          columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
+        }
+
+        if (SType.ENUM.equals(sType)) { // enum data
+
+          EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
+
           IntStream iRow = IntStream.range(0, timestamps.length);
+
           iRow.forEach(iR -> {
             if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-              columnData.add(column[iR]);
+              columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn.getValues(), eColumn.getDataByte()[iR]), cProfile));
             }
           });
+
+          columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
         }
-
-        columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
-      }
-
-      if (cProfile.getCsType().getSType() == SType.HISTOGRAM) { // indexed data
-        int[][] h = histogramDAO.get(tableId, blockId, cProfile.getColId());
-
-        for (int i = 0; i < timestamps.length; i++) {
-          if (timestamps[i] >= begin & timestamps[i] <= end) {
-            columnData.add(this.converter.convertIntToRaw(getHistogramValue(i, h, timestamps), cProfile));
-          }
-        }
-
-        columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
-      }
-
-      if (cProfile.getCsType().getSType() == SType.ENUM) { // enum data
-
-        EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
-
-        IntStream iRow = IntStream.range(0, timestamps.length);
-
-        iRow.forEach(iR -> {
-          if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn.getValues(), eColumn.getDataByte()[iR]), cProfile));
-          }
-        });
-
-        columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
       }
 
     });

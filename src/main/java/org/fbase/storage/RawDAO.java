@@ -59,6 +59,8 @@ public interface RawDAO {
 
   EntityCursor<Metadata> getMetadataEntityCursor(MetadataKey begin, MetadataKey end);
 
+  Metadata getMetadata(MetadataKey metadataKey);
+
   long getPreviousBlockId(byte tableId, long blockId);
 
   long getLastBlockId(byte tableId);

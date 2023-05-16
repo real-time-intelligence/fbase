@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -25,6 +26,7 @@ import org.fbase.model.profile.table.TType;
 import org.fbase.service.mapping.Mapper;
 import org.fbase.service.store.HEntry;
 import org.fbase.storage.RawDAO;
+import org.fbase.storage.bdb.entity.Metadata;
 import org.fbase.util.CachedLastLinkedHashMap;
 
 public abstract class CommonServiceApi {
@@ -313,6 +315,20 @@ public abstract class CommonServiceApi {
       ret.add(col);
     }
     return ret;
+  }
+
+  protected SType getSType(int colId, Metadata metadata) {
+    IntPredicate colIdPredicate = (x) -> x == colId;
+
+    if (Arrays.stream(metadata.getRawColIds()).anyMatch(colIdPredicate)) {
+      return SType.RAW;
+    } else if (Arrays.stream(metadata.getEnumColIds()).anyMatch(colIdPredicate)) {
+      return SType.ENUM;
+    } else if (Arrays.stream(metadata.getHistogramColIds()).anyMatch(colIdPredicate)) {
+      return SType.HISTOGRAM;
+    }
+
+    throw new RuntimeException("Undefined storage type for column id: " + colId);
   }
 
 }

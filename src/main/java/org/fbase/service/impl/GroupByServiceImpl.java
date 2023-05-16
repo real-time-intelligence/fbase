@@ -176,20 +176,6 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     return list;
   }
 
-  private SType getSType(int colId, Metadata metadata) {
-    IntPredicate colIdPredicate = (x) -> x == colId;
-
-    if (Arrays.stream(metadata.getRawColIds()).anyMatch(colIdPredicate)) {
-      return SType.RAW;
-    } else if (Arrays.stream(metadata.getEnumColIds()).anyMatch(colIdPredicate)) {
-      return SType.ENUM;
-    } else if (Arrays.stream(metadata.getHistogramColIds()).anyMatch(colIdPredicate)) {
-      return SType.HISTOGRAM;
-    }
-
-    throw new RuntimeException("Undefined storage type for column id: " + colId);
-  }
-
   private List<GanttColumn> getListGanttColumnIndexGlobal(String tableName, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end) {
 
