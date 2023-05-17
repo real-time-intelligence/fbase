@@ -24,7 +24,7 @@ public class Mapper {
   public static long LONG_NULL = Long.MIN_VALUE;
   public static float FLOAT_NULL = Float.MIN_VALUE;
   public static double DOUBLE_NULL = Double.MIN_VALUE;
-  public static String STRING_NULL = null;
+  public static String STRING_NULL = "";
 
   public Mapper() {}
 
