@@ -1,30 +1,33 @@
 package org.fbase;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.fbase.common.AbstractH2Test;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class FBase01StackedTest extends AbstractH2Test {
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
 
   @BeforeAll
   public void init() {
     Map<String, SType> csTypeMap = new HashMap<>();
     csTypeMap.put("ID", SType.RAW);
     csTypeMap.put("FIRSTNAME", SType.RAW);
-    csTypeMap.put("LASTNAME", SType.HISTOGRAM);
+    csTypeMap.put("LASTNAME", SType.RAW);
     csTypeMap.put("HOUSE", SType.RAW);
     csTypeMap.put("CITY", SType.RAW);
 
-    putDataDirect(csTypeMap);
+    putDataJdbc(csTypeMap, TType.TIME_SERIES, IType.GLOBAL, true);
   }
 
   @Test
@@ -97,6 +100,21 @@ public class FBase01StackedTest extends AbstractH2Test {
 
     assertEquals(firstListStackedKey(listNotIndexed), "Lee");
     assertEquals(firstListStackedValue(listNotIndexed), 2);
+
+    assertEquals(lastListStackedKey(listIndexed), "Шаляпин");
+    assertEquals(lastListStackedKey(listNotIndexed), "Федор");
+  }
+
+  @Test
+  public void computeBeginEnd29Test() throws BeginEndWrongOrderException, SqlColMetadataException {
+    List<StackedColumn> listIndexed = getDataStackedColumn("LASTNAME", 2, 9);
+    List<StackedColumn> listNotIndexed = getDataStackedColumn("FIRSTNAME", 2, 9);
+
+    assertEquals(firstListStackedKey(listIndexed), "Ivanov");
+    assertEquals(firstListStackedValue(listIndexed), 3);
+
+    assertEquals(firstListStackedKey(listNotIndexed), "Ivan");
+    assertEquals(firstListStackedValue(listNotIndexed), 1);
 
     assertEquals(lastListStackedKey(listIndexed), "Шаляпин");
     assertEquals(lastListStackedKey(listNotIndexed), "Федор");

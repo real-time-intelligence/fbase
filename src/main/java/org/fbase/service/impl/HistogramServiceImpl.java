@@ -138,8 +138,8 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
         IntStream iRow = IntStream.range(0, deltaValue);
         iRow.forEach(iR -> histogramsUnPack[cntForHist.getAndIncrement()] = currHistogramValue);
       } else {
-        for (long timestamp : timestamps) {
-          histogramsUnPack[(int) timestamp] = histograms[1][0];
+        for (int j = 0; j < timestamps.length; j++) {
+          histogramsUnPack[i] = histograms[1][0];
         }
       }
     }

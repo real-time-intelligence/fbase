@@ -28,16 +28,8 @@ import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.model.profile.table.TType;
-import org.fbase.service.EnumService;
-import org.fbase.service.GroupByService;
-import org.fbase.service.HistogramService;
-import org.fbase.service.RawService;
-import org.fbase.service.StoreService;
-import org.fbase.service.impl.EnumServiceImpl;
-import org.fbase.service.impl.GroupByServiceImpl;
-import org.fbase.service.impl.HistogramServiceImpl;
-import org.fbase.service.impl.RawServiceImpl;
-import org.fbase.service.impl.StoreServiceImpl;
+import org.fbase.service.*;
+import org.fbase.service.impl.*;
 import org.fbase.service.mapping.Mapper;
 import org.fbase.sql.BatchResultSet;
 import org.fbase.storage.Converter;
@@ -63,6 +55,7 @@ public class BdbStore implements FStore {
   private final EnumDAO enumDAO;
 
   private final GroupByService groupByService;
+  private final GroupByOneService groupByOneService;
   private final HistogramService histogramsService;
   private final RawService rawService;
   private final StoreService storeService;
@@ -92,6 +85,7 @@ public class BdbStore implements FStore {
     this.rawService = new RawServiceImpl(metaModel, converter, rawDAO, histogramDAO, enumDAO);
     this.enumService = new EnumServiceImpl(metaModel, converter, rawDAO, enumDAO);
     this.groupByService = new GroupByServiceImpl(metaModel, converter, histogramDAO, rawDAO, enumDAO);
+    this.groupByOneService = new GroupByOneServiceImpl(metaModel, converter, histogramDAO, rawDAO, enumDAO);
 
     this.storeService = new StoreServiceImpl(metaModel, converter, rawDAO, enumDAO, histogramDAO);
   }
@@ -374,13 +368,7 @@ public class BdbStore implements FStore {
       throw new BeginEndWrongOrderException("Begin value must be less the end one..");
     }
 
-    if (cProfile.getCsType().getSType() == SType.HISTOGRAM) {
-      return this.histogramsService.getListStackedColumn(tableName, cProfile, begin, end);
-    } else if (cProfile.getCsType().getSType() == SType.ENUM) {
-      return this.enumService.getListStackedColumn(tableName, cProfile, begin, end);
-    } else {
-      return this.rawService.getListStackedColumn(tableName, cProfile, begin, end);
-    }
+    return this.groupByOneService.getListStackedColumn(tableName, cProfile, begin, end);
   }
 
   @Override
