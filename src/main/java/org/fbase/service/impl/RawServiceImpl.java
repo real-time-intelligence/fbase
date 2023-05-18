@@ -1,10 +1,8 @@
 package org.fbase.service.impl;
 
 import com.sleepycat.persist.EntityCursor;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
@@ -149,72 +147,72 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
           }
 
           if (isPointerFirst) isPointerFirst = false;
-        }
+        } else {
+          SType sType = getSType(colId, columnKey);
 
-        SType sType = getSType(colId, columnKey);
+          if (SType.RAW.equals(sType) & !cProfile.getCsType().isTimeStamp()) { // raw data
+            int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
-        if (SType.RAW.equals(sType) & !cProfile.getCsType().isTimeStamp()) { // raw data
-          int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
+            String[] column = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
 
-          String[] column = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
-
-          for (int i = startPoint; i < column.length; i++) {
-            columnData.add(column[i]);
-            fetchCounter.decrementAndGet();
-            if (fetchCounter.get() == 0) {
-              if (i == column.length - 1) {
-                getNextPointer = true;
-              } else {
-                return Map.entry(Map.entry(blockId, i + 1), columnData);
+            for (int i = startPoint; i < column.length; i++) {
+              columnData.add(column[i]);
+              fetchCounter.decrementAndGet();
+              if (fetchCounter.get() == 0) {
+                if (i == column.length - 1) {
+                  getNextPointer = true;
+                } else {
+                  return Map.entry(Map.entry(blockId, i + 1), columnData);
+                }
               }
             }
+
+            if (isPointerFirst) isPointerFirst = false;
           }
 
-          if (isPointerFirst) isPointerFirst = false;
-        }
+          if (SType.HISTOGRAM.equals(sType)) { // indexed data
+            long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
 
-        if (SType.HISTOGRAM.equals(sType)) { // indexed data
-          long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
+            int[][] h = histogramDAO.get(tableId, blockId, cProfile.getColId());
 
-          int[][] h = histogramDAO.get(tableId, blockId, cProfile.getColId());
+            int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
-          int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
-
-          for (int i = startPoint; i < timestamps.length; i++) {
-            columnData.add(this.converter.convertIntToRaw(getHistogramValue(i, h, timestamps), cProfile));
-            fetchCounter.decrementAndGet();
-            if (fetchCounter.get() == 0) {
-              if (i == timestamps.length - 1) {
-                getNextPointer = true;
-              } else {
-                return Map.entry(Map.entry(blockId, i + 1), columnData);
+            for (int i = startPoint; i < timestamps.length; i++) {
+              columnData.add(this.converter.convertIntToRaw(getHistogramValue(i, h, timestamps), cProfile));
+              fetchCounter.decrementAndGet();
+              if (fetchCounter.get() == 0) {
+                if (i == timestamps.length - 1) {
+                  getNextPointer = true;
+                } else {
+                  return Map.entry(Map.entry(blockId, i + 1), columnData);
+                }
               }
             }
+
+            if (isPointerFirst) isPointerFirst = false;
           }
 
-          if (isPointerFirst) isPointerFirst = false;
-        }
+          if (SType.ENUM.equals(sType)) { // enum data
+            long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
 
-        if (SType.ENUM.equals(sType)) { // enum data
-          long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
+            EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
 
-          EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
+            int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
-          int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
-
-          for (int i = startPoint; i < timestamps.length; i++) {
-            columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn.getValues(), eColumn.getDataByte()[i]), cProfile));
-            fetchCounter.decrementAndGet();
-            if (fetchCounter.get() == 0) {
-              if (i == timestamps.length - 1) {
-                getNextPointer = true;
-              } else {
-                return Map.entry(Map.entry(blockId, i + 1), columnData);
+            for (int i = startPoint; i < timestamps.length; i++) {
+              columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn.getValues(), eColumn.getDataByte()[i]), cProfile));
+              fetchCounter.decrementAndGet();
+              if (fetchCounter.get() == 0) {
+                if (i == timestamps.length - 1) {
+                  getNextPointer = true;
+                } else {
+                  return Map.entry(Map.entry(blockId, i + 1), columnData);
+                }
               }
             }
-          }
 
-          if (isPointerFirst) isPointerFirst = false;
+            if (isPointerFirst) isPointerFirst = false;
+          }
         }
 
       }
@@ -272,8 +270,8 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
     cProfiles.forEach(cProfile -> {
 
+      List<Object> columnData = new ArrayList<>();
       if (cProfile.getCsType().isTimeStamp()) { // timestamp
-        List<Object> columnData = new ArrayList<>();
 
         for (int i = 0; i < timestamps.length; i++) {
           if (timestamps[i] >= begin & timestamps[i] <= end) {
@@ -283,7 +281,6 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
         columnDataListLocal.add(cProfiles.size() == 2 ? 0 : cProfile.getColId(), columnData);
       } else {
-        List<Object> columnData = new ArrayList<>();
 
         MetadataKey metadataKey = MetadataKey.builder().tableId(tableId).blockId(blockId).build();
 

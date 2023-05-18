@@ -81,22 +81,26 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
 
         long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsProfile.getColId());
 
-        SType sType = getSType(cProfile.getColId(), columnKey);
-
-        if (SType.RAW.equals(sType)) {
+        if (tsProfile.getColId() == cProfile.getColId()) {
           this.computeRaw(tableId, cProfile, blockId, timestamps, begin, end, list);
-        }
+        } else {
+          SType sType = getSType(cProfile.getColId(), columnKey);
 
-        if (SType.HISTOGRAM.equals(sType)) {
-          if (previousBlockId == blockId) {
-            this.computeHistTailOverFlow(tableId, cProfile, blockId, timestamps, begin, end, list);
-          } else {
-            this.computeHistFull(tableId, cProfile, blockId, timestamps, list);
+          if (SType.RAW.equals(sType)) {
+            this.computeRaw(tableId, cProfile, blockId, timestamps, begin, end, list);
           }
-        }
 
-        if (SType.ENUM.equals(sType)) {
-          this.computeEnum(tableId, cProfile, blockId, timestamps, begin, end, list);
+          if (SType.HISTOGRAM.equals(sType)) {
+            if (previousBlockId == blockId) {
+              this.computeHistTailOverFlow(tableId, cProfile, blockId, timestamps, begin, end, list);
+            } else {
+              this.computeHistFull(tableId, cProfile, blockId, timestamps, list);
+            }
+          }
+
+          if (SType.ENUM.equals(sType)) {
+            this.computeEnum(tableId, cProfile, blockId, timestamps, begin, end, list);
+          }
         }
       }
     } catch (Exception e) {

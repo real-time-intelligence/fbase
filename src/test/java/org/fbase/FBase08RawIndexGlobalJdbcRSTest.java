@@ -34,6 +34,7 @@ public class FBase08RawIndexGlobalJdbcRSTest extends AbstractH2Test {
     csTypeMap.put("LASTNAME", SType.RAW);
     csTypeMap.put("HOUSE", SType.HISTOGRAM);
     csTypeMap.put("CITY", SType.ENUM);
+    csTypeMap.put("BIRTHDAY", SType.RAW);
 
     putDataJdbc(csTypeMap, TType.TIME_SERIES, IType.GLOBAL, true);
   }
