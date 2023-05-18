@@ -268,10 +268,8 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsColId);
 
-    String[] first = getStringArrayValue(rawDAO, Mapper.isCType(firstLevelGroupBy),
-        tableId, blockId, firstLevelGroupBy.getColId());
-    String[] second = getStringArrayValue(rawDAO, Mapper.isCType(secondLevelGroupBy),
-        tableId, blockId, secondLevelGroupBy.getColId());
+    String[] first = getStringArrayValue(rawDAO, tableId, blockId, firstLevelGroupBy);
+    String[] second = getStringArrayValue(rawDAO, tableId, blockId, secondLevelGroupBy);
 
     if (first.length != 0 & second.length != 0) {
       IntStream iRow = IntStream.range(0, timestamps.length);
@@ -383,8 +381,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
 
     List<String> list = new ArrayList<>();
 
-    String[] columnData = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
-        tableId, blockId, cProfile.getColId());
+    String[] columnData = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
 
     if (columnData.length != 0) {
       IntStream iRow = IntStream.range(0, timestamp.length);

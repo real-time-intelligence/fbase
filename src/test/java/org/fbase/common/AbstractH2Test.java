@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -61,6 +62,8 @@ public abstract class AbstractH2Test implements JdbcSource {
   protected List<List<Object>> data05;
   protected List<List<Object>> data06;
 
+  protected LocalDateTime birthday = LocalDateTime.of(2023, 1, 1, 1, 1, 1);
+
   private TProfile tProfile;
   private List<CProfile> cProfiles;
   private String select = "SELECT * FROM person WHERE ROWNUM < 2";
@@ -79,45 +82,45 @@ public abstract class AbstractH2Test implements JdbcSource {
     dbConnection = h2Db.getConnection();
 
     h2Db.execute("CREATE TABLE PERSON (id INT PRIMARY KEY, "
-        + "firstname VARCHAR(64), lastname VARCHAR(64), house INT, city VARCHAR(64))");
+        + "firstname VARCHAR(64), lastname VARCHAR(64), house INT, city VARCHAR(64), birthday TIMESTAMP)");
 
-    h2Db.insert(Person.builder().id(1).firstname("Alex").lastname("Ivanov").house(1).city("Moscow").build());
-    h2Db.insert(Person.builder().id(2).firstname("Ivan").lastname("Ivanov").house(2).city("Moscow").build());
-    h2Db.insert(Person.builder().id(3).firstname("Oleg").lastname("Petrov").house(1).city("Moscow").build());
-    h2Db.insert(Person.builder().id(4).firstname("Lee").lastname("Sui").house(1).city("Moscow").build());
-    h2Db.insert(Person.builder().id(5).firstname("Lee").lastname("Ivanov").house(1).city("Moscow").build());
-    h2Db.insert(Person.builder().id(6).firstname("Lee").lastname("Ivanov").house(2).city("Moscow").build());
+    h2Db.insert(Person.builder().id(1).firstname("Alex").lastname("Ivanov").house(1).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(2).firstname("Ivan").lastname("Ivanov").house(2).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(3).firstname("Oleg").lastname("Petrov").house(1).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(4).firstname("Lee").lastname("Sui").house(1).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(5).firstname("Lee").lastname("Ivanov").house(1).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(6).firstname("Lee").lastname("Ivanov").house(2).city("Moscow").birthday(birthday).build());
 
     h2Db.loadSqlColMetadataList("SELECT * FROM person");
     data01 = h2Db.getData("SELECT * FROM person");
 
-    h2Db.insert(Person.builder().id(7).firstname("Men").lastname("Petrov").house(1).city("Yekaterinburg").build());
+    h2Db.insert(Person.builder().id(7).firstname("Men").lastname("Petrov").house(1).city("Yekaterinburg").birthday(birthday).build());
     data02 = h2Db.getData("SELECT * FROM person WHERE id=7");
 
-    h2Db.insert(Person.builder().id(8).firstname("Ion").lastname("Тихий").house(1).city("Moscow").build());
-    h2Db.insert(Person.builder().id(9).firstname("Федор").lastname("Шаляпин").house(1).city("Moscow").build());
-    h2Db.insert(Person.builder().id(10).firstname("Петр").lastname("Пирогов").house(1).city("Moscow").build());
+    h2Db.insert(Person.builder().id(8).firstname("Ion").lastname("Тихий").house(1).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(9).firstname("Федор").lastname("Шаляпин").house(1).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(10).firstname("Петр").lastname("Пирогов").house(1).city("Moscow").birthday(birthday).build());
     data03 = h2Db.getData("SELECT * FROM person WHERE id=10 OR id=8 OR id=9");
 
-    h2Db.insert(Person.builder().id(11).firstname("Oleg").lastname("Semenov").house(1).city("Moscow").build());
+    h2Db.insert(Person.builder().id(11).firstname("Oleg").lastname("Semenov").house(1).city("Moscow").birthday(birthday).build());
     data04 = h2Db.getData("SELECT * FROM person WHERE id=11");
 
-    h2Db.insert(Person.builder().id(12).firstname("Oleg").lastname("Mirko").house(2).city("Yekaterinburg").build());
-    h2Db.insert(Person.builder().id(13).firstname("Oleg").lastname("Vedel").house(3).city("Moscow").build());
-    h2Db.insert(Person.builder().id(14).firstname("Oleg").lastname("Tan").house(1).city("Moscow").build());
+    h2Db.insert(Person.builder().id(12).firstname("Oleg").lastname("Mirko").house(2).city("Yekaterinburg").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(13).firstname("Oleg").lastname("Vedel").house(3).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(14).firstname("Oleg").lastname("Tan").house(1).city("Moscow").birthday(birthday).build());
     data05 = h2Db.getData("SELECT * FROM person WHERE id=12 OR id=13 OR id=14");
 
-    h2Db.insert(Person.builder().id(15).firstname("Egor").lastname("Semenov").house(1).city("Yekaterinburg").build());
-    h2Db.insert(Person.builder().id(16).firstname("Egor").lastname("Semenov").house(1).city("Yekaterinburg").build());
-    h2Db.insert(Person.builder().id(17).firstname("Egor").lastname("Semenov").house(1).city("Moscow").build());
-    h2Db.insert(Person.builder().id(18).firstname("Egor").lastname("Semenov").house(2).city("Moscow").build());
-    h2Db.insert(Person.builder().id(19).firstname("Egor").lastname("Semenov").house(2).city("Yekaterinburg").build());
-    h2Db.insert(Person.builder().id(20).firstname("Egor").lastname("Semenov").house(2).city("Yekaterinburg").build());
-    h2Db.insert(Person.builder().id(21).firstname("Egor").lastname("Semenov").house(3).city("Yekaterinburg").build());
-    h2Db.insert(Person.builder().id(22).firstname("Egor").lastname("Semenov").house(3).city("Yekaterinburg").build());
-    h2Db.insert(Person.builder().id(23).firstname("Egor").lastname("Semenov").house(3).city("Ufa").build());
-    h2Db.insert(Person.builder().id(24).firstname("Egor").lastname("Semenov").house(4).city("Ufa").build());
-    h2Db.insert(Person.builder().id(25).firstname("Egor").lastname("Semenov").house(4).city("Moscow").build());
+    h2Db.insert(Person.builder().id(15).firstname("Egor").lastname("Semenov").house(1).city("Yekaterinburg").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(16).firstname("Egor").lastname("Semenov").house(1).city("Yekaterinburg").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(17).firstname("Egor").lastname("Semenov").house(1).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(18).firstname("Egor").lastname("Semenov").house(2).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(19).firstname("Egor").lastname("Semenov").house(2).city("Yekaterinburg").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(20).firstname("Egor").lastname("Semenov").house(2).city("Yekaterinburg").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(21).firstname("Egor").lastname("Semenov").house(3).city("Yekaterinburg").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(22).firstname("Egor").lastname("Semenov").house(3).city("Yekaterinburg").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(23).firstname("Egor").lastname("Semenov").house(3).city("Ufa").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(24).firstname("Egor").lastname("Semenov").house(4).city("Ufa").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(25).firstname("Egor").lastname("Semenov").house(4).city("Moscow").birthday(birthday).build());
     data06 = h2Db.getData("SELECT * FROM person WHERE id=15 OR id=16 OR id=17 OR id=18 OR id=19 OR id=20"
         + " OR id=21 OR id=22 OR id=23 OR id=24 OR id=25");
   }
@@ -316,18 +319,18 @@ public abstract class AbstractH2Test implements JdbcSource {
   }
 
   protected void loadExpected(List<List<Object>> expected) {
-    expected.add(Arrays.asList(new String[]{"1", "Alex", "Ivanov", "1", "Moscow"}));
-    expected.add(Arrays.asList(new String[]{"2", "Ivan", "Ivanov", "2", "Moscow"}));
-    expected.add(Arrays.asList(new String[]{"3", "Oleg", "Petrov", "1", "Moscow"}));
-    expected.add(Arrays.asList(new String[]{"4", "Lee", "Sui", "1", "Moscow"}));
-    expected.add(Arrays.asList(new String[]{"5", "Lee", "Ivanov", "1", "Moscow"}));
-    expected.add(Arrays.asList(new String[]{"6", "Lee", "Ivanov", "2", "Moscow"}));
-    expected.add(Arrays.asList(new String[]{"7", "Men", "Petrov", "1", "Yekaterinburg"}));
-    expected.add(Arrays.asList(new String[]{"8", "Ion", "Тихий", "1", "Moscow"}));
-    expected.add(Arrays.asList(new String[]{"9", "Федор", "Шаляпин", "1", "Moscow"}));
-    expected.add(Arrays.asList(new String[]{"10", "Петр", "Пирогов", "1", "Moscow"}));
-    expected.add(Arrays.asList(new String[]{"11", "Oleg", "Semenov", "1", "Moscow"}));
-    expected.add(Arrays.asList(new String[]{"12", "Oleg", "Mirko", "2", "Yekaterinburg"}));
+    expected.add(Arrays.asList(new String[]{"1", "Alex", "Ivanov", "1", "Moscow", "01.01.2023 01:01:01"}));
+    expected.add(Arrays.asList(new String[]{"2", "Ivan", "Ivanov", "2", "Moscow", "01.01.2023 01:01:01"}));
+    expected.add(Arrays.asList(new String[]{"3", "Oleg", "Petrov", "1", "Moscow", "01.01.2023 01:01:01"}));
+    expected.add(Arrays.asList(new String[]{"4", "Lee", "Sui", "1", "Moscow", "01.01.2023 01:01:01"}));
+    expected.add(Arrays.asList(new String[]{"5", "Lee", "Ivanov", "1", "Moscow", "01.01.2023 01:01:01"}));
+    expected.add(Arrays.asList(new String[]{"6", "Lee", "Ivanov", "2", "Moscow", "01.01.2023 01:01:01"}));
+    expected.add(Arrays.asList(new String[]{"7", "Men", "Petrov", "1", "Yekaterinburg", "01.01.2023 01:01:01"}));
+    expected.add(Arrays.asList(new String[]{"8", "Ion", "Тихий", "1", "Moscow", "01.01.2023 01:01:01"}));
+    expected.add(Arrays.asList(new String[]{"9", "Федор", "Шаляпин", "1", "Moscow", "01.01.2023 01:01:01"}));
+    expected.add(Arrays.asList(new String[]{"10", "Петр", "Пирогов", "1", "Moscow", "01.01.2023 01:01:01"}));
+    expected.add(Arrays.asList(new String[]{"11", "Oleg", "Semenov", "1", "Moscow", "01.01.2023 01:01:01"}));
+    expected.add(Arrays.asList(new String[]{"12", "Oleg", "Mirko", "2", "Yekaterinburg", "01.01.2023 01:01:01"}));
   }
 
   protected List<GanttColumn> getDataGanttColumn(String firstColName, String secondColName, int begin, int end)

@@ -68,8 +68,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     }
 
     this.rawDAO.getListBlockIds(tableId, begin, end)
-        .forEach(blockId ->
-            this.computeNoIndexBeginEnd(tableId, tsProfile, cProfile, blockId, begin, end, list));
+        .forEach(blockId -> this.computeNoIndexBeginEnd(tableId, tsProfile, cProfile, blockId, begin, end, list));
 
     return list;
   }
@@ -157,8 +156,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         if (SType.RAW.equals(sType) & !cProfile.getCsType().isTimeStamp()) { // raw data
           int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
-          String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
-              tableId, blockId, cProfile.getColId());
+          String[] column = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
 
           for (int i = startPoint; i < column.length; i++) {
             columnData.add(column[i]);
@@ -293,8 +291,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
         if (SType.RAW.equals(sType) & !cProfile.getCsType().isTimeStamp()) { // raw data
 
-          String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
-                  tableId, blockId, cProfile.getColId());
+          String[] column = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
 
           if (column.length != 0) {
             IntStream iRow = IntStream.range(0, timestamps.length);
@@ -348,8 +345,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
     long[] timestamps = this.rawDAO.getRawLong(tableId, blockId, tProfile.getColId());
 
-    String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
-        tableId, blockId, cProfile.getColId());
+    String[] column = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
 
     long tail = timestamps[timestamps.length - 1];
 

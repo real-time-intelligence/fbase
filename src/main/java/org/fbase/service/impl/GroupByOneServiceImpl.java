@@ -210,8 +210,7 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
 
     Map<String, Integer> map = new LinkedHashMap<>();
 
-    String[] column = getStringArrayValue(rawDAO, Mapper.isCType(cProfile),
-            tableId, blockId, cProfile.getColId());
+    String[] column = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
 
     long tail = timestamps[timestamps.length - 1];
 

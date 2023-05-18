@@ -127,4 +127,13 @@ public class FBase04RawIndexLocalJdbcTest extends AbstractH2Test {
     assertForRaw(expected.stream().filter(filter).map(map -> List.of(map.get(0), map.get(4))).collect(Collectors.toList()), actual);
   }
 
+  @Test
+  public void computeTableRawDataTimestampTest() {
+    List<List<Object>> expectedLocal = expected.stream().filter(f -> f.get(0).equals("1")).toList();
+    List<List<Object>> actual = getRawDataAll(1, 1);
+
+    assertEquals(expectedLocal.size(), actual.size());
+    assertForRaw(expectedLocal, actual);
+  }
+
 }

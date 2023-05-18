@@ -66,8 +66,8 @@ public class H2Database {
         new RelationalPathBase(qp.getType(), qp.getMetadata(), "","person");
 
     new SQLInsertClause(connection, dialect, relationalPathBase)
-        .columns(qp.id, qp.firstname, qp.lastname, qp.house, qp.city)
-        .values(p.getId(), p.getFirstname(), p.getLastname(), p.getHouse(), p.getCity()).execute();
+        .columns(qp.id, qp.firstname, qp.lastname, qp.house, qp.city, qp.birthday)
+        .values(p.getId(), p.getFirstname(), p.getLastname(), p.getHouse(), p.getCity(), p.getBirthday()).execute();
   }
 
   public List<List<Object>> getData(String select) throws SQLException {

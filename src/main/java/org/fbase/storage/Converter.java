@@ -42,9 +42,9 @@ public class Converter {
       case TIMESTAMPTZ:
       case DATETIME:
         if (obj instanceof Timestamp ts) {
-          return (int) ts.getTime() / 1000;
+          return Math.toIntExact(ts.getTime() / 1000);
         } else if (obj instanceof LocalDateTime localDateTime) {
-          return (int) localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli() / 1000;
+          return Math.toIntExact(localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli() / 1000);
         }
       case UINT32:
         Long var = (Long) obj;

@@ -6,6 +6,8 @@ import static org.fbase.service.mapping.Mapper.INT_NULL;
 import static org.fbase.service.mapping.Mapper.LONG_NULL;
 
 import java.nio.FloatBuffer;
+import java.sql.Date;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -17,6 +19,8 @@ import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import org.fbase.metadata.DataType;
 import org.fbase.model.MetaModel;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
@@ -269,15 +273,23 @@ public abstract class CommonServiceApi {
         .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
   }
 
-  public String[] getStringArrayValue(RawDAO rawDAO, CType cType, byte tableId, long blockId, int colId) {
+  public String[] getStringArrayValue(RawDAO rawDAO, byte tableId, long blockId, CProfile cProfile) {
+    int colId = cProfile.getColId();
+    CType cType = Mapper.isCType(cProfile);
+
     if (CType.INT == cType) {
       return Arrays.stream(rawDAO.getRawInt(tableId, blockId, colId))
           .mapToObj(val -> val == INT_NULL ? "" : String.valueOf(val))
           .toArray(String[]::new);
     } else if (CType.LONG == cType) {
-      return Arrays.stream(rawDAO.getRawLong(tableId, blockId, colId))
-          .mapToObj(val -> val == LONG_NULL ? "" : String.valueOf(val))
-          .toArray(String[]::new);
+      return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
+        case TIMESTAMP, TIMESTAMPTZ, DATETIME -> Arrays.stream(rawDAO.getRawLong(tableId, blockId, colId))
+                .mapToObj(val -> val == LONG_NULL ? "" : getDateForLongShorted(Math.toIntExact(val / 1000)))
+                .toArray(String[]::new);
+        default -> Arrays.stream(rawDAO.getRawLong(tableId, blockId, colId))
+                .mapToObj(val -> val == LONG_NULL ? "" : String.valueOf(val))
+                .toArray(String[]::new);
+      };
     } else if (CType.FLOAT == cType) {
       float[] floats = rawDAO.getRawFloat(tableId, blockId, colId);
       return IntStream.range(0, floats.length)
@@ -331,4 +343,9 @@ public abstract class CommonServiceApi {
     throw new RuntimeException("Undefined storage type for column id: " + colId);
   }
 
+  private String getDateForLongShorted(int longDate) {
+    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+    Date dtDate= new Date(((long)longDate)*1000L);
+    return simpleDateFormat.format(dtDate);
+  }
 }

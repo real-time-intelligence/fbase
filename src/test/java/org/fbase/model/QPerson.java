@@ -5,10 +5,10 @@ import static com.querydsl.core.types.PathMetadataFactory.forVariable;
 
 import com.querydsl.core.types.Path;
 import com.querydsl.core.types.PathMetadata;
-import com.querydsl.core.types.dsl.EntityPathBase;
-import com.querydsl.core.types.dsl.NumberPath;
-import com.querydsl.core.types.dsl.StringPath;
+import com.querydsl.core.types.dsl.*;
+
 import javax.annotation.processing.Generated;
+import java.time.LocalDateTime;
 
 @Generated("com.querydsl.codegen.EntitySerializer")
 public class QPerson extends EntityPathBase<Person> {
@@ -22,6 +22,7 @@ public class QPerson extends EntityPathBase<Person> {
   public final StringPath lastname = createString("lastname");
   public final NumberPath<Integer> house = createNumber("house", Integer.class);
   public final StringPath city = createString("city");
+  public final TimePath<LocalDateTime> birthday = createTime("birthday", LocalDateTime.class);
 
   public QPerson(String variable) {
     super(Person.class, forVariable(variable));

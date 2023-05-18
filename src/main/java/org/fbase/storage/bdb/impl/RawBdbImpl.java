@@ -277,7 +277,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
     if (rColumn == null) {
-      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      log.info("No data found for byte t::b::c -> " + tableId + "::" + blockId + "::" + colId);
       return new byte[0];
     }
 
@@ -300,7 +300,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
     if (rColumn == null) {
-      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      log.info("No data found for int t::b::c -> " + tableId + "::" + blockId + "::" + colId);
       return new int[0];
     }
 
@@ -323,7 +323,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
     if (rColumn == null) {
-      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      log.info("No data found for long t::b::c -> " + tableId + "::" + blockId + "::" + colId);
       return new long[0];
     }
 
@@ -346,7 +346,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
     if (rColumn == null) {
-      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      log.info("No data found for float t::b::c -> " + tableId + "::" + blockId + "::" + colId);
       return new float[0];
     }
 
@@ -369,7 +369,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
     if (rColumn == null) {
-      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      log.info("No data found for double t::b::c -> " + tableId + "::" + blockId + "::" + colId);
       return new double[0];
     }
 
@@ -392,7 +392,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
     if (rColumn == null) {
-      log.info("No data found for t::b::c -> " + tableId + "::" + blockId + "::" + colId);
+      log.info("No data found for string t::b::c -> " + tableId + "::" + blockId + "::" + colId);
       return new String[0];
     }
 
