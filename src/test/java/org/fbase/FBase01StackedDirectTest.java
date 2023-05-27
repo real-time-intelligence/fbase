@@ -144,4 +144,19 @@ public class FBase01StackedDirectTest extends AbstractH2Test {
     assertEquals(firstListStackedValue(listNotIndexed), 1);
   }
 
+  @Test
+  public void computeBeginEnd2527Test() throws BeginEndWrongOrderException, SqlColMetadataException {
+    List<StackedColumn> listIndexed = getDataStackedColumn("LASTNAME", 25, 27);
+    List<StackedColumn> listNotIndexed = getDataStackedColumn("FIRSTNAME", 25, 27);
+
+    assertEquals(firstListStackedKey(listIndexed), "Semenov");
+    assertEquals(firstListStackedValue(listIndexed), 1);
+
+    assertEquals(firstListStackedKey(listNotIndexed), "Egor");
+    assertEquals(firstListStackedValue(listNotIndexed), 1);
+
+    assertEquals(lastListStackedKey(listIndexed), "Ivanov");
+    assertEquals(lastListStackedKey(listNotIndexed), "Ivan");
+  }
+
 }

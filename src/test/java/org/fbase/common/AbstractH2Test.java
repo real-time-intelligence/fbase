@@ -61,6 +61,7 @@ public abstract class AbstractH2Test implements JdbcSource {
   protected List<List<Object>> data04;
   protected List<List<Object>> data05;
   protected List<List<Object>> data06;
+  protected List<List<Object>> data07;
 
   protected LocalDateTime birthday = LocalDateTime.of(2023, 1, 1, 1, 1, 1);
 
@@ -81,7 +82,7 @@ public abstract class AbstractH2Test implements JdbcSource {
 
     dbConnection = h2Db.getConnection();
 
-    h2Db.execute("CREATE TABLE PERSON (id INT PRIMARY KEY, "
+    h2Db.execute("CREATE TABLE PERSON (id INT, "
         + "firstname VARCHAR(64), lastname VARCHAR(64), house INT, city VARCHAR(64), birthday TIMESTAMP)");
 
     h2Db.insert(Person.builder().id(1).firstname("Alex").lastname("Ivanov").house(1).city("Moscow").birthday(birthday).build());
@@ -123,6 +124,11 @@ public abstract class AbstractH2Test implements JdbcSource {
     h2Db.insert(Person.builder().id(25).firstname("Egor").lastname("Semenov").house(4).city("Moscow").birthday(birthday).build());
     data06 = h2Db.getData("SELECT * FROM person WHERE id=15 OR id=16 OR id=17 OR id=18 OR id=19 OR id=20"
         + " OR id=21 OR id=22 OR id=23 OR id=24 OR id=25");
+
+    h2Db.insert(Person.builder().id(26).firstname("Ivan").lastname("Ivanov").house(1).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(26).firstname("Ivan").lastname("Ivanov").house(2).city("Moscow").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(27).firstname("Ivan").lastname("Ivanov").house(3).city("Moscow").birthday(birthday).build());
+    data07 = h2Db.getData("SELECT * FROM person WHERE id=26 OR id=27");
   }
 
   protected void putDataDirect(Map<String, SType> csTypeMap) {
@@ -182,6 +188,7 @@ public abstract class AbstractH2Test implements JdbcSource {
       fStore.putDataDirect(tableName, data04);
       fStore.putDataDirect(tableName, data05);
       fStore.putDataDirect(tableName, data06);
+      fStore.putDataDirect(tableName, data07);
     } catch (SqlColMetadataException | SQLException | EnumByteExceedException e) {
       throw new RuntimeException(e);
     }
@@ -246,6 +253,8 @@ public abstract class AbstractH2Test implements JdbcSource {
       h2Db.putDataJdbc(fStore, tProfile,
           "SELECT * FROM person WHERE id=15 OR id=16 OR id=17 OR id=18 OR id=19 OR id=20"
               + " OR id=21 OR id=22 OR id=23 OR id=24 OR id=25");
+      h2Db.putDataJdbc(fStore, tProfile,
+          "SELECT * FROM person WHERE id=26 OR id=27");
 
     } catch (SQLException e) {
       throw new RuntimeException(e);

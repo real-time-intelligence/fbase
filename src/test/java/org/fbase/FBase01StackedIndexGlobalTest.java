@@ -1,5 +1,10 @@
 package org.fbase;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.fbase.common.AbstractH2Test;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.SqlColMetadataException;
@@ -9,12 +14,6 @@ import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
 
@@ -147,4 +146,18 @@ public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
     assertEquals(firstListStackedValue(listNotIndexed), 1);
   }
 
+  @Test
+  public void computeBeginEnd2527Test() throws BeginEndWrongOrderException, SqlColMetadataException {
+    List<StackedColumn> listIndexed = getDataStackedColumn("LASTNAME", 25, 27);
+    List<StackedColumn> listNotIndexed = getDataStackedColumn("FIRSTNAME", 25, 27);
+
+    assertEquals(firstListStackedKey(listIndexed), "Semenov");
+    assertEquals(firstListStackedValue(listIndexed), 1);
+
+    assertEquals(firstListStackedKey(listNotIndexed), "Egor");
+    assertEquals(firstListStackedValue(listNotIndexed), 1);
+
+    assertEquals(lastListStackedKey(listIndexed), "Ivanov");
+    assertEquals(lastListStackedKey(listNotIndexed), "Ivan");
+  }
 }

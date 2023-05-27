@@ -1,6 +1,12 @@
 package org.fbase.service.impl;
 
 import com.sleepycat.persist.EntityCursor;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.MetaModel;
@@ -9,7 +15,6 @@ import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.GroupByOneService;
-import org.fbase.service.mapping.Mapper;
 import org.fbase.storage.Converter;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
@@ -18,10 +23,6 @@ import org.fbase.storage.bdb.entity.Metadata;
 import org.fbase.storage.bdb.entity.MetadataKey;
 import org.fbase.storage.bdb.entity.column.EColumn;
 import org.fbase.storage.helper.EnumHelper;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.IntStream;
 
 @Log4j2
 public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOneService {
@@ -188,7 +189,14 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
     if (blockId < begin) {
       iRow.forEach(iR -> {
         if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-          String keyCompute = this.converter.convertIntToRaw(histogramsUnPack[iR], cProfile);
+          int objectIndex;
+          if (histogramsUnPack[iR] == 0) {
+            objectIndex = histogramsUnPack[0];
+          } else {
+            objectIndex = histogramsUnPack[iR];
+          }
+
+          String keyCompute = this.converter.convertIntToRaw(objectIndex, cProfile);
           map.compute(keyCompute, (k, val) -> val == null ? 1 : val + 1);
         }
       });
