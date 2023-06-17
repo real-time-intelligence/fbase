@@ -31,7 +31,18 @@ public enum DataType {
   // CSV
   LONG(24, "LONG"),
   DOUBLE(25, "DOUBLE"),
-  STRING(26, "STRING");
+  STRING(26, "STRING"),
+
+  // PG
+  NUMERIC(27, "NUMERIC"),
+
+  // MS SQL
+  FLOAT(28, "FLOAT"),
+  SMALLINT(29, "SMALLINT"),
+  INT(30, "INT"),
+  BIGINT(31, "BIGINT"),
+  BIT(32, "BIT"),
+  NVARCHAR(33, "NVARCHAR");
 
   private final byte key;
   private final String value;

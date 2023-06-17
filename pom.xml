@@ -66,6 +66,9 @@
     <clickhouse.version>0.3.2</clickhouse.version>
     <h2.version>1.4.200</h2.version>
     <ojdbc10.version>19.15.0.0.1</ojdbc10.version>
+    <orientdb.version>3.2.17</orientdb.version>
+    <postgresql.version>42.6.0</postgresql.version>
+    <mssql.version>12.3.1.jre11-preview</mssql.version>
     <jackson-databind.version>2.13.4.1</jackson-databind.version>
 
     <maven.surefire.plugin.version>2.22.2</maven.surefire.plugin.version>
@@ -156,7 +159,19 @@
     <dependency>
       <groupId>com.orientechnologies</groupId>
       <artifactId>orientdb-jdbc</artifactId>
-      <version>3.2.16</version>
+      <version>${orientdb.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${postgresql.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.sqlserver</groupId>
+      <artifactId>mssql-jdbc</artifactId>
+      <version>${mssql.version}</version>
       <scope>test</scope>
     </dependency>
 

@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.DataType;
@@ -33,10 +34,10 @@ public class Mapper {
         cProfile.getColDbTypeName().contains("ENUM")) return CType.STRING;
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case UINT8, UINT16, INT4, FLOAT8, NUMBER, INTEGER -> CType.INT;
+      case UINT8, UINT16, INT4, FLOAT8, NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT -> CType.INT;
       case OID, DATE, TIMESTAMP, TIMESTAMPTZ, DATETIME, UINT32, LONG -> CType.LONG;
       case FLOAT32 -> CType.FLOAT;
-      case FLOAT64, DOUBLE -> CType.DOUBLE;
+      case FLOAT64, DOUBLE, NUMERIC, FLOAT -> CType.DOUBLE;
       default -> CType.STRING;
     };
   }
@@ -50,12 +51,24 @@ public class Mapper {
       case FLOAT8:
       case NUMBER:
       case INTEGER:
+      case SMALLINT:
+      case INT:
+      case BIGINT:
+      case BIT:
         if (obj instanceof BigDecimal bd) {
           return bd.intValue();
         } else if (obj instanceof Double db) {
           return db.intValue();
+        } else if (obj instanceof Long lng) {
+          return lng.intValue();
         } else if (obj instanceof Short sh) {
           return sh.intValue();
+        } else if (obj instanceof Boolean b) {
+          if (Objects.isNull(b)) {
+            return INT_NULL;
+          } else {
+            return b ? 1 : 0;
+          }
         }
         return (Integer) obj;
       default:
@@ -97,6 +110,18 @@ public class Mapper {
     if (obj == null) return DOUBLE_NULL;
     if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.FLOAT64) {
       return (Double) obj;
+    } else if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.FLOAT)  {
+      if (obj instanceof BigDecimal bd) {
+        return bd.doubleValue();
+      } else {
+        return (Double) obj;
+      }
+    } else if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.NUMERIC)  {
+      if (obj instanceof BigDecimal bd) {
+        return bd.doubleValue();
+      } else {
+        return (Double) obj;
+      }
     }
     return DOUBLE_NULL;
   }
@@ -115,6 +140,7 @@ public class Mapper {
       case TEXT:
       case VARCHAR:
       case VARCHAR2:
+      case NVARCHAR:
         return (String) obj;
       case RAW:
         return getByte(obj);

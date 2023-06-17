@@ -55,6 +55,10 @@ public class Converter {
       case FLOAT8:
       case NUMBER:
       case INTEGER:
+      case BIGINT:
+      case SMALLINT:
+      case INT:
+      case BIT:
         if (obj instanceof BigDecimal bd) {
           return bd.intValue();
         } else if (obj instanceof Double db) {
@@ -64,6 +68,8 @@ public class Converter {
         }
         return (Integer) obj;
       case FLOAT64:
+      case FLOAT:
+      case NUMERIC:
         Double varD = (Double) obj;
         return dimensionDAO.getOrLoad(varD);
       case FLOAT32:
@@ -78,6 +84,7 @@ public class Converter {
       case TEXT:
       case VARCHAR:
       case VARCHAR2:
+      case NVARCHAR:
         return dimensionDAO.getOrLoad((String) obj);
       default:
         return INT_NULL;
@@ -91,17 +98,17 @@ public class Converter {
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getStringById(objIndex);
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case OID, DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, CLOB, NAME, TEXT, VARCHAR, VARCHAR2 ->
+      case OID, DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, CLOB, NAME, TEXT, VARCHAR, VARCHAR2, NVARCHAR ->
           dimensionDAO.getStringById(objIndex);
       case TIMESTAMP, TIMESTAMPTZ, DATETIME -> getDateForLongShorted(objIndex);
-      case FLOAT64, FLOAT32 -> String.valueOf(dimensionDAO.getDoubleById(objIndex));
+      case FLOAT64, FLOAT32, FLOAT, NUMERIC -> String.valueOf(dimensionDAO.getDoubleById(objIndex));
       default -> String.valueOf(objIndex);
     };
   }
 
   public double convertIntToDouble(int objIndex, CProfile cProfile) {
     return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case FLOAT64, FLOAT32 -> dimensionDAO.getDoubleById(objIndex);
+      case FLOAT64, FLOAT32, FLOAT, NUMERIC  -> dimensionDAO.getDoubleById(objIndex);
       default -> objIndex;
     };
   }
