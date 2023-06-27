@@ -29,7 +29,6 @@ public class Converter {
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getOrLoad((String) obj);
 
     switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case OID:
       case DATE:
         if (obj instanceof java.util.Date dt) {
           return dimensionDAO.getOrLoad(dt.toString());
@@ -46,6 +45,7 @@ public class Converter {
         } else if (obj instanceof LocalDateTime localDateTime) {
           return Math.toIntExact(localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli() / 1000);
         }
+      case OID:
       case UINT32:
         Long var = (Long) obj;
         return var.intValue();
@@ -70,8 +70,12 @@ public class Converter {
       case FLOAT64:
       case FLOAT:
       case NUMERIC:
-        Double varD = (Double) obj;
-        return dimensionDAO.getOrLoad(varD);
+        if (obj instanceof BigDecimal bd) {
+          return dimensionDAO.getOrLoad(bd.doubleValue());
+        } else {
+          Double varD = (Double) obj;
+          return dimensionDAO.getOrLoad(varD);
+        }
       case FLOAT32:
         Float varF = (Float) obj;
         return dimensionDAO.getOrLoad(varF.doubleValue());
@@ -98,7 +102,7 @@ public class Converter {
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getStringById(objIndex);
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case OID, DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, CLOB, NAME, TEXT, VARCHAR, VARCHAR2, NVARCHAR ->
+      case DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, CLOB, NAME, TEXT, VARCHAR, VARCHAR2, NVARCHAR ->
           dimensionDAO.getStringById(objIndex);
       case TIMESTAMP, TIMESTAMPTZ, DATETIME -> getDateForLongShorted(objIndex);
       case FLOAT64, FLOAT32, FLOAT, NUMERIC -> String.valueOf(dimensionDAO.getDoubleById(objIndex));

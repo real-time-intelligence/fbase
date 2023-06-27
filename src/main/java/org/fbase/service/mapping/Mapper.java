@@ -79,7 +79,6 @@ public class Mapper {
   public static long convertRawToLong(Object obj, CProfile cProfile) {
     if (obj == null) return LONG_NULL;
     switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case OID:
       case DATE:
       case TIMESTAMP:
       case TIMESTAMPTZ:
@@ -91,6 +90,7 @@ public class Mapper {
         } else if (obj instanceof LocalDate localDate) {
           return localDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond();
         }
+      case OID:
       case UINT32:
         return (Long) obj;
       default:
