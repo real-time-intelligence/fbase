@@ -23,10 +23,10 @@ Hybrid time-series column storage database engine written in Java
 The main APIs for writing and reading data from the database are located in the **FStore** interface.
 
 The following **Write** modes are used to save data in **FBase**:
-- Direct data insertion, **Direct** mode;
-- Incremental data insertion using JDBC, **JDBC** mode;
-- Batch data loading using JDBC, **JDBC Batch** mode;
-- Loading data from a CSV file, **CSV** mode (experimental API).
+- **Direct** - direct data insertion;
+- **JDBC** - incremental data insertion using JDBC;
+- **JDBC Batch** - batch data loading using JDBC;
+- **CSV** - loading data from a CSV file (experimental API).
 
 The following **Read** APIs are available in **FBase**:
 
@@ -47,6 +47,7 @@ SELECT trip_type, pickup_boroname, COUNT(pickup_boroname)
 ```
 
 - **Raw** - retrieval of raw data in tabular form. For a selected column or all data from the table.
+
 Before saving data, you need to specify the table storage parameters (the table name **tableName** is mandatory) 
 and column metadata in the **SProfile** object (if necessary), and load them into the **FBase** metadata store 
 using the **loadJdbcTableMetadata** API for storing time-series data tables or the **loadCsvTableMetadata** API 
