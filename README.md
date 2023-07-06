@@ -75,6 +75,8 @@ Data in **FBase** can also be compressed, for this purpose the corresponding boo
 The configuration of the database table allows switching between global and local indexing, enabling and disabling data compression "on the fly". 
 This is achieved through placing the storage type metadata in the block header for both types of indexing and a flag for enabling or disabling compression.
 
+[Return to Table of Contents](#table-of-contents)
+
 ### Data format
 ![Data format](media/data.png)
 
@@ -85,8 +87,12 @@ Three data storage formats are supported:
 
 The metadata of the storage format, indexing type, and compression are stored in the block header.
 
+[Return to Table of Contents](#table-of-contents)
+
 ## Prerequisites
 **FBase** is Java 17+ compatible and ships with a small bunch of dependencies
+
+[Return to Table of Contents](#table-of-contents)
 
 ## Build
 Ensure you have JDK 17+, Maven 3 and Git installed
@@ -112,6 +118,8 @@ To build and install **FBase** artifact to local mvn repository run:
     mvn clean install
   ```
 
+[Return to Table of Contents](#table-of-contents)
+
 ## Usage
 Add **FBase** as a dependency in the settings file pom.xml of your Maven project:
 
@@ -127,8 +135,12 @@ You can find a complete list of examples on how to use FBase in your application
 
 Note: Library published on [Maven Central](https://central.sonatype.com/artifact/ru.real-time-intelligence/fbase/)
 
+[Return to Table of Contents](#table-of-contents)
+
 ## Downloads
 Current version is available on [GitHub](https://github.com/real-time-intelligence/fbase/releases/) or [Maven Central](https://central.sonatype.com/artifact/ru.real-time-intelligence/fbase/)
+
+[Return to Table of Contents](#table-of-contents)
 
 ## Development
 If you found a bug in the code or have a suggestion for improvement, please create an [issue](https://github.com/real-time-intelligence/fbase/issues/) on GitHub.
@@ -152,9 +164,15 @@ To run the integration tests, you need to:
 
 Note: The integration tests use the **@Disabled** annotation, if necessary, it should be removed for the correct loading of data and checks.
 
+[Return to Table of Contents](#table-of-contents)
+
 ## License
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 Code released under the Apache License Version 2.0
 
+[Return to Table of Contents](#table-of-contents)
+
 ## Contact
 Created by [@akardapolov](mailto:akardapolov@gmail.com) - feel free to contact me!
+
+[Return to Table of Contents](#table-of-contents)
