@@ -4,7 +4,7 @@
 
   <groupId>ru.real-time-intelligence</groupId>
   <artifactId>fbase</artifactId>
-  <version>0.3.0</version>
+  <version>0.4.0</version>
   <packaging>jar</packaging>
 
   <name>FBase</name>
@@ -31,7 +31,7 @@
     <connection>scm:git:git://github.com/real-time-intelligence/fbase</connection>
     <developerConnection>scm:git:ssh://github.com:real-time-intelligence/fbase</developerConnection>
     <url>http://github.com/real-time-intelligence/fbase/tree/main</url>
-    <tag>fbase-0.3.0</tag>
+    <tag>fbase-0.4.0</tag>
   </scm>
 
   <issueManagement>
