@@ -12,6 +12,7 @@ import java.time.ZoneOffset;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.DataType;
 import org.fbase.model.profile.CProfile;
+import org.fbase.service.mapping.BinaryDisplayConverter;
 
 @Log4j2
 public class Converter {
@@ -90,6 +91,8 @@ public class Converter {
       case VARCHAR2:
       case NVARCHAR:
         return dimensionDAO.getOrLoad((String) obj);
+      case RAW:
+        return dimensionDAO.getOrLoad(getByte(obj));
       default:
         return INT_NULL;
     }
@@ -102,7 +105,7 @@ public class Converter {
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getStringById(objIndex);
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, CLOB, NAME, TEXT, VARCHAR, VARCHAR2, NVARCHAR ->
+      case DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, CLOB, NAME, TEXT, VARCHAR, VARCHAR2, NVARCHAR, RAW ->
           dimensionDAO.getStringById(objIndex);
       case TIMESTAMP, TIMESTAMPTZ, DATETIME -> getDateForLongShorted(objIndex);
       case FLOAT64, FLOAT32, FLOAT, NUMERIC -> String.valueOf(dimensionDAO.getDoubleById(objIndex));
@@ -146,4 +149,16 @@ public class Converter {
     Date dtDate= new Date(((long)longDate)*1000L);
     return simpleDateFormat.format(dtDate);
   }
+
+  private static String getByte(Object obj){
+    Byte[] useValue;
+    byte[] bytes = (byte[]) obj;
+    useValue = new Byte[bytes.length];
+    for (int m=0; m<bytes.length; m++) {
+      useValue[m] = bytes[m];
+    }
+    return BinaryDisplayConverter.convertToString(useValue,
+            BinaryDisplayConverter.HEX, false);
+  }
+
 }
