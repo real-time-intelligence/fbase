@@ -15,7 +15,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 
 @Log4j2
@@ -125,6 +127,18 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     System.out.println(stackedColumnsByIsUserProcess);
 
     System.out.println(rawData);
+  }
+
+  @Test
+  public void loadDataTypes() throws SQLException {
+    List<String> excludeList = Collections.emptyList();
+
+            /*List.of("INTERVALDS", "INTERVALYM", "LONG RAW",
+            "STRUCT", "ARRAY", "BLOB", "REF");*/
+
+    ResultSet r = dbConnection.getMetaData().getTypeInfo();
+
+    loadDataTypes(r, excludeList, 0);
   }
 
 }

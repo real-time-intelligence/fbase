@@ -1,7 +1,12 @@
 package org.fbase.integration.oracle;
 
+import java.lang.reflect.Array;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+
 import lombok.extern.log4j.Log4j2;
 import org.fbase.common.AbstractOracleTest;
 import org.fbase.exception.BeginEndWrongOrderException;
@@ -97,6 +102,16 @@ public class FBaseOracleTest extends AbstractOracleTest {
     System.out.println(stackedColumnsBySampleTime);
     System.out.println(stackedColumnsBySqlId);
     System.out.println(stackedColumnsByEvent);
+  }
+
+  @Test
+  public void loadDataTypes() throws SQLException {
+    List<String> excludeList = List.of("INTERVALDS", "INTERVALYM", "LONG RAW",
+            "STRUCT", "ARRAY", "BLOB", "REF");
+
+    ResultSet r = dbConnection.getMetaData().getTypeInfo();
+
+    loadDataTypes(r, excludeList, 0);
   }
 
 }

@@ -7,11 +7,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+
 import org.apache.logging.log4j.Logger;
 import org.fbase.core.FStore;
 import org.fbase.exception.TableNameEmptyException;
@@ -103,7 +102,7 @@ public interface JdbcSource {
     lists.get(v.getColId()).add(r.getObject(v.getColIdSql()));
   }
 
-  default SProfile getSProfileForAsh(String select, Connection dbConnection) throws SQLException {
+  default SProfile getSProfileForSelect(String select, Connection dbConnection) throws SQLException {
     Map<String, CSType> csTypeMap = new HashMap<>();
 
     Statement s;
@@ -124,4 +123,28 @@ public interface JdbcSource {
 
     return new SProfile().setCsTypeMap(csTypeMap);
   }
+
+  default void loadDataTypes(ResultSet r, List<String> includeList, int initialValue) throws SQLException {
+
+    Map<String, String> byteStringMap = new TreeMap<>(Comparator.comparingInt(String::length)
+                    .thenComparing(Function.identity())
+    );
+
+    while (r.next()) {
+      String typeName = r.getString("TYPE_NAME");
+      byteStringMap.put(typeName, typeName);
+    }
+
+    AtomicInteger byteKey = new AtomicInteger(initialValue);
+
+    // Load data types
+    byteStringMap.forEach((key, value) -> {
+      if (includeList.contains(value)) {
+        System.out.println(value.replace(" ", "_").toUpperCase()
+                + "(" + byteKey.getAndIncrement() + ", \""
+                + value.toUpperCase() + "\"),");
+      }
+    });
+  }
+
 }

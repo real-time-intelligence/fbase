@@ -42,6 +42,7 @@ public abstract class AbstractPostgreSQLTest implements JdbcSource {
 
   private final String tableNameRandom = "pg_table_test_random";
   private final String tableNameAsh = "pg_table_test_ash";
+  private final String tableNameDataType = "pg_table_pg_dt";
 
   @BeforeAll
   public void initBackendAndLoad() {
@@ -80,7 +81,7 @@ public abstract class AbstractPostgreSQLTest implements JdbcSource {
   protected SProfile getSProfileForAsh(String select) throws SQLException {
     Map<String, CSType> csTypeMap = new HashMap<>();
 
-    getSProfileForAsh(select, dbConnection).getCsTypeMap().forEach((key, value) -> {
+    getSProfileForSelect(select, dbConnection).getCsTypeMap().forEach((key, value) -> {
       if (key.equals("SAMPLE_TIME")) {
         csTypeMap.put(key, new CSType().toBuilder().isTimeStamp(true).sType(SType.RAW).build());
       } else if (key.equals("EVENT")) {
@@ -95,6 +96,24 @@ public abstract class AbstractPostgreSQLTest implements JdbcSource {
         .setIndexType(IType.GLOBAL)
         .setCompression(false)
         .setCsTypeMap(csTypeMap);
+  }
+
+  protected SProfile getSProfileForDataTypeTest(String select) throws SQLException {
+    Map<String, CSType> csTypeMap = new HashMap<>();
+
+    getSProfileForSelect(select, dbConnection).getCsTypeMap().forEach((key, value) -> {
+      if (key.equals("pg_dt_timestamp")) {
+        csTypeMap.put(key, new CSType().toBuilder().isTimeStamp(true).sType(SType.RAW).build());
+      } else {
+        csTypeMap.put(key, new CSType().toBuilder().sType(SType.RAW).build());
+      }
+    });
+
+    return new SProfile().setTableName(tableNameDataType)
+            .setTableType(TType.TIME_SERIES)
+            .setIndexType(IType.GLOBAL)
+            .setCompression(false)
+            .setCsTypeMap(csTypeMap);
   }
 
   @AfterAll
