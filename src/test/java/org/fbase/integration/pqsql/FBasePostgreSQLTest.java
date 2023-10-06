@@ -54,12 +54,11 @@ public class FBasePostgreSQLTest extends AbstractPostgreSQLTest {
   private final String selectDataType = "SELECT * FROM pg_dt";
 
   // TODO Postgresql Data Types: https://www.postgresql.org/docs/current/datatype.html
-  List<String> includeList = List.of("int8", "serial8", "bit",
-          /*"varbit",*/ "bool", /*"box", */"bytea", "char", "varchar", /*"cidr", "circle",*/
-          "date", "float8", /*"inet",*/ "int", "int4", /*"interval" "json", "jsonb", "line", "lseg", "macaddr", "macaddr8"*/
-          "money", "decimal", /*"path", "pg_lsn", "pg_snapshot", "point", "polygon",*/
-          "float4", "int2", "serial2", "serial4", "text", "time", "timetz", "timestamp", "timestamptz",
-          /*"tsquery", "tsvector", "txid_snapshot",*/ "uuid" /*, "xml"*/);
+  List<String> includeList = List.of("bit", "bool", "bytea", "money", "uuid",
+          "smallint", "integer", "bigint", "decimal", "numeric", "real", "smallserial", "serial",  "bigserial",
+          "int", "int2", "int4", "int8", "float4", "float8", "serial2", "serial4", "serial8",
+          "char", "character", "varchar", "text",
+          "date", "time", "timetz", "timestamp", "timestamptz");
 
   @BeforeAll
   public void initialLoading() {
@@ -163,7 +162,8 @@ public class FBasePostgreSQLTest extends AbstractPostgreSQLTest {
                        pg_dt_timetz timetz,
                        pg_dt_varchar varchar,
                        pg_dt_timestamp timestamp,
-                       pg_dt_timestamptz timestamptz
+                       pg_dt_timestamptz timestamptz,
+                       pg_dt_smallint smallint
                      )
             """;
 
