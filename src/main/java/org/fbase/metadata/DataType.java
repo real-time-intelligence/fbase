@@ -1,20 +1,38 @@
 package org.fbase.metadata;
 
 public enum DataType {
+  /* Postgres */
+  BIT(0, "BIT"),
+  BOOL(1, "BOOL"),
+  CHAR(2, "CHAR"),
+  DATE(3, "DATE"),
+  INT2(4, "INT2"),
+  INT4(5, "INT4"),
+  INT8(6, "INT8"),
+  TEXT(7, "TEXT"),
+  TIME(8, "TIME"),
+  UUID(9, "UUID"),
+  BYTEA(10, "BYTEA"),
+  MONEY(11, "MONEY"),
+  BPCHAR(12, "BPCHAR"),
+  FLOAT4(13, "FLOAT4"),
+  FLOAT8(14, "FLOAT8"),
+  SERIAL(15, "SERIAL"),
+  TIMETZ(16, "TIMETZ"),
+  NUMERIC(17, "NUMERIC"),
+  VARCHAR(18, "VARCHAR"),
+  BIGSERIAL(19, "BIGSERIAL"),
+  TIMESTAMP(20, "TIMESTAMP"),
+  SMALLSERIAL(21, "SMALLSERIAL"),
+  TIMESTAMPTZ(22, "TIMESTAMPTZ"),
+
+
   CLOB(1, "CLOB"),
   VARCHAR2(2, "VARCHAR2"),
-  CHAR(3, "CHAR"),
-  INT4(4, "INT4"),
   INTEGER(5, "INTEGER"),
   NUMBER(6, "NUMBER"),
-  DATE(7, "DATE"),
-  TIMESTAMP(8, "TIMESTAMP"),
-  FLOAT8(9, "FLOAT8"),
   OID(10, "OID"),
-  TEXT(11, "TEXT"),
   NAME(12, "NAME"),
-  TIMESTAMPTZ(13, "TIMESTAMPTZ"),
-  VARCHAR(14, "VARCHAR"),
 
   // ClickHouse
   UINT32(15, "UINT32"),
@@ -34,14 +52,12 @@ public enum DataType {
   STRING(26, "STRING"),
 
   // PG
-  NUMERIC(27, "NUMERIC"),
 
   // MS SQL
   FLOAT(28, "FLOAT"),
   SMALLINT(29, "SMALLINT"),
   INT(30, "INT"),
   BIGINT(31, "BIGINT"),
-  BIT(32, "BIT"),
   NVARCHAR(33, "NVARCHAR");
 
   private final byte key;

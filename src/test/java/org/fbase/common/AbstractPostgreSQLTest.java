@@ -102,7 +102,7 @@ public abstract class AbstractPostgreSQLTest implements JdbcSource {
     Map<String, CSType> csTypeMap = new HashMap<>();
 
     getSProfileForSelect(select, dbConnection).getCsTypeMap().forEach((key, value) -> {
-      if (key.equals("pg_dt_timestamp")) {
+      if (key.equalsIgnoreCase("pg_dt_timestamp")) {
         csTypeMap.put(key, new CSType().toBuilder().isTimeStamp(true).sType(SType.RAW).build());
       } else {
         csTypeMap.put(key, new CSType().toBuilder().sType(SType.RAW).build());

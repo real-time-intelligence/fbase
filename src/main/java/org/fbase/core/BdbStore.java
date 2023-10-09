@@ -18,6 +18,7 @@ import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.handler.MetaModelHandler;
 import org.fbase.handler.MetadataHandler;
+import org.fbase.metadata.DataType;
 import org.fbase.model.MetaModel;
 import org.fbase.model.MetaModel.TableMetadata;
 import org.fbase.model.output.GanttColumn;
@@ -152,6 +153,7 @@ public class BdbStore implements FStore {
                     .isTimeStamp(false)
                     .sType(SType.RAW)
                     .cType(Mapper.isCType(cProfile))
+                    .dType(DataType.valueOf(cProfile.getColDbTypeName().toUpperCase()))
                     .build());
             csType.setCType(Mapper.isCType(cProfile));
 
