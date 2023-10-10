@@ -30,7 +30,7 @@ public class Converter {
     if (cProfile.getColDbTypeName().contains("ENUM")) return dimensionDAO.getOrLoad((String) obj);
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getOrLoad((String) obj);
 
-    switch (DataType.valueOf(cProfile.getColDbTypeName())) {
+    switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
       case DATE:
         if (obj instanceof java.util.Date dt) {
           return dimensionDAO.getOrLoad(dt.toString());
@@ -98,16 +98,19 @@ public class Converter {
       case ENUM16:
       case FIXEDSTRING:
       case CHAR:
+      case NCLOB:
+      case NCHAR:
       case BPCHAR:
       case CLOB:
       case NAME:
       case TEXT:
       case VARCHAR:
+      case NVARCHAR2:
       case VARCHAR2:
       case NVARCHAR:
         return dimensionDAO.getOrLoad((String) obj);
-      case RAW:
-        return dimensionDAO.getOrLoad(getByte(obj));
+      /*case RAW:
+        return dimensionDAO.getOrLoad(getByte(obj));*/
       default:
         return INT_NULL;
     }
@@ -119,8 +122,8 @@ public class Converter {
     if (cProfile.getColDbTypeName().contains("ENUM")) return dimensionDAO.getStringById(objIndex);
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getStringById(objIndex);
 
-    return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
-      case DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, CLOB, NAME, TEXT, VARCHAR, VARCHAR2, NVARCHAR, RAW ->
+    return switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
+      case DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, NCHAR, NCLOB, CLOB, NAME, TEXT, VARCHAR, NVARCHAR2, VARCHAR2, NVARCHAR ->
           dimensionDAO.getStringById(objIndex);
       case TIMESTAMP, TIMESTAMPTZ, DATETIME -> getDateForLongShorted(objIndex);
       case FLOAT64, FLOAT4, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY -> String.valueOf(dimensionDAO.getDoubleById(objIndex));
@@ -129,7 +132,7 @@ public class Converter {
   }
 
   public double convertIntToDouble(int objIndex, CProfile cProfile) {
-    return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
+    return switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
       case FLOAT64, FLOAT4, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY  -> dimensionDAO.getDoubleById(objIndex);
       default -> objIndex;
     };
@@ -140,7 +143,7 @@ public class Converter {
       return 0L;
     }
 
-    switch (DataType.valueOf(cProfile.getColDbTypeName())) {
+    switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
       case INTEGER:
         return ((Integer) obj).longValue();
       case DATE:

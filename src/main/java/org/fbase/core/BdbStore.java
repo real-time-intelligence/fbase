@@ -153,7 +153,7 @@ public class BdbStore implements FStore {
                     .isTimeStamp(false)
                     .sType(SType.RAW)
                     .cType(Mapper.isCType(cProfile))
-                    .dType(DataType.valueOf(cProfile.getColDbTypeName().toUpperCase()))
+                    .dType(DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase()))
                     .build());
             csType.setCType(Mapper.isCType(cProfile));
 

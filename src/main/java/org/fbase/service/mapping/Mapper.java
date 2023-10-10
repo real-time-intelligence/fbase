@@ -38,19 +38,19 @@ public class Mapper {
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING") ||
         cProfile.getColDbTypeName().contains("ENUM")) return CType.STRING;
 
-    return switch (DataType.valueOf(cProfile.getColDbTypeName())) {
+    return switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
       case UINT8, UINT16, INT2, INT4, INT8, NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT, TIME, TIMETZ -> CType.INT;
       case OID, DATE, TIMESTAMP, TIMESTAMPTZ, DATETIME, UINT32, LONG, SERIAL, SMALLSERIAL, BIGSERIAL -> CType.LONG;
       case FLOAT4, FLOAT32 -> CType.FLOAT;
       case FLOAT64, DOUBLE, NUMERIC, FLOAT, FLOAT8, MONEY -> CType.DOUBLE;
-      case BOOL, UUID, BYTEA -> CType.STRING;
+      case BOOL, UUID, BYTEA, RAW -> CType.STRING;
       default -> CType.STRING;
     };
   }
 
   public static int convertRawToInt(Object obj, CProfile cProfile) {
     if (obj == null) return INT_NULL;
-    switch (DataType.valueOf(cProfile.getColDbTypeName())) {
+    switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
       case UINT8:
       case UINT16:
       case INT2:
@@ -88,7 +88,7 @@ public class Mapper {
 
   public static long convertRawToLong(Object obj, CProfile cProfile) {
     if (obj == null) return LONG_NULL;
-    switch (DataType.valueOf(cProfile.getColDbTypeName())) {
+    switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
       case DATE:
       case TIMESTAMP:
       case TIMESTAMPTZ:
@@ -155,20 +155,22 @@ public class Mapper {
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")||
         cProfile.getColDbTypeName().contains("ENUM")) return (String) obj;
 
-    switch (DataType.valueOf(cProfile.getColDbTypeName())) {
+    switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
       case ENUM8:
       case ENUM16:
       case FIXEDSTRING:
-      case CHAR:
       case BPCHAR:
       case NAME:
       case TEXT:
       case VARCHAR:
+      case NVARCHAR2:
       case VARCHAR2:
       case NVARCHAR:
         return (String) obj;
-      case RAW:
-        return getByte(obj);
+      case NCHAR:
+      case CHAR:
+        String v = (String) obj;
+        return v.trim();
       case OID:
         return valueOf(obj);
       case INT2:
@@ -183,6 +185,7 @@ public class Mapper {
       case NUMBER:
         BigDecimal bgDec = (BigDecimal) obj;
         return valueOf(bgDec.longValue());
+      case NCLOB:
       case CLOB:
         Clob clobVal = (Clob) obj;
         try {
@@ -199,6 +202,7 @@ public class Mapper {
         if (obj instanceof UUID u) {
           return u.toString();
         }
+      case RAW:
       case BYTEA:
         return new String((byte[]) obj, StandardCharsets.UTF_8);
       default:

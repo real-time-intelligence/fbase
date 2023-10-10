@@ -42,6 +42,8 @@ public abstract class AbstractOracleTest implements JdbcSource {
   private final String tableNameRandom = "oracle_table_test_random";
   private final String tableNameAsh = "oracle_table_test_ash";
 
+  protected final String tableNameDataType = "oracle_table_oracle_dt";
+
   @BeforeAll
   public void initBackendAndLoad() {
     try {
