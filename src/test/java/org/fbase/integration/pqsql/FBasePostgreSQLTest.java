@@ -6,8 +6,10 @@ import java.text.DateFormat;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.common.AbstractPostgreSQLTest;
 import org.fbase.exception.BeginEndWrongOrderException;
+import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -140,7 +142,8 @@ public class FBasePostgreSQLTest extends AbstractPostgreSQLTest {
   }
 
   @Test
-  public void testDataTypes() throws SQLException, ParseException, BeginEndWrongOrderException, SqlColMetadataException {
+  public void testDataTypes()
+      throws SQLException, ParseException, BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
     String dropTablePgDt = """
                  DROP TABLE IF EXISTS pg_dt
             """;
@@ -190,7 +193,7 @@ public class FBasePostgreSQLTest extends AbstractPostgreSQLTest {
     Time pg_dt_time = Time.valueOf("12:34:56");
     int pg_dt_time_int = Math.toIntExact(pg_dt_time.getTime());
     UUID pg_dt_uuid = UUID.fromString("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11");
-    BigDecimal pg_dt_money = new BigDecimal("100.50");
+    BigDecimal pg_dt_money = new BigDecimal("100.51");
     float pg_dt_float4 = 3.14f;
     double pg_dt_float8 = 3.14159;
     long pg_dt_serial = 10L;
@@ -371,11 +374,131 @@ public class FBasePostgreSQLTest extends AbstractPostgreSQLTest {
     Assert.equals(pg_dt_timestamptz.getTime(), date.getTime());
 
     /* Test GanttColumn API */
+    List<GanttColumn> pgDtBitPgDtBool = getGanttColumn(tableName, pgDtBit, pgDtBool);
+    Assert.equals(pg_dt_bit, pgDtBitPgDtBool.get(0).getKey());
+    Assert.equals(pg_dt_bool, pgDtBitPgDtBool.get(0).getGantt().containsKey(String.valueOf(pg_dt_bool)));
 
+    List<GanttColumn> pgDtBoolPgDtChar = getGanttColumn(tableName, pgDtBool, pgDtChar);
+    Assert.equals(String.valueOf(pg_dt_bool), pgDtBoolPgDtChar.get(0).getKey());
+    Assert.equals(pg_dt_char, getGanttKey(pgDtBoolPgDtChar, pg_dt_char));
+
+    List<GanttColumn> pgDtCharPgDtBpChar = getGanttColumn(tableName, pgDtChar, pgDtBpChar);
+    Assert.equals(pg_dt_char, pgDtCharPgDtBpChar.get(0).getKey());
+    Assert.equals(pg_dt_bpchar, getGanttKey(pgDtCharPgDtBpChar, pg_dt_bpchar));
+
+    List<GanttColumn> pgDtBpCharPgDtDate = getGanttColumn(tableName, pgDtBpChar, pgDtDate);
+    Assert.equals(pg_dt_bpchar, pgDtBpCharPgDtDate.get(0).getKey());
+    Assert.equals(pg_dt_date_long, Long.parseLong(getGanttKey(pgDtBpCharPgDtDate, String.valueOf(pg_dt_date_long))));
+
+    List<GanttColumn> pgDtDatePgDtInt2 = getGanttColumn(tableName, pgDtDate, pgDtInt2);
+    Assert.equals(pg_dt_date_long, Long.parseLong(pgDtDatePgDtInt2.get(0).getKey()));
+    Assert.equals(pg_dt_int2, Short.parseShort(getGanttKey(pgDtDatePgDtInt2, String.valueOf(pg_dt_int2))));
+
+    List<GanttColumn> pgDtInt2PgDtInt4 = getGanttColumn(tableName, pgDtInt2, pgDtInt4);
+    Assert.equals(pg_dt_int2, Short.parseShort(pgDtInt2PgDtInt4.get(0).getKey()));
+    Assert.equals(pg_dt_int4, Integer.parseInt(getGanttKey(pgDtInt2PgDtInt4, String.valueOf(pg_dt_int4))));
+
+    List<GanttColumn> pgDtInt4PgDtInt8 = getGanttColumn(tableName, pgDtInt4, pgDtInt8);
+    Assert.equals(pg_dt_int4, Integer.parseInt(pgDtInt4PgDtInt8.get(0).getKey()));
+    Assert.equals(pg_dt_int8, Long.parseLong(getGanttKey(pgDtInt4PgDtInt8, String.valueOf(pg_dt_int8))));
+
+    List<GanttColumn> pgDtInt8PgDtText = getGanttColumn(tableName, pgDtInt8, pgDtText);
+    Assert.equals(pg_dt_int8, Long.parseLong(pgDtInt8PgDtText.get(0).getKey()));
+    Assert.equals(pg_dt_text, getGanttKey(pgDtInt8PgDtText, pg_dt_text));
+
+    List<GanttColumn> pgDtTextPgDtTime = getGanttColumn(tableName, pgDtText, pgDtTime);
+    Assert.equals(pg_dt_text, pgDtTextPgDtTime.get(0).getKey());
+    Assert.equals(pg_dt_time_int, Integer.parseInt(getGanttKey(pgDtTextPgDtTime, String.valueOf(pg_dt_time_int))));
+
+    List<GanttColumn> pgDtTimePgDtUuid = getGanttColumn(tableName, pgDtTime, pgDtUuid);
+    Assert.equals(pg_dt_time_int, Integer.parseInt(pgDtTimePgDtUuid.get(0).getKey()));
+    Assert.equals(pg_dt_uuid.toString(), getGanttKey(pgDtTimePgDtUuid, pg_dt_uuid.toString()));
+
+    List<GanttColumn> pgDtUuidPgDtBytea = getGanttColumn(tableName, pgDtUuid, pgDtBytea);
+    Assert.equals(pg_dt_uuid.toString(), pgDtUuidPgDtBytea.get(0).getKey());
+    Assert.equals(new String(pg_dt_bytea, StandardCharsets.UTF_8), getGanttKey(pgDtUuidPgDtBytea, new String(pg_dt_bytea, StandardCharsets.UTF_8)));
+
+    List<GanttColumn> pgDtByteaPgDtMoney = getGanttColumn(tableName, pgDtBytea, pgDtMoney);
+    Assert.equals(new String(pg_dt_bytea, StandardCharsets.UTF_8), pgDtByteaPgDtMoney.get(0).getKey());
+    Assert.equals(pg_dt_money, getBigDecimalFromString(getGanttKey(pgDtByteaPgDtMoney, getBigDecimalFromString(getStackedColumnKey(tableName, pgDtMoney)).toString())));
+
+    List<GanttColumn> pgDtMoneyPgDtFloat4 = getGanttColumn(tableName, pgDtMoney, pgDtFloat4);
+    Assert.equals(pg_dt_money, getBigDecimalFromString(pgDtMoneyPgDtFloat4.get(0).getKey()));
+    Assert.equals(pg_dt_float4, Float.valueOf(getGanttKey(pgDtMoneyPgDtFloat4, getStackedColumnKey(tableName, pgDtFloat4))));
+
+    List<GanttColumn> pgDtFloat4PgDtFloat8 = getGanttColumn(tableName, pgDtFloat4, pgDtFloat8);
+    Assert.equals(String.format("%.2f", pg_dt_float4), String.format("%.2f", Float.valueOf(pgDtFloat4PgDtFloat8.get(0).getKey())));
+    Assert.equals(String.format("%.2f", pg_dt_float8), String.format("%.2f", Float.valueOf(getGanttKey(pgDtFloat4PgDtFloat8, getStackedColumnKey(tableName, pgDtFloat8)))));
+
+    List<GanttColumn> pgDtFloat8PgDtSerial = getGanttColumn(tableName, pgDtFloat8, pgDtSerial);
+    Assert.equals(String.format("%.2f", pg_dt_float8), String.format("%.2f", Float.valueOf(pgDtFloat8PgDtSerial.get(0).getKey())));
+    Assert.equals(pg_dt_serial, Long.parseLong(getGanttKey(pgDtFloat8PgDtSerial, getStackedColumnKey(tableName, pgDtSerial))));
+
+    List<GanttColumn> pPgDtSerialPgDtSmallserial = getGanttColumn(tableName, pgDtSerial, pgDtSmallserial);
+    Assert.equals(pg_dt_serial, Long.parseLong((pPgDtSerialPgDtSmallserial.get(0).getKey())));
+    Assert.equals(pg_dt_smallserial, Long.parseLong(getGanttKey(pPgDtSerialPgDtSmallserial, getStackedColumnKey(tableName, pgDtSmallserial))));
+
+    List<GanttColumn> pgDtSmallserialPgDtBigserial = getGanttColumn(tableName, pgDtSmallserial, pgDtBigserial);
+    Assert.equals(pg_dt_smallserial, Long.parseLong((pgDtSmallserialPgDtBigserial.get(0).getKey())));
+    Assert.equals(pg_dt_bigserial, Long.parseLong(getGanttKey(pgDtSmallserialPgDtBigserial, getStackedColumnKey(tableName, pgDtBigserial))));
+
+    List<GanttColumn> pgDtBigserialPgDtTimetz = getGanttColumn(tableName, pgDtBigserial, pgDtTimetz);
+    Assert.equals(pg_dt_bigserial, Long.parseLong((pgDtBigserialPgDtTimetz.get(0).getKey())));
+    Assert.equals(pg_dt_timetz_int, Integer.parseInt(getGanttKey(pgDtBigserialPgDtTimetz, getStackedColumnKey(tableName, pgDtTimetz))));
+
+    List<GanttColumn> pPgDtTimetzPgDtNumeric = getGanttColumn(tableName, pgDtTimetz, pgDtNumeric);
+    Assert.equals(pg_dt_timetz_int, Integer.parseInt((pPgDtTimetzPgDtNumeric.get(0).getKey())));
+    Assert.equals(pg_dt_numeric, getBigDecimalFromString(getGanttKey(pPgDtTimetzPgDtNumeric, getStackedColumnKey(tableName, pgDtNumeric))));
+
+    List<GanttColumn> pgDtNumericPgDtVarchar = getGanttColumn(tableName, pgDtNumeric, pgDtVarchar);
+    Assert.equals(pg_dt_numeric, getBigDecimalFromString(pgDtNumericPgDtVarchar.get(0).getKey()));
+    Assert.equals(pg_dt_varchar, getGanttKey(pgDtNumericPgDtVarchar, getStackedColumnKey(tableName, pgDtVarchar)));
 
     /* Test Raw data API */
+    List<List<Object>> rawDataAll = fStore.getRawDataAll(tableName, 0, Long.MAX_VALUE);
+    rawDataAll.forEach(row -> cProfiles.forEach(cProfile -> {
+      try {
+        if (cProfile.equals(pgDtBit)) Assert.equals(pg_dt_bit, getStackedColumnKey(tableName, pgDtBit));
+        if (cProfile.equals(pgDtBool)) Assert.equals(String.valueOf(pg_dt_bool), getStackedColumnKey(tableName, pgDtBool));
+        if (cProfile.equals(pgDtChar)) Assert.equals(pg_dt_char, getStackedColumnKey(tableName, pgDtChar));
+        if (cProfile.equals(pgDtBpChar)) Assert.equals(pg_dt_bpchar, getStackedColumnKey(tableName, pgDtBpChar));
+        if (cProfile.equals(pgDtDate)) Assert.equals(pg_dt_date_long, Long.parseLong(getStackedColumnKey(tableName, pgDtDate)));
+        if (cProfile.equals(pgDtInt2)) Assert.equals(pg_dt_int2, Short.parseShort(getStackedColumnKey(tableName, pgDtInt2)));
+        if (cProfile.equals(pgDtInt4)) Assert.equals(pg_dt_int4, Integer.parseInt(getStackedColumnKey(tableName, pgDtInt4)));
+        if (cProfile.equals(pgDtInt8)) Assert.equals(pg_dt_int8, Long.parseLong(getStackedColumnKey(tableName, pgDtInt8)));
+        if (cProfile.equals(pgDtText)) Assert.equals(pg_dt_text, getStackedColumnKey(tableName, pgDtText));
+        if (cProfile.equals(pgDtTime)) Assert.equals(pg_dt_time_int, Integer.parseInt(getStackedColumnKey(tableName, pgDtTime)));
+        if (cProfile.equals(pgDtUuid)) Assert.equals(pg_dt_uuid.toString(), getStackedColumnKey(tableName, pgDtUuid));
+        if (cProfile.equals(pgDtBytea)) Assert.equals(new String(pg_dt_bytea, StandardCharsets.UTF_8), getStackedColumnKey(tableName, pgDtBytea));
+        if (cProfile.equals(pgDtMoney)) Assert.equals(pg_dt_money, new BigDecimal(getStackedColumnKey(tableName, pgDtMoney)).setScale(2, RoundingMode.HALF_UP));
+        if (cProfile.equals(pgDtFloat4)) Assert.equals(new BigDecimal(pg_dt_float4).setScale(2, RoundingMode.HALF_UP),
+            new BigDecimal(getStackedColumnKey(tableName, pgDtFloat4)).setScale(2, RoundingMode.HALF_UP));
+        if (cProfile.equals(pgDtFloat8)) Assert.equals(new BigDecimal(pg_dt_float8).setScale(2, RoundingMode.HALF_UP),
+            new BigDecimal(getStackedColumnKey(tableName, pgDtFloat8)).setScale(2, RoundingMode.HALF_UP));
+        if (cProfile.equals(pgDtSerial)) Assert.equals(pg_dt_serial, Long.parseLong(getStackedColumnKey(tableName, pgDtSerial)));
+        if (cProfile.equals(pgDtSmallserial)) Assert.equals(pg_dt_smallserial, Long.parseLong(getStackedColumnKey(tableName, pgDtSmallserial)));
+        if (cProfile.equals(pgDtBigserial)) Assert.equals(pg_dt_bigserial, Long.parseLong(getStackedColumnKey(tableName, pgDtBigserial)));
+        if (cProfile.equals(pgDtTimetz)) Assert.equals(pg_dt_timetz_int, Integer.parseInt(getStackedColumnKey(tableName, pgDtTimetz)));
+        if (cProfile.equals(pgDtNumeric)) Assert.equals(pg_dt_numeric, new BigDecimal(getStackedColumnKey(tableName, pgDtNumeric)).setScale(2, RoundingMode.HALF_UP));
+        if (cProfile.equals(pgDtVarchar)) Assert.equals(pg_dt_varchar, getStackedColumnKey(tableName, pgDtVarchar));
+      } catch (Exception e) {
+        log.info(e.getMessage());
+      }
+    }));
+  }
 
+  private BigDecimal getBigDecimalFromString(String value) {
+    return new BigDecimal(value).setScale(2, RoundingMode.HALF_UP);
+  }
 
+  private String getGanttKey(List<GanttColumn> ganttColumnList, String filter) {
+    return ganttColumnList.get(0).getGantt()
+        .entrySet()
+        .stream()
+        .filter(f -> f.getKey().equalsIgnoreCase(filter))
+        .findAny()
+        .orElseThrow()
+        .getKey();
   }
 
   private CProfile getCProfile(List<CProfile> cProfiles, String colName) {
@@ -399,5 +522,10 @@ public class FBasePostgreSQLTest extends AbstractPostgreSQLTest {
         .findAny()
         .orElseThrow()
         .getKey();
+  }
+
+  private List<GanttColumn> getGanttColumn(String tableName, CProfile cProfileFirst, CProfile cProfileSecond)
+      throws BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
+    return fStore.getGColumnListTwoLevelGroupBy(tableName, cProfileFirst, cProfileSecond, 0, Long.MAX_VALUE);
   }
 }
