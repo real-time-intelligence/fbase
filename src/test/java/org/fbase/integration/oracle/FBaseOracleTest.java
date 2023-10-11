@@ -139,7 +139,7 @@ public class FBaseOracleTest extends AbstractOracleTest {
   }
 
   @Test
-  public void testDataTypes() throws SQLException, ParseException, BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
+  public void testDataTypes() throws SQLException, BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
     String createTableOracleDt = """
              CREATE TABLE oracle_data_types (
                 oracle_dt_raw RAW(23),
@@ -334,6 +334,8 @@ public class FBaseOracleTest extends AbstractOracleTest {
     getSProfileForSelect(select, dbConnection).getCsTypeMap().forEach((key, value) -> {
       if (key.equalsIgnoreCase("oracle_dt_timestamp")) {
         csTypeMap.put(key, new CSType().toBuilder().isTimeStamp(true).sType(SType.RAW).build());
+      } else if (key.equalsIgnoreCase("oracle_dt_raw")) {
+        csTypeMap.put(key, new CSType().toBuilder().sType(SType.HISTOGRAM).build());
       } else {
         csTypeMap.put(key, new CSType().toBuilder().sType(SType.RAW).build());
       }

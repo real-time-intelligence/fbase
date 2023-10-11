@@ -3,6 +3,7 @@ package org.fbase.storage;
 import static org.fbase.service.mapping.Mapper.INT_NULL;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -13,7 +14,6 @@ import java.time.ZoneOffset;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.DataType;
 import org.fbase.model.profile.CProfile;
-import org.fbase.service.mapping.BinaryDisplayConverter;
 
 @Log4j2
 public class Converter {
@@ -109,8 +109,9 @@ public class Converter {
       case VARCHAR2:
       case NVARCHAR:
         return dimensionDAO.getOrLoad((String) obj);
-      /*case RAW:
-        return dimensionDAO.getOrLoad(getByte(obj));*/
+      case BYTEA:
+      case RAW:
+        return dimensionDAO.getOrLoad(new String((byte[]) obj, StandardCharsets.UTF_8));
       default:
         return INT_NULL;
     }
@@ -123,7 +124,7 @@ public class Converter {
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getStringById(objIndex);
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
-      case DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, NCHAR, NCLOB, CLOB, NAME, TEXT, VARCHAR, NVARCHAR2, VARCHAR2, NVARCHAR ->
+      case DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, NCHAR, NCLOB, CLOB, NAME, TEXT, VARCHAR, NVARCHAR2, VARCHAR2, NVARCHAR, RAW, BYTEA ->
           dimensionDAO.getStringById(objIndex);
       case TIMESTAMP, TIMESTAMPTZ, DATETIME -> getDateForLongShorted(objIndex);
       case FLOAT64, FLOAT4, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY -> String.valueOf(dimensionDAO.getDoubleById(objIndex));
@@ -167,16 +168,4 @@ public class Converter {
     Date dtDate= new Date(((long)longDate)*1000L);
     return simpleDateFormat.format(dtDate);
   }
-
-  private static String getByte(Object obj){
-    Byte[] useValue;
-    byte[] bytes = (byte[]) obj;
-    useValue = new Byte[bytes.length];
-    for (int m=0; m<bytes.length; m++) {
-      useValue[m] = bytes[m];
-    }
-    return BinaryDisplayConverter.convertToString(useValue,
-            BinaryDisplayConverter.HEX, false);
-  }
-
 }

@@ -210,16 +210,6 @@ public class Mapper {
     }
   }
 
-  public static int getColumnCount(List<CProfile> cProfiles, Predicate<CProfile> isNotTimestamp,
-      Predicate<CProfile> isRaw, Predicate<CProfile> isCustom) {
-
-    return (int) cProfiles.stream()
-        .filter(isNotTimestamp)
-        .filter(isRaw)
-        .filter(isCustom)
-        .count();
-  }
-
   public static int getColumnCount(List<CProfile> cProfiles, Map<Integer, SType> colIdSTypeMap,
       Predicate<CProfile> isNotTimestamp, Predicate<CProfile> isCustom) {
 
@@ -237,16 +227,4 @@ public class Mapper {
         .filter(isCustom)
         .count();
   }
-
-  private static String getByte(Object obj){
-    Byte[] useValue;
-    byte[] bytes = (byte[]) obj;
-    useValue = new Byte[bytes.length];
-    for (int m=0; m<bytes.length; m++) {
-      useValue[m] = bytes[m];
-    }
-    return BinaryDisplayConverter.convertToString(useValue,
-        BinaryDisplayConverter.HEX, false);
-  }
-
 }

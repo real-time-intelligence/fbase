@@ -104,10 +104,12 @@ public abstract class AbstractPostgreSQLTest implements JdbcSource {
     getSProfileForSelect(select, dbConnection).getCsTypeMap().forEach((key, value) -> {
       if (key.equalsIgnoreCase("pg_dt_timestamp")) {
         csTypeMap.put(key, new CSType().toBuilder().isTimeStamp(true).sType(SType.RAW).build());
+      } else if (key.equalsIgnoreCase("pg_dt_bytea")) {
+        csTypeMap.put(key, new CSType().toBuilder().sType(SType.HISTOGRAM).build());
       } else {
         csTypeMap.put(key, new CSType().toBuilder().sType(SType.RAW).build());
       }
-    });
+  });
 
     return new SProfile().setTableName(tableNameDataType)
             .setTableType(TType.TIME_SERIES)

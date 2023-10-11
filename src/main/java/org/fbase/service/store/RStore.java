@@ -106,5 +106,4 @@ public class RStore extends CommonServiceApi {
       rawDataString.get(mappingString.get(colId)).add(iR, Mapper.convertRawToString(currObject, cProfile));
     }
   }
-
 }

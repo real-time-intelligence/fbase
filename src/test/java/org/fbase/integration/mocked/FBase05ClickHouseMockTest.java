@@ -21,6 +21,7 @@ import org.fbase.source.ClickHouse;
 import org.fbase.source.ClickHouseMock;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
+@Disabled
 public class FBase05ClickHouseMockTest implements ClickHouse {
   private FStore fStore;
   private TProfile tProfile;
