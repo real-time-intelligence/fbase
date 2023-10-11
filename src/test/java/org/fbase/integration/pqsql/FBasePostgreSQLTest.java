@@ -483,6 +483,7 @@ public class FBasePostgreSQLTest extends AbstractPostgreSQLTest {
         if (cProfile.equals(pgDtVarchar)) Assert.equals(pg_dt_varchar, getStackedColumnKey(tableName, pgDtVarchar));
       } catch (Exception e) {
         log.info(e.getMessage());
+        throw new RuntimeException(e);
       }
     }));
   }
