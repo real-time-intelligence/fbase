@@ -26,7 +26,6 @@ public enum DataType {
   SMALLSERIAL(21, "SMALLSERIAL"),
   TIMESTAMPTZ(22, "TIMESTAMPTZ"),
 
-
   /* Oracle */
   RAW(23, "RAW"),
   CLOB(24, "CLOB"),
@@ -36,6 +35,10 @@ public enum DataType {
   NUMBER(28, "NUMBER"),
   VARCHAR2(29, "VARCHAR2"),
   NVARCHAR2(30, "NVARCHAR2"),
+
+  /* MS Sql */
+
+
 
   INTEGER(32, "INTEGER"),
   OID(33, "OID"),

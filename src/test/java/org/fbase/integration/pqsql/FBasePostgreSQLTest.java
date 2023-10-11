@@ -144,11 +144,11 @@ public class FBasePostgreSQLTest extends AbstractPostgreSQLTest {
   @Test
   public void testDataTypes()
       throws SQLException, ParseException, BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
-    String dropTablePgDt = """
+    String dropTableDt = """
                  DROP TABLE IF EXISTS pg_dt
             """;
 
-    String createTablePgDt = """
+    String createTableDt = """
                  CREATE TABLE IF NOT EXISTS pg_dt (
                        pg_dt_bit bit,
                        pg_dt_bool bool,
@@ -210,8 +210,8 @@ public class FBasePostgreSQLTest extends AbstractPostgreSQLTest {
     Timestamp pg_dt_timestamptz = Timestamp.valueOf(pg_dt_timestamp_string);
 
     Statement createTableStmt = dbConnection.createStatement();
-    createTableStmt.executeUpdate(dropTablePgDt);
-    createTableStmt.executeUpdate(createTablePgDt);
+    createTableStmt.executeUpdate(dropTableDt);
+    createTableStmt.executeUpdate(createTableDt);
 
     String insertQuery = """
          INSERT INTO pg_dt (pg_dt_bit, pg_dt_bool, pg_dt_char, pg_dt_bpchar, pg_dt_date, pg_dt_int2, pg_dt_int4, pg_dt_int8, 

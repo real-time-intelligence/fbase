@@ -140,7 +140,7 @@ public class FBaseOracleTest extends AbstractOracleTest {
 
   @Test
   public void testDataTypes() throws SQLException, BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
-    String createTableOracleDt = """
+    String createTableDt = """
              CREATE TABLE oracle_data_types (
                 oracle_dt_raw RAW(23),
                 oracle_dt_char CHAR(24),
@@ -177,7 +177,7 @@ public class FBaseOracleTest extends AbstractOracleTest {
     } else {
       log.info("Skip drop operation, table not exist in DB..");
     }
-    createTableStmt.executeUpdate(createTableOracleDt);
+    createTableStmt.executeUpdate(createTableDt);
 
     String insertQuery = """
          INSERT INTO oracle_data_types VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
