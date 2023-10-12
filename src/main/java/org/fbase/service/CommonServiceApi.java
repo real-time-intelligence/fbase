@@ -283,7 +283,7 @@ public abstract class CommonServiceApi {
           .toArray(String[]::new);
     } else if (CType.LONG == cType) {
       return switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
-        case TIMESTAMP, TIMESTAMPTZ, DATETIME -> Arrays.stream(rawDAO.getRawLong(tableId, blockId, colId))
+        case TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME -> Arrays.stream(rawDAO.getRawLong(tableId, blockId, colId))
                 .mapToObj(val -> val == LONG_NULL ? "" : getDateForLongShorted(Math.toIntExact(val / 1000)))
                 .toArray(String[]::new);
         default -> Arrays.stream(rawDAO.getRawLong(tableId, blockId, colId))

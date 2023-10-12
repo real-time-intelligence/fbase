@@ -39,11 +39,11 @@ public class Mapper {
         cProfile.getColDbTypeName().contains("ENUM")) return CType.STRING;
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
-      case UINT8, UINT16, INT2, INT4, INT8, NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT, TIME, TIMETZ -> CType.INT;
-      case OID, DATE, TIMESTAMP, TIMESTAMPTZ, DATETIME, UINT32, LONG, SERIAL, SMALLSERIAL, BIGSERIAL -> CType.LONG;
-      case FLOAT4, FLOAT32 -> CType.FLOAT;
-      case FLOAT64, DOUBLE, NUMERIC, FLOAT, FLOAT8, MONEY -> CType.DOUBLE;
-      case BOOL, UUID, BYTEA, RAW -> CType.STRING;
+      case UINT8, UINT16, INT2, INT4, INT8, NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT, TIME, TIMETZ, TINYINT -> CType.INT;
+      case OID, DATE, TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME, UINT32, LONG, SERIAL, SMALLSERIAL, BIGSERIAL -> CType.LONG;
+      case FLOAT4, FLOAT32, REAL -> CType.FLOAT;
+      case FLOAT64, DOUBLE, NUMERIC, FLOAT, FLOAT8, MONEY, SMALLMONEY, DECIMAL -> CType.DOUBLE;
+      case BOOL, UUID, BYTEA, BINARY, RAW, VARBINARY, UNIQUEIDENTIFIER -> CType.STRING;
       default -> CType.STRING;
     };
   }
@@ -63,6 +63,7 @@ public class Mapper {
       case BIGINT:
       case TIME:
       case TIMETZ:
+      case TINYINT:
         if (obj instanceof BigDecimal bd) {
           return bd.intValue();
         } else if (obj instanceof Double db) {
@@ -93,6 +94,8 @@ public class Mapper {
       case TIMESTAMP:
       case TIMESTAMPTZ:
       case DATETIME:
+      case DATETIME2:
+      case SMALLDATETIME:
         if (obj instanceof Timestamp ts) {
           return ts.getTime();
         } else if (obj instanceof LocalDateTime localDateTime) {
@@ -100,6 +103,13 @@ public class Mapper {
         } else if (obj instanceof LocalDate localDate) {
           return localDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond();
         } else if (obj instanceof Date date) {
+          return date.getTime();
+        } else if (obj instanceof byte[] ba) {
+          java.sql.Timestamp timestamp = new java.sql.Timestamp (
+              java.nio.ByteBuffer.wrap(ba).getLong()
+          );
+
+          java.util.Date date = new java.util.Date(timestamp.getTime());
           return date.getTime();
         }
       case OID:
@@ -122,32 +132,33 @@ public class Mapper {
       return (Float) obj;
     } else if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.FLOAT4) {
       return (Float) obj;
+    } else if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.REAL) {
+      return (Float) obj;
     }
     return FLOAT_NULL;
   }
 
   public static double convertRawToDouble(Object obj, CProfile cProfile) {
     if (obj == null) return DOUBLE_NULL;
-    if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.FLOAT64) {
-      return (Double) obj;
-    } else if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.MONEY) {
-      return (Double) obj;
-    } else if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.FLOAT)  {
-      if (obj instanceof BigDecimal bd) {
-        return bd.doubleValue();
-      } else {
+
+    DataType dataType = DataType.valueOf(cProfile.getColDbTypeName());
+    switch (dataType) {
+      case FLOAT64:
+      case FLOAT8:
         return (Double) obj;
-      }
-    } else if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.NUMERIC)  {
-      if (obj instanceof BigDecimal bd) {
-        return bd.doubleValue();
-      } else {
-        return (Double) obj;
-      }
-    } else if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.FLOAT8) {
-      return (Double) obj;
+      case MONEY:
+      case FLOAT:
+      case DECIMAL:
+      case NUMERIC:
+      case SMALLMONEY:
+        if (obj instanceof BigDecimal bd) {
+          return bd.doubleValue();
+        } else {
+          return (Double) obj;
+        }
+      default:
+        return DOUBLE_NULL;
     }
-    return DOUBLE_NULL;
   }
 
   public static String convertRawToString(Object obj, CProfile cProfile) {
@@ -162,6 +173,7 @@ public class Mapper {
       case BPCHAR:
       case NAME:
       case TEXT:
+      case NTEXT:
       case VARCHAR:
       case NVARCHAR2:
       case VARCHAR2:
@@ -169,6 +181,7 @@ public class Mapper {
         return (String) obj;
       case NCHAR:
       case CHAR:
+      case SYSNAME:
         String v = (String) obj;
         return v.trim();
       case OID:
@@ -176,9 +189,11 @@ public class Mapper {
       case INT2:
       case INT4:
       case INT8:
+      case TINYINT:
         Integer int0 = (Integer) obj;
         return valueOf(int0.intValue());
       case FLOAT4:
+      case REAL:
       case FLOAT8:
         Double d = (Double) obj;
         return valueOf(d.intValue());
@@ -198,12 +213,16 @@ public class Mapper {
         if (obj instanceof Boolean b) {
           return b.toString();
         }
+      case UNIQUEIDENTIFIER:
+        return (String) obj;
       case UUID:
         if (obj instanceof UUID u) {
           return u.toString();
         }
       case RAW:
       case BYTEA:
+      case BINARY:
+      case VARBINARY:
         return new String((byte[]) obj, StandardCharsets.UTF_8);
       default:
         return STRING_NULL;

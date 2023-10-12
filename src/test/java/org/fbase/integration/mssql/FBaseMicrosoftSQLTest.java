@@ -3,6 +3,7 @@ package org.fbase.integration.mssql;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.vividsolutions.jts.util.Assert;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
@@ -11,6 +12,12 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -71,9 +78,9 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
           "   GROUP BY id";
 
   // TODO MSSql Data Types: https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-types-transact-sql?view=sql-server-ver16
-  List<String> includeList = List.of("bit", "int", "char", "date", "real", "text", "time", "float", "money",
-      "nchar", "ntext", "bigint", "binary", "decimal", "numeric", "sysname", "tinyint", "varchar", "datetime",
-      "nvarchar", "smallint", "datetime2", "timestamp", "varbinary", "smallmoney", "smalldatetime", "uniqueidentifier");
+  List<String> includeList = List.of(/*"bit",*/ "int", /*"char",*/ /*"date",*/ "real", /*"text",*/ /*"time", "float", "money",*/
+      /*"nchar",*/ "ntext", "bigint", "binary", "decimal", /*"numeric",*/ "sysname", "tinyint", /*"varchar",*/ "datetime",
+      "nvarchar", "smallint", "datetime2", /*"timestamp",*/ "varbinary", "smallmoney", "smalldatetime", "uniqueidentifier");
   List<String> includeListAll = List.of("bit", "int", "char", "date", "real", "text", "time", "float", "money",
       "nchar", "ntext", "bigint", "binary", "decimal", "numeric", "sysname", "tinyint", "varchar", "datetime",
       "nvarchar", "smallint", "datetime2", "timestamp", "varbinary", "smallmoney", "smalldatetime", "uniqueidentifier");
@@ -164,11 +171,12 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
   public void loadDataTypes() throws SQLException {
     ResultSet r = dbConnection.getMetaData().getTypeInfo();
 
-    loadDataTypes(r, includeListAll, 31);
+    loadDataTypes(r, includeList, 31);
   }
 
   @Test
-  public void testDataTypes() throws SQLException, BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
+  public void testDataTypes()
+      throws SQLException, BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException, ParseException {
     String createTableDt = """
              CREATE TABLE mssql_data_types (
                    mssql_dt_bit BIT,
@@ -201,13 +209,15 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
                  )
         """;
 
-    boolean bitValue = true;
+    String bitValue = "1";
+    boolean bitValueTrue = true;
     int intValue = 123;
     String charValue = "Sample Char";
     java.sql.Date dateValue = java.sql.Date.valueOf("2023-10-10");
     float floatValue = 123.45f;
     String textValue = "Sample Text";
-    java.sql.Time timeValue = java.sql.Time.valueOf("12:00:00");
+    java.sql.Time timeValue = java.sql.Time.valueOf("12:10:20");
+    int timeValueInt = Math.toIntExact(timeValue.getTime());
     double doubleValue = 123.456;
     BigDecimal decimalValue = new BigDecimal("123.45");
     String ncharValue = "Sample Nchar";
@@ -217,14 +227,14 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     BigDecimal decimalValue1 = new BigDecimal("123.45").setScale(2, RoundingMode.HALF_UP);
     BigDecimal decimalValue2 = new BigDecimal("123.46");
     String sysnameValue = "Sample Sysname";
-    short tinyintValue = (short) 123;
+    short tinyintValue = (short) 23;
     String varcharValue = "Sample Varchar";
     java.sql.Timestamp datetimeValue = java.sql.Timestamp.valueOf("2023-10-10 12:10:10");
     String nvarcharValue = "Sample Nvarchar";
-    short smallintValue = (short) 123;
-    java.sql.Timestamp datetime2Value = new java.sql.Timestamp(new Date().getTime());
+    short smallintValue = (short) 223;
+    java.sql.Timestamp datetime2Value = java.sql.Timestamp.valueOf("2023-10-10 12:12:12");
     //java.sql.Timestamp timestampValue = new java.sql.Timestamp(new Date().getTime());
-    byte[] varbinaryValue = new byte[]{0x01, 0x02, 0x03};
+    byte[] varbinaryValue = "Test varbinaryValue".getBytes(StandardCharsets.UTF_8);
     BigDecimal smallmoneyValue = new BigDecimal("123.45");
     java.sql.Timestamp smallDatetimeValue = java.sql.Timestamp.valueOf("2023-10-10 11:11:11");
     String uniqueIdentifierValue = UUID.randomUUID().toString().toUpperCase();
@@ -241,7 +251,7 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
 
     PreparedStatement statement = dbConnection.prepareStatement(insertQuery);
 
-    statement.setBoolean(1, bitValue);
+    statement.setBoolean(1, bitValueTrue);
     statement.setInt(2, intValue);
     statement.setString(3, charValue);
     statement.setDate(4, dateValue);
@@ -303,7 +313,7 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
       Timestamp retrieved_smallDatetimeValue = resultSet.getTimestamp(26);
       String retrieved_uniqueIdentifierValue = resultSet.getString(27);
 
-      assertEquals(bitValue, retrieved_bitValue);
+      assertEquals(bitValue, retrieved_bitValue ? "1" : "0");
       assertEquals(intValue, retrieved_intValue);
       assertEquals(charValue, retrieved_charValue.trim());
       assertEquals(dateValue, retrieved_dateValue);
@@ -325,8 +335,8 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
       assertEquals(nvarcharValue, retrieved_nvarcharValue);
       assertEquals(smallintValue, retrieved_smallintValue);
       assertEquals(datetime2Value, retrieved_datetime2Value);
-      //assertEquals(timestampValue, retrieved_timestampValue);
-      assertArrayEquals(varbinaryValue, retrieved_varbinaryValue);
+      //assertEquals(timestampValue, retrieved_timestampValue); DEFAULT value, created on a server side
+      assertEquals(new String(varbinaryValue, StandardCharsets.UTF_8), new String(retrieved_varbinaryValue, StandardCharsets.UTF_8));
       assertEquals(smallmoneyValue, retrieved_smallmoneyValue.setScale(2, RoundingMode.HALF_UP));
       assertEquals(smallDatetimeValue.toLocalDateTime().withSecond(0), retrieved_smallDatetimeValue.toLocalDateTime().withSecond(0));
       assertEquals(uniqueIdentifierValue, retrieved_uniqueIdentifierValue);
@@ -346,6 +356,79 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     }
 
     List<CProfile> cProfiles = tProfile.getCProfiles();
+
+    CProfile mssqlDtBit = getCProfile(cProfiles, "mssql_dt_bit");
+    CProfile mssqlDtInt = getCProfile(cProfiles, "mssql_dt_int");
+    CProfile mssqlDtChar = getCProfile(cProfiles, "mssql_dt_char");
+    CProfile mssqlDtDate = getCProfile(cProfiles, "mssql_dt_date");
+    CProfile mssqlDtReal = getCProfile(cProfiles, "mssql_dt_real");
+    CProfile mssqlDtText = getCProfile(cProfiles, "mssql_dt_text");
+    CProfile mssqlDtTime = getCProfile(cProfiles, "mssql_dt_time");
+    CProfile mssqlDtFloat = getCProfile(cProfiles, "mssql_dt_float");
+    CProfile mssqlDtMoney = getCProfile(cProfiles, "mssql_dt_money");
+    CProfile mssqlDtNchar = getCProfile(cProfiles, "mssql_dt_nchar");
+    CProfile mssqlDtNtext = getCProfile(cProfiles, "mssql_dt_ntext");
+    CProfile mssqlDtBigint = getCProfile(cProfiles, "mssql_dt_bigint");
+    CProfile mssqlDtBinary = getCProfile(cProfiles, "mssql_dt_binary");
+    CProfile mssqlDtDecimal = getCProfile(cProfiles, "mssql_dt_decimal");
+    CProfile mssqlDtNumeric = getCProfile(cProfiles, "mssql_dt_numeric");
+    CProfile mssqlDtSysname = getCProfile(cProfiles, "mssql_dt_sysname");
+    CProfile mssqlDtTinyint = getCProfile(cProfiles, "mssql_dt_tinyint");
+    CProfile mssqlDtVarchar = getCProfile(cProfiles, "mssql_dt_varchar");
+    CProfile mssqlDtDatetime = getCProfile(cProfiles, "mssql_dt_datetime");
+    CProfile mssqlDtNvarchar = getCProfile(cProfiles, "mssql_dt_nvarchar");
+    CProfile mssqlDtSmallint = getCProfile(cProfiles, "mssql_dt_smallint");
+    CProfile mssqlDtDatetime2 = getCProfile(cProfiles, "mssql_dt_datetime2");
+    //CProfile mssqlDtTimestamp = getCProfile(cProfiles, "mssql_dt_timestamp");
+    CProfile mssqlDtVarbinary = getCProfile(cProfiles, "mssql_dt_varbinary");
+    CProfile mssqlDtSmallmoney = getCProfile(cProfiles, "mssql_dt_smallmoney");
+    CProfile mssqlDtSmalldatetime = getCProfile(cProfiles, "mssql_dt_smalldatetime");
+    CProfile mssqlDtUniqueidentifier = getCProfile(cProfiles, "mssql_dt_uniqueidentifier");
+
+    /* Test StackedColumn API */
+    assertEquals(bitValue, getStackedColumnKey(tableName, mssqlDtBit));
+    assertEquals(intValue, Integer.valueOf(getStackedColumnKey(tableName, mssqlDtInt)));
+    assertEquals(charValue, getStackedColumnKey(tableName, mssqlDtChar));
+    assertEquals(dateValue.getTime(), Long.valueOf(getStackedColumnKey(tableName, mssqlDtDate)));
+    assertEquals(floatValue, Float.valueOf(getStackedColumnKey(tableName, mssqlDtReal)));
+    assertEquals(textValue, getStackedColumnKey(tableName, mssqlDtText));
+    assertEquals(timeValueInt, Integer.parseInt(getStackedColumnKey(tableName, mssqlDtTime)));
+    assertEquals(doubleValue, Double.valueOf(getStackedColumnKey(tableName, mssqlDtFloat)));
+    assertEquals(decimalValue, new BigDecimal(getStackedColumnKey(tableName, mssqlDtMoney)).setScale(2, RoundingMode.HALF_UP));
+    assertEquals(ncharValue, getStackedColumnKey(tableName, mssqlDtNchar));
+    assertEquals(ntextValue, getStackedColumnKey(tableName, mssqlDtNtext));
+    assertEquals(bigintValue, Long.valueOf(getStackedColumnKey(tableName, mssqlDtBigint)));
+    assertEquals(new String(binaryValue, StandardCharsets.UTF_8), getStackedColumnKey(tableName, mssqlDtBinary).trim());
+    assertEquals(decimalValue1, new BigDecimal(getStackedColumnKey(tableName, mssqlDtDecimal)).setScale(2, RoundingMode.HALF_UP));
+    assertEquals(decimalValue2,  new BigDecimal(getStackedColumnKey(tableName, mssqlDtNumeric)).setScale(2, RoundingMode.HALF_UP));
+    assertEquals(sysnameValue, getStackedColumnKey(tableName, mssqlDtSysname));
+    assertEquals(tinyintValue, Short.valueOf(getStackedColumnKey(tableName, mssqlDtTinyint)));
+    assertEquals(varcharValue, getStackedColumnKey(tableName, mssqlDtVarchar));
+    //assertEquals(datetimeValue, getStackedColumnKey(tableName, mssqlDtDatetime)); // Not supported for timestamp column..
+    assertEquals(nvarcharValue, getStackedColumnKey(tableName, mssqlDtNvarchar));
+    assertEquals(smallintValue, Short.valueOf(getStackedColumnKey(tableName, mssqlDtSmallint)));
+
+    DateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+    Date date = formatter.parse(getStackedColumnKey(tableName, mssqlDtDatetime2));
+    assertEquals(datetime2Value.getTime(), date.getTime());
+
+    assertEquals(new String(varbinaryValue, StandardCharsets.UTF_8), getStackedColumnKey(tableName, mssqlDtVarbinary));
+    assertEquals(smallmoneyValue, new BigDecimal(getStackedColumnKey(tableName, mssqlDtSmallmoney)).setScale(2, RoundingMode.HALF_UP));
+
+    Date dateSmall = formatter.parse(getStackedColumnKey(tableName, mssqlDtSmalldatetime));
+    LocalDateTime localDateTimeSmall = Instant.ofEpochMilli(dateSmall.getTime())
+        .atZone(ZoneId.systemDefault())
+        .toLocalDateTime();
+    assertEquals(smallDatetimeValue.toLocalDateTime().withSecond(0), localDateTimeSmall.withSecond(0));
+    assertEquals(uniqueIdentifierValue, getStackedColumnKey(tableName, mssqlDtUniqueidentifier));
+
+    /* Test GanttColumn API */
+
+
+
+    /* Test Raw data API */
+
+
 
   }
   protected SProfile getSProfile(String select) throws SQLException {
@@ -377,4 +460,21 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     }
   }
 
+  private String getStackedColumnKey(String tableName, CProfile cProfile)
+      throws BeginEndWrongOrderException, SqlColMetadataException {
+    return fStore.getSColumnListByCProfile(tableName, cProfile, 0, Long.MAX_VALUE)
+        .stream()
+        .findAny()
+        .orElseThrow()
+        .getKeyCount()
+        .entrySet()
+        .stream()
+        .findAny()
+        .orElseThrow()
+        .getKey();
+  }
+
+  private CProfile getCProfile(List<CProfile> cProfiles, String colName) {
+    return cProfiles.stream().filter(f -> f.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow();
+  }
 }

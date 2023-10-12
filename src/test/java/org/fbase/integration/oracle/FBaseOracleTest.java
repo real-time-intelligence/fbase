@@ -3,8 +3,6 @@ package org.fbase.integration.oracle;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.vividsolutions.jts.util.Assert;
-import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -12,10 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.ParseException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 import lombok.extern.log4j.Log4j2;
 import org.fbase.common.AbstractOracleTest;
@@ -256,70 +251,70 @@ public class FBaseOracleTest extends AbstractOracleTest {
     CProfile oracleDtTimestamp = getCProfile(cProfiles, "oracle_dt_timestamp");
 
     /* Test StackedColumn API */
-    Assert.equals(new String(raw, StandardCharsets.UTF_8), getStackedColumnKey(tableName, oracleDtRaw));
-    Assert.equals(charVal, getStackedColumnKey(tableName, oracleDtChar));
-    Assert.equals(clob, getStackedColumnKey(tableName, oracleDtClob));
-    Assert.equals(dateLong, Long.valueOf(getStackedColumnKey(tableName, oracleDtDate)));
-    Assert.equals(floatVal, Float.valueOf(getStackedColumnKey(tableName, oracleDtFloat)));
-    Assert.equals(nchar, getStackedColumnKey(tableName, oracleDtNchar));
-    Assert.equals(nclob, getStackedColumnKey(tableName, oracleDtNclob));
-    Assert.equals(number, Integer.valueOf(getStackedColumnKey(tableName, oracleDtNumber)));
-    Assert.equals(varchar2, getStackedColumnKey(tableName, oracleDtVarchar2));
-    Assert.equals(nvarchar2, getStackedColumnKey(tableName, oracleDtNvarchar2));
-    //Assert.equals(timestamp, getStackedColumnKey(tableName, oracleDtTimestamp)); //Not supported for timestamp column..
+    assertEquals(new String(raw, StandardCharsets.UTF_8), getStackedColumnKey(tableName, oracleDtRaw));
+    assertEquals(charVal, getStackedColumnKey(tableName, oracleDtChar));
+    assertEquals(clob, getStackedColumnKey(tableName, oracleDtClob));
+    assertEquals(dateLong, Long.valueOf(getStackedColumnKey(tableName, oracleDtDate)));
+    assertEquals(floatVal, Float.valueOf(getStackedColumnKey(tableName, oracleDtFloat)));
+    assertEquals(nchar, getStackedColumnKey(tableName, oracleDtNchar));
+    assertEquals(nclob, getStackedColumnKey(tableName, oracleDtNclob));
+    assertEquals(number, Integer.valueOf(getStackedColumnKey(tableName, oracleDtNumber)));
+    assertEquals(varchar2, getStackedColumnKey(tableName, oracleDtVarchar2));
+    assertEquals(nvarchar2, getStackedColumnKey(tableName, oracleDtNvarchar2));
+    //assertEquals(timestamp, getStackedColumnKey(tableName, oracleDtTimestamp)); //Not supported for timestamp column..
 
     /* Test GanttColumn API */
     List<GanttColumn> oracleDtRawChar = getGanttColumn(tableName, oracleDtRaw, oracleDtChar);
-    Assert.equals(new String(raw, StandardCharsets.UTF_8), oracleDtRawChar.get(0).getKey());
-    Assert.equals(charVal, getGanttKey(oracleDtRawChar, charVal));
+    assertEquals(new String(raw, StandardCharsets.UTF_8), oracleDtRawChar.get(0).getKey());
+    assertEquals(charVal, getGanttKey(oracleDtRawChar, charVal));
 
     List<GanttColumn> oracleDtCharClob = getGanttColumn(tableName, oracleDtChar, oracleDtClob);
-    Assert.equals(charVal, oracleDtCharClob.get(0).getKey());
-    Assert.equals(clob, getGanttKey(oracleDtCharClob, clob));
+    assertEquals(charVal, oracleDtCharClob.get(0).getKey());
+    assertEquals(clob, getGanttKey(oracleDtCharClob, clob));
 
     List<GanttColumn> oracleDtClobDate = getGanttColumn(tableName, oracleDtClob, oracleDtDate);
-    Assert.equals(clob, oracleDtClobDate.get(0).getKey());
-    Assert.equals(dateLong, Long.parseLong(getGanttKey(oracleDtClobDate, String.valueOf(dateLong))));
+    assertEquals(clob, oracleDtClobDate.get(0).getKey());
+    assertEquals(dateLong, Long.parseLong(getGanttKey(oracleDtClobDate, String.valueOf(dateLong))));
 
     List<GanttColumn> oracleDtDateFloat = getGanttColumn(tableName, oracleDtDate, oracleDtFloat);
-    Assert.equals(dateLong, Long.parseLong(oracleDtDateFloat.get(0).getKey()));
-    Assert.equals(floatVal, Float.valueOf(getGanttKey(oracleDtDateFloat, Float.toString(floatVal))));
+    assertEquals(dateLong, Long.parseLong(oracleDtDateFloat.get(0).getKey()));
+    assertEquals(floatVal, Float.valueOf(getGanttKey(oracleDtDateFloat, Float.toString(floatVal))));
 
     List<GanttColumn> oracleDtFloatNChar = getGanttColumn(tableName, oracleDtFloat, oracleDtNchar);
-    Assert.equals(floatVal, Float.valueOf(oracleDtFloatNChar.get(0).getKey()));
-    Assert.equals(nchar, getGanttKey(oracleDtFloatNChar, nchar));
+    assertEquals(floatVal, Float.valueOf(oracleDtFloatNChar.get(0).getKey()));
+    assertEquals(nchar, getGanttKey(oracleDtFloatNChar, nchar));
 
     List<GanttColumn> oracleDtNCharNClob = getGanttColumn(tableName, oracleDtNchar, oracleDtNclob);
-    Assert.equals(nchar, oracleDtNCharNClob.get(0).getKey());
-    Assert.equals(nclob, getGanttKey(oracleDtNCharNClob, nclob));
+    assertEquals(nchar, oracleDtNCharNClob.get(0).getKey());
+    assertEquals(nclob, getGanttKey(oracleDtNCharNClob, nclob));
 
     List<GanttColumn> oracleDtNClobNumber = getGanttColumn(tableName, oracleDtNclob, oracleDtNumber);
-    Assert.equals(nclob, oracleDtNClobNumber.get(0).getKey());
-    Assert.equals(number, Integer.valueOf(getGanttKey(oracleDtNClobNumber, Integer.toString(number))));
+    assertEquals(nclob, oracleDtNClobNumber.get(0).getKey());
+    assertEquals(number, Integer.valueOf(getGanttKey(oracleDtNClobNumber, Integer.toString(number))));
 
     List<GanttColumn> oracleDtNumberVarchar2 = getGanttColumn(tableName, oracleDtNumber, oracleDtVarchar2);
-    Assert.equals(number, Integer.valueOf(oracleDtNumberVarchar2.get(0).getKey()));
-    Assert.equals(varchar2, getGanttKey(oracleDtNumberVarchar2, varchar2));
+    assertEquals(number, Integer.valueOf(oracleDtNumberVarchar2.get(0).getKey()));
+    assertEquals(varchar2, getGanttKey(oracleDtNumberVarchar2, varchar2));
 
     List<GanttColumn> oracleDtVarchar2NVarchar2 = getGanttColumn(tableName, oracleDtVarchar2, oracleDtNvarchar2);
-    Assert.equals(varchar2, oracleDtVarchar2NVarchar2.get(0).getKey());
-    Assert.equals(nvarchar2, getGanttKey(oracleDtVarchar2NVarchar2, nvarchar2));
+    assertEquals(varchar2, oracleDtVarchar2NVarchar2.get(0).getKey());
+    assertEquals(nvarchar2, getGanttKey(oracleDtVarchar2NVarchar2, nvarchar2));
 
     /* Test Raw data API */
     List<List<Object>> rawDataAll = fStore.getRawDataAll(tableName, 0, Long.MAX_VALUE);
     rawDataAll.forEach(row -> cProfiles.forEach(cProfile -> {
       try {
-        if (cProfile.equals(oracleDtRaw)) Assert.equals(new String(raw, StandardCharsets.UTF_8), getStackedColumnKey(tableName, oracleDtRaw));
-        if (cProfile.equals(oracleDtChar)) Assert.equals(charVal, getStackedColumnKey(tableName, oracleDtChar));
-        if (cProfile.equals(oracleDtClob)) Assert.equals(clob, getStackedColumnKey(tableName, oracleDtClob));
-        if (cProfile.equals(oracleDtDate)) Assert.equals(dateLong, Long.valueOf(getStackedColumnKey(tableName, oracleDtDate)));
-        if (cProfile.equals(oracleDtFloat)) Assert.equals(floatVal, Float.valueOf(getStackedColumnKey(tableName, oracleDtFloat)));
-        if (cProfile.equals(oracleDtNchar)) Assert.equals(nchar, getStackedColumnKey(tableName, oracleDtNchar));
-        if (cProfile.equals(oracleDtNclob)) Assert.equals(nclob, getStackedColumnKey(tableName, oracleDtNclob));
-        if (cProfile.equals(oracleDtNumber)) Assert.equals(number, Integer.valueOf(getStackedColumnKey(tableName, oracleDtNumber)));
-        if (cProfile.equals(oracleDtVarchar2)) Assert.equals(varchar2, getStackedColumnKey(tableName, oracleDtVarchar2));
-        if (cProfile.equals(oracleDtNvarchar2)) Assert.equals(nvarchar2, getStackedColumnKey(tableName, oracleDtNvarchar2));
-        //if (cProfile.equals(oracleDtTimestamp)) Assert.equals(timestamp, getStackedColumnKey(tableName, oracleDtTimestamp));  //Not supported for timestamp column..
+        if (cProfile.equals(oracleDtRaw)) assertEquals(new String(raw, StandardCharsets.UTF_8), getStackedColumnKey(tableName, oracleDtRaw));
+        if (cProfile.equals(oracleDtChar)) assertEquals(charVal, getStackedColumnKey(tableName, oracleDtChar));
+        if (cProfile.equals(oracleDtClob)) assertEquals(clob, getStackedColumnKey(tableName, oracleDtClob));
+        if (cProfile.equals(oracleDtDate)) assertEquals(dateLong, Long.valueOf(getStackedColumnKey(tableName, oracleDtDate)));
+        if (cProfile.equals(oracleDtFloat)) assertEquals(floatVal, Float.valueOf(getStackedColumnKey(tableName, oracleDtFloat)));
+        if (cProfile.equals(oracleDtNchar)) assertEquals(nchar, getStackedColumnKey(tableName, oracleDtNchar));
+        if (cProfile.equals(oracleDtNclob)) assertEquals(nclob, getStackedColumnKey(tableName, oracleDtNclob));
+        if (cProfile.equals(oracleDtNumber)) assertEquals(number, Integer.valueOf(getStackedColumnKey(tableName, oracleDtNumber)));
+        if (cProfile.equals(oracleDtVarchar2)) assertEquals(varchar2, getStackedColumnKey(tableName, oracleDtVarchar2));
+        if (cProfile.equals(oracleDtNvarchar2)) assertEquals(nvarchar2, getStackedColumnKey(tableName, oracleDtNvarchar2));
+        //if (cProfile.equals(oracleDtTimestamp)) assertEquals(timestamp, getStackedColumnKey(tableName, oracleDtTimestamp));  //Not supported for timestamp column..
       } catch (Exception e) {
         log.info(e.getMessage());
         throw new RuntimeException(e);
