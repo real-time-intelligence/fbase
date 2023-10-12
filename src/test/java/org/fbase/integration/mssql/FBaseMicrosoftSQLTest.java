@@ -28,6 +28,7 @@ import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -214,7 +215,7 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     int intValue = 123;
     String charValue = "Sample Char";
     java.sql.Date dateValue = java.sql.Date.valueOf("2023-10-10");
-    float floatValue = 123.45f;
+    float floatValue = 123.455f;
     String textValue = "Sample Text";
     java.sql.Time timeValue = java.sql.Time.valueOf("12:10:20");
     int timeValueInt = Math.toIntExact(timeValue.getTime());
@@ -423,14 +424,93 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     assertEquals(uniqueIdentifierValue, getStackedColumnKey(tableName, mssqlDtUniqueidentifier));
 
     /* Test GanttColumn API */
+    List<GanttColumn> mssqlDtBitInt = getGanttColumn(tableName, mssqlDtBit, mssqlDtInt);
+    assertEquals(bitValue, mssqlDtBitInt.get(0).getKey());
+    assertEquals(intValue, Integer.valueOf(getGanttKey(mssqlDtBitInt, String.valueOf(intValue))));
 
+    List<GanttColumn> mssqlDtIntChar = getGanttColumn(tableName, mssqlDtInt, mssqlDtChar);
+    assertEquals(intValue, Integer.valueOf(mssqlDtIntChar.get(0).getKey()));
+    assertEquals(charValue, getGanttKey(mssqlDtIntChar, charValue));
 
+    List<GanttColumn> mssqlDtCharDate = getGanttColumn(tableName, mssqlDtChar, mssqlDtDate);
+    assertEquals(charValue, mssqlDtCharDate.get(0).getKey());
+    assertEquals(dateValue.getTime(), Long.valueOf(getGanttKey(mssqlDtCharDate, String.valueOf(dateValue.getTime()))));
+
+    List<GanttColumn> mssqlDtDateReal = getGanttColumn(tableName, mssqlDtDate, mssqlDtReal);
+    assertEquals(dateValue.getTime(), Long.valueOf(mssqlDtDateReal.get(0).getKey()));
+    assertEquals(floatValue, Float.valueOf(getGanttKeyFloat(mssqlDtDateReal, String.format("%.2f", floatValue))));
+
+    List<GanttColumn> mssqlDtRealText = getGanttColumn(tableName, mssqlDtReal, mssqlDtText);
+    assertEquals(floatValue, Float.valueOf(mssqlDtRealText.get(0).getKey()));
+    assertEquals(textValue, getGanttKey(mssqlDtRealText, textValue));
+
+    List<GanttColumn> mssqlDtTextTime = getGanttColumn(tableName, mssqlDtText, mssqlDtTime);
+    assertEquals(textValue, mssqlDtTextTime.get(0).getKey());
+    assertEquals(timeValueInt, Integer.parseInt(getGanttKey(mssqlDtTextTime, String.valueOf(timeValueInt))));
+
+    List<GanttColumn> mssqlDtTimeFloat = getGanttColumn(tableName, mssqlDtTime, mssqlDtFloat);
+    assertEquals(timeValueInt, Integer.parseInt(mssqlDtTimeFloat.get(0).getKey()));
+    assertEquals(doubleValue, Double.valueOf(getGanttKey(mssqlDtTimeFloat, String.valueOf(doubleValue))));
+
+    List<GanttColumn> mssqlDtFloatDec = getGanttColumn(tableName, mssqlDtFloat, mssqlDtDecimal);
+    assertEquals(doubleValue, Double.valueOf(mssqlDtFloatDec.get(0).getKey()));
+    assertEquals(decimalValue1, new BigDecimal(getGanttKey(mssqlDtFloatDec, decimalValue1.toPlainString())).setScale(2, RoundingMode.HALF_UP));
+
+    List<GanttColumn> mssqlDtDecimalNChar = getGanttColumn(tableName, mssqlDtDecimal, mssqlDtNchar);
+    assertEquals(decimalValue1, new BigDecimal(mssqlDtDecimalNChar.get(0).getKey()).setScale(2, RoundingMode.HALF_UP));
+    assertEquals(ncharValue, getGanttKey(mssqlDtDecimalNChar, ncharValue));
+
+    List<GanttColumn> mssqlDtNcharNText = getGanttColumn(tableName, mssqlDtNchar, mssqlDtNtext);
+    assertEquals(ncharValue, mssqlDtNcharNText.get(0).getKey());
+    assertEquals(ntextValue, getGanttKey(mssqlDtNcharNText, ntextValue));
+
+    List<GanttColumn> mssqlDtNtextBigInt = getGanttColumn(tableName, mssqlDtNtext, mssqlDtBigint);
+    assertEquals(ntextValue, mssqlDtNtextBigInt.get(0).getKey());
+    assertEquals(bigintValue, Long.valueOf(getGanttKey(mssqlDtNtextBigInt, String.valueOf(bigintValue))));
+
+    List<GanttColumn> mssqlDtBigintBinary = getGanttColumn(tableName, mssqlDtBigint, mssqlDtBinary);
+    assertEquals(bigintValue, Long.valueOf(mssqlDtBigintBinary.get(0).getKey()));
+    assertEquals(new String(binaryValue, StandardCharsets.UTF_8).trim(), getGanttKey(mssqlDtBigintBinary, new String(binaryValue, StandardCharsets.UTF_8).trim()).trim());
 
     /* Test Raw data API */
+    List<List<Object>> rawDataAll = fStore.getRawDataAll(tableName, 0, Long.MAX_VALUE);
 
+    rawDataAll.forEach(row -> cProfiles.forEach(cProfile -> {
+      try {
+        if (cProfile.equals(mssqlDtBit)) assertEquals(bitValue, getStackedColumnKey(tableName, mssqlDtBit));
+        if (cProfile.equals(mssqlDtInt)) assertEquals(intValue, Integer.valueOf(getStackedColumnKey(tableName, mssqlDtInt)));
+        if (cProfile.equals(mssqlDtChar)) assertEquals(charValue, getStackedColumnKey(tableName, mssqlDtChar));
+        if (cProfile.equals(mssqlDtDate)) assertEquals(dateValue.getTime(), Long.valueOf(getStackedColumnKey(tableName, mssqlDtDate)));
+        if (cProfile.equals(mssqlDtReal)) assertEquals(floatValue, Float.valueOf(getStackedColumnKey(tableName, mssqlDtReal)));
+        if (cProfile.equals(mssqlDtText)) assertEquals(textValue, getStackedColumnKey(tableName, mssqlDtText));
+        if (cProfile.equals(mssqlDtTime)) assertEquals(timeValueInt, Integer.parseInt(getStackedColumnKey(tableName, mssqlDtTime)));
+        if (cProfile.equals(mssqlDtFloat)) assertEquals(doubleValue, Double.valueOf(getStackedColumnKey(tableName, mssqlDtFloat)));
+        if (cProfile.equals(mssqlDtMoney)) assertEquals(decimalValue, new BigDecimal(getStackedColumnKey(tableName, mssqlDtMoney)).setScale(2, RoundingMode.HALF_UP));
+        if (cProfile.equals(mssqlDtNchar)) assertEquals(ncharValue, getStackedColumnKey(tableName, mssqlDtNchar));
+        if (cProfile.equals(mssqlDtNtext)) assertEquals(ntextValue, getStackedColumnKey(tableName, mssqlDtNtext));
+        if (cProfile.equals(mssqlDtBigint)) assertEquals(bigintValue, Long.valueOf(getStackedColumnKey(tableName, mssqlDtBigint)));
+        if (cProfile.equals(mssqlDtBinary)) assertEquals(new String(binaryValue, StandardCharsets.UTF_8).trim(), getStackedColumnKey(tableName, mssqlDtBinary).trim());
+        if (cProfile.equals(mssqlDtDecimal)) assertEquals(decimalValue1, new BigDecimal(getStackedColumnKey(tableName, mssqlDtDecimal)).setScale(2, RoundingMode.HALF_UP));
+        if (cProfile.equals(mssqlDtNumeric)) assertEquals(decimalValue2, new BigDecimal(getStackedColumnKey(tableName, mssqlDtNumeric)).setScale(2, RoundingMode.HALF_UP));
+        if (cProfile.equals(mssqlDtSysname)) assertEquals(sysnameValue, getStackedColumnKey(tableName, mssqlDtSysname));
+        if (cProfile.equals(mssqlDtTinyint)) assertEquals(tinyintValue, Short.valueOf(getStackedColumnKey(tableName, mssqlDtTinyint)));
+        if (cProfile.equals(mssqlDtVarchar)) assertEquals(varcharValue, getStackedColumnKey(tableName, mssqlDtVarchar));
+        if (cProfile.equals(mssqlDtNvarchar)) assertEquals(nvarcharValue, getStackedColumnKey(tableName, mssqlDtNvarchar));
+        if (cProfile.equals(mssqlDtSmallint)) assertEquals(smallintValue, Short.valueOf(getStackedColumnKey(tableName, mssqlDtSmallint)));
 
-
+        Date datetime2 = formatter.parse(getStackedColumnKey(tableName, mssqlDtDatetime2));
+        if (cProfile.equals(mssqlDtDatetime2)) assertEquals(datetime2Value.getTime(), datetime2.getTime());
+        if (cProfile.equals(mssqlDtVarbinary)) assertEquals(new String(varbinaryValue, StandardCharsets.UTF_8), getStackedColumnKey(tableName, mssqlDtVarbinary));
+        if (cProfile.equals(mssqlDtSmallmoney)) assertEquals(smallmoneyValue, new BigDecimal(getStackedColumnKey(tableName, mssqlDtSmallmoney)).setScale(2, RoundingMode.HALF_UP));
+        if (cProfile.equals(mssqlDtSmalldatetime)) assertEquals(smallDatetimeValue.toLocalDateTime().withSecond(0), localDateTimeSmall.withSecond(0));
+        if (cProfile.equals(mssqlDtUniqueidentifier)) assertEquals(uniqueIdentifierValue, getStackedColumnKey(tableName, mssqlDtUniqueidentifier));
+      } catch (Exception e) {
+        log.info(e.getMessage());
+        throw new RuntimeException(e);
+      }
+    }));
   }
+
   protected SProfile getSProfile(String select) throws SQLException {
     Map<String, CSType> csTypeMap = new HashMap<>();
 
@@ -458,6 +538,35 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
       statement.executeUpdate(sql);
       log.info("Table dropped successfully!");
     }
+  }
+
+  private String getGanttKey(List<GanttColumn> ganttColumnList, String filter) {
+    return ganttColumnList.get(0).getGantt()
+        .entrySet()
+        .stream()
+        .filter(f -> f.getKey().trim().equalsIgnoreCase(filter))
+        .findAny()
+        .orElseThrow()
+        .getKey();
+  }
+
+  private String getGanttKeyFloat(List<GanttColumn> ganttColumnList, String filter) {
+    return ganttColumnList.get(0).getGantt()
+        .entrySet()
+        .stream()
+        .filter(f -> {
+              Float val = Float.valueOf(f.getKey());
+              String valStr = String.format("%.2f", val);
+              return valStr.equals(filter);
+        })
+        .findAny()
+        .orElseThrow()
+        .getKey();
+  }
+
+  private List<GanttColumn> getGanttColumn(String tableName, CProfile cProfileFirst, CProfile cProfileSecond)
+      throws BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
+    return fStore.getGColumnListTwoLevelGroupBy(tableName, cProfileFirst, cProfileSecond, 0, Long.MAX_VALUE);
   }
 
   private String getStackedColumnKey(String tableName, CProfile cProfile)
