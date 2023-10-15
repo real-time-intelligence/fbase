@@ -3,19 +3,19 @@ package org.fbase.service.mapping;
 import static java.lang.String.valueOf;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Predicate;
 import lombok.extern.log4j.Log4j2;
@@ -35,24 +35,42 @@ public class Mapper {
   public Mapper() {}
 
   public static CType isCType(CProfile cProfile) {
-    if (cProfile.getColDbTypeName().contains("FIXEDSTRING") ||
-        cProfile.getColDbTypeName().contains("ENUM")) return CType.STRING;
+    if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return CType.STRING;
+    if (cProfile.getColDbTypeName().contains("ENUM")) return CType.STRING;
 
-    return switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
-      case UINT8, UINT16, INT2, INT4, INT8, NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT, TIME, TIMETZ, TINYINT -> CType.INT;
-      case OID, DATE, TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME, UINT32, LONG, SERIAL, SMALLSERIAL, BIGSERIAL -> CType.LONG;
+    if (cProfile.getColDbTypeName().contains("DECIMAL")) return CType.DOUBLE;
+    if (cProfile.getColDbTypeName().contains("DATETIME")) return CType.LONG;
+    if (cProfile.getColDbTypeName().contains("NULLABLE")) return CType.STRING;
+
+    return switch (DataType.valueOf(cProfile.getColDbTypeName().toUpperCase())) {
+      case UINT8, UINT16, INT16, INT2, INT4, INT8, INT32, NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT, TIME, TIMETZ, TINYINT -> CType.INT;
+      case OID, DATE, TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME, UINT32, UINT64, INT64, INT128, INT256, SERIAL, SMALLSERIAL, BIGSERIAL -> CType.LONG;
       case FLOAT4, FLOAT32, REAL -> CType.FLOAT;
-      case FLOAT64, DOUBLE, NUMERIC, FLOAT, FLOAT8, MONEY, SMALLMONEY, DECIMAL -> CType.DOUBLE;
+      case FLOAT64, NUMERIC, FLOAT, FLOAT8, MONEY, SMALLMONEY, DECIMAL -> CType.DOUBLE;
       case BOOL, UUID, BYTEA, BINARY, RAW, VARBINARY, UNIQUEIDENTIFIER -> CType.STRING;
       default -> CType.STRING;
     };
   }
 
+  public static DataType isDBType(CProfile cProfile) {
+    if (cProfile.getColDbTypeName().contains("DECIMAL")) return DataType.DECIMAL;
+    if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return DataType.FIXEDSTRING;
+    if (cProfile.getColDbTypeName().contains("ENUM8")) return DataType.ENUM8;
+    if (cProfile.getColDbTypeName().contains("ENUM16")) return DataType.ENUM16;
+    if (cProfile.getColDbTypeName().contains("ENUM")) return DataType.ENUM;
+    if (cProfile.getColDbTypeName().contains("DATETIME")) return DataType.DATETIME;
+    if (cProfile.getColDbTypeName().contains("NULLABLE")) return DataType.NULLABLE;
+
+    return DataType.valueOf(cProfile.getColDbTypeName().toUpperCase());
+  }
+
   public static int convertRawToInt(Object obj, CProfile cProfile) {
     if (obj == null) return INT_NULL;
-    switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
+    switch (cProfile.getCsType().getDType()) {
       case UINT8:
       case UINT16:
+      case INT16:
+      case INT32:
       case INT2:
       case INT4:
       case INT8:
@@ -76,6 +94,8 @@ public class Mapper {
           return Math.toIntExact(t.getTime());
         } else if (obj instanceof Float f) {
           return f.intValue();
+        } else if (obj instanceof Byte b) {
+          return b.intValue();
         }
         return (Integer) obj;
       case BIT:
@@ -89,7 +109,8 @@ public class Mapper {
 
   public static long convertRawToLong(Object obj, CProfile cProfile) {
     if (obj == null) return LONG_NULL;
-    switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
+
+    switch (cProfile.getCsType().getDType()) {
       case DATE:
       case TIMESTAMP:
       case TIMESTAMPTZ:
@@ -111,11 +132,20 @@ public class Mapper {
 
           java.util.Date date = new java.util.Date(timestamp.getTime());
           return date.getTime();
+        } else if (obj instanceof OffsetDateTime offsetDateTime) {
+          return offsetDateTime.toInstant().toEpochMilli();
         }
       case OID:
       case BIGSERIAL:
       case UINT32:
+      case INT64:
+      case UINT64:
         return (Long) obj;
+      case INT128:
+      case INT256:
+        if (obj instanceof BigInteger bigInteger) {
+          return bigInteger.longValue();
+        }
       case SERIAL:
       case SMALLSERIAL:
         if (obj instanceof Integer i) {
@@ -128,11 +158,11 @@ public class Mapper {
 
   public static float convertRawToFloat(Object obj, CProfile cProfile) {
     if (obj == null) return FLOAT_NULL;
-    if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.FLOAT32) {
+    if (cProfile.getCsType().getDType() == DataType.FLOAT32) {
       return (Float) obj;
-    } else if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.FLOAT4) {
+    } else if (cProfile.getCsType().getDType() == DataType.FLOAT4) {
       return (Float) obj;
-    } else if (DataType.valueOf(cProfile.getColDbTypeName()) == DataType.REAL) {
+    } else if (cProfile.getCsType().getDType() == DataType.REAL) {
       return (Float) obj;
     }
     return FLOAT_NULL;
@@ -141,8 +171,7 @@ public class Mapper {
   public static double convertRawToDouble(Object obj, CProfile cProfile) {
     if (obj == null) return DOUBLE_NULL;
 
-    DataType dataType = DataType.valueOf(cProfile.getColDbTypeName());
-    switch (dataType) {
+    switch (cProfile.getCsType().getDType()) {
       case FLOAT64:
       case FLOAT8:
         return (Double) obj;
@@ -163,10 +192,8 @@ public class Mapper {
 
   public static String convertRawToString(Object obj, CProfile cProfile) {
     if (obj == null) return STRING_NULL;
-    if (cProfile.getColDbTypeName().contains("FIXEDSTRING")||
-        cProfile.getColDbTypeName().contains("ENUM")) return (String) obj;
 
-    switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
+    switch (cProfile.getCsType().getDType()) {
       case ENUM8:
       case ENUM16:
       case FIXEDSTRING:
@@ -178,6 +205,7 @@ public class Mapper {
       case NVARCHAR2:
       case VARCHAR2:
       case NVARCHAR:
+      case NULLABLE:
         return (String) obj;
       case NCHAR:
       case CHAR:

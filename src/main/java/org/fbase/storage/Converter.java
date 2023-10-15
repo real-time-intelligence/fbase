@@ -27,10 +27,7 @@ public class Converter {
   public int convertRawToInt(Object obj, CProfile cProfile) {
     if (obj == null) return INT_NULL;
 
-    if (cProfile.getColDbTypeName().contains("ENUM")) return dimensionDAO.getOrLoad((String) obj);
-    if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getOrLoad((String) obj);
-
-    switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
+    switch (cProfile.getCsType().getDType()) {
       case DATE:
         if (obj instanceof java.util.Date dt) {
           return dimensionDAO.getOrLoad(dt.toString());
@@ -51,6 +48,7 @@ public class Converter {
         }
       case OID:
       case UINT32:
+      case UINT64:
       case SERIAL:
       case SMALLSERIAL:
       case BIGSERIAL:
@@ -58,6 +56,11 @@ public class Converter {
         return l.intValue();
       case UINT8:
       case UINT16:
+      case INT16:
+      case INT32:
+      case INT64:
+      case INT128:
+      case INT256:
       case INT2:
       case INT4:
       case INT8:
@@ -116,6 +119,7 @@ public class Converter {
       case NVARCHAR2:
       case VARCHAR2:
       case NVARCHAR:
+      case NULLABLE:
         return dimensionDAO.getOrLoad((String) obj);
       case BYTEA:
       case BINARY:
@@ -133,8 +137,9 @@ public class Converter {
     if (cProfile.getColDbTypeName().contains("ENUM")) return dimensionDAO.getStringById(objIndex);
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getStringById(objIndex);
 
-    return switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
-      case DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, NCHAR, NCLOB, CLOB, NAME, TEXT, NTEXT, VARCHAR, NVARCHAR2, VARCHAR2, NVARCHAR, RAW, VARBINARY, BYTEA, BINARY, SYSNAME ->
+    return switch (DataType.valueOf(cProfile.getColDbTypeName().toUpperCase())) {
+      case DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, NCHAR, NCLOB, CLOB, NAME, TEXT, NTEXT,
+          VARCHAR, NVARCHAR2, VARCHAR2, NVARCHAR, RAW, VARBINARY, BYTEA, BINARY, SYSNAME, NULLABLE ->
           dimensionDAO.getStringById(objIndex);
       case TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME -> getDateForLongShorted(objIndex);
       case FLOAT64, DECIMAL, FLOAT4, REAL, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY, SMALLMONEY -> String.valueOf(dimensionDAO.getDoubleById(objIndex));
@@ -143,7 +148,7 @@ public class Converter {
   }
 
   public double convertIntToDouble(int objIndex, CProfile cProfile) {
-    return switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
+    return switch (cProfile.getCsType().getDType()) {
       case FLOAT64, DECIMAL, FLOAT4, REAL, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY, SMALLMONEY  -> dimensionDAO.getDoubleById(objIndex);
       default -> objIndex;
     };
@@ -154,7 +159,7 @@ public class Converter {
       return 0L;
     }
 
-    switch (DataType.valueOf(cProfile.getColDbTypeName().replaceAll(" ", "_").toUpperCase())) {
+    switch (cProfile.getCsType().getDType()) {
       case INTEGER:
         return ((Integer) obj).longValue();
       case DATE:

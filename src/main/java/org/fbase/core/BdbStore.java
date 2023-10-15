@@ -154,7 +154,7 @@ public class BdbStore implements FStore {
                     .sType(SType.RAW)
                     .build());
             csType.setCType(Mapper.isCType(cProfile));
-            csType.setDType(DataType.valueOf(cProfile.getColDbTypeName().toUpperCase()));
+            csType.setDType(Mapper.isDBType(cProfile));
 
             cProfile.setCsType(csType);
           }

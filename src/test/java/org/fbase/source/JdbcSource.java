@@ -7,6 +7,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -56,11 +57,20 @@ public interface JdbcSource {
 
         if (v.getCsType().isTimeStamp()) {
           try {
-            Timestamp dt = (Timestamp) r.getObject(v.getColIdSql());
-            if (previousValue[0] == dt.getTime()) {
-              isTheSameKey[0] = true;
-            } else {
-              previousValue[0] = dt.getTime();
+            Object object = r.getObject(v.getColIdSql());
+
+            if (object instanceof Timestamp dt) {
+              if (previousValue[0] == dt.getTime()) {
+                isTheSameKey[0] = true;
+              } else {
+                previousValue[0] = dt.getTime();
+              }
+            } else if (object instanceof OffsetDateTime dt) {
+              if (previousValue[0] == dt.toInstant().toEpochMilli()) {
+                isTheSameKey[0] = true;
+              } else {
+                previousValue[0] = dt.toInstant().toEpochMilli();
+              }
             }
           } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -132,7 +142,7 @@ public interface JdbcSource {
 
     while (r.next()) {
       String typeName = r.getString("TYPE_NAME");
-      byteStringMap.put(typeName, typeName);
+      byteStringMap.put(typeName, typeName.toLowerCase());
     }
 
     AtomicInteger byteKey = new AtomicInteger(initialValue);
@@ -140,7 +150,7 @@ public interface JdbcSource {
     // Load data types
     byteStringMap.forEach((key, value) -> {
       if (includeList.contains(value)) {
-        System.out.println(value.replace(" ", "_").toUpperCase()
+        System.out.println(value.toUpperCase()
                 + "(" + byteKey.getAndIncrement() + ", \""
                 + value.toUpperCase() + "\"),");
       }

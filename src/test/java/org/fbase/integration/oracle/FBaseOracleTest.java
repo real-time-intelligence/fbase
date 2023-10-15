@@ -46,13 +46,13 @@ public class FBaseOracleTest extends AbstractOracleTest {
       + " FROM (SELECT (MOD(Round(DBMS_RANDOM.Value(1, 99)), 9) + 1) value FROM dual )";
 
   // TODO Oracle Data Types: https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Data-Types.html#GUID-7B72E154-677A-4342-A1EA-C74C1EA928E6
-  List<String> includeList = List.of("VARCHAR2", "NVARCHAR2", "NUMBER", "FLOAT", /*"LONG",*/
-      /*"DATE", "TIMESTAMP",*/ "RAW", /*"TIMESTAMP WITH TIME ZONE",*/ "ROWID", "UROWID", /*"CHAR",*/
-      "NCHAR", "CLOB", "NCLOB");
+  List<String> includeList = List.of("varchar2", "nvarchar2", "number", "float", /*"long",*/
+      /*"date", "timestamp",*/ "raw", /*"timestamp with time zone",*/ "rowid", "urowid", /*"char",*/
+      "nchar", "clob", "nclob");
 
-  List<String> includeListAll = List.of("VARCHAR2", "NVARCHAR2", "NUMBER", "FLOAT", "LONG",
-      "DATE", "TIMESTAMP", "RAW", "TIMESTAMP WITH TIME ZONE", "ROWID", "UROWID", "CHAR",
-      "NCHAR", "CLOB", "NCLOB");
+  List<String> includeListAll = List.of("varchar2", "nvarchar2", "number", "float", "long",
+      "date", "timestamp", "raw", "timestamp with time zone", "rowid", "urowid", "char",
+      "nchar", "clob", "nclob");
 
   private final String selectDataType = "SELECT * FROM oracle_data_types";
 
