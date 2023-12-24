@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -69,7 +71,8 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
       "enum", "enum8", "enum16",
       "int", "smallint", "integer", "int1", "int8", "int16", "int32", "int64", "int128", "int256", "real", "double",
       "uint32", "uint8", "uint16", "uint64", "float32", "float64",
-      "text", "uuid",  "String", "varchar", "nvarchar", "nullable");
+      "text", "uuid",  "String", "varchar", "nvarchar", "nullable",
+      "ipv4", "ipv6");
 
   private final String selectDataType = "SELECT * FROM default.ch_data_types";
 
@@ -84,7 +87,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
 
   @Test
   public void testDataTypes()
-      throws SQLException, BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException, ParseException {
+      throws SQLException, BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException, ParseException, UnknownHostException {
     String createTableDt = """
              CREATE TABLE default.ch_data_types (
                     ch_dt_bit BIT(47),
@@ -126,7 +129,9 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
                     ch_dt_nvarchar Nullable(String),
                     ch_dt_smallint Int16,
                     ch_dt_timestamp DateTime('Europe/Moscow'),
-                    ch_dt_fixedstring FixedString(10)
+                    ch_dt_fixedstring FixedString(10),
+                    ch_dt_ipv4 IPv4,
+                    ch_dt_ipv6 IPv6
                   ) ENGINE = MergeTree() ORDER BY (ch_dt_int)
         """;
 
@@ -177,6 +182,8 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     ZonedDateTime ch_dt_timestamp_zoned = ch_dt_timestamp.atZone(ZoneId.systemDefault());
     ZonedDateTime ch_dt_timestamp_zoned_utc = ch_dt_timestamp_zoned.withZoneSameInstant(ZoneOffset.UTC);
     String ch_dt_fixedstring = "Hello";
+    String ch_dt_ipv4 = "192.168.1.1";
+    String ch_dt_ipv6 = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
 
     Statement createTableStmt = dbConnection.createStatement();
 
@@ -186,7 +193,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
 
     String insertQuery = """
       INSERT INTO default.ch_data_types 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
               """;
 
     PreparedStatement insertStatement = dbConnection.prepareStatement(insertQuery);
@@ -231,6 +238,8 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     insertStatement.setShort(38, ch_dt_smallint);
     insertStatement.setTimestamp(39, java.sql.Timestamp.valueOf(ch_dt_timestamp));
     insertStatement.setString(40, ch_dt_fixedstring);
+    insertStatement.setString(41, ch_dt_ipv4);
+    insertStatement.setString(42, ch_dt_ipv6);
 
     insertStatement.executeUpdate();
 
@@ -347,8 +356,19 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
 
         String retrieved_ch_dt_fixedstring = resultSet.getString("ch_dt_fixedstring");
         Assertions.assertEquals(ch_dt_fixedstring, retrieved_ch_dt_fixedstring.trim());
+
+        String retrieved_ch_dt_ipv4 = resultSet.getString("ch_dt_ipv4");
+        Assertions.assertEquals(InetAddress.getByName(ch_dt_ipv4).getHostAddress(),
+            InetAddress.getByName(retrieved_ch_dt_ipv4).getHostAddress());
+
+        String retrieved_ch_dt_ipv6 = resultSet.getString("ch_dt_ipv6");
+        Assertions.assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(),
+            InetAddress.getByName(retrieved_ch_dt_ipv6).getHostAddress());
+
       } catch (SQLException e) {
         log.error(e);
+      } catch (UnknownHostException e) {
+        throw new RuntimeException(e);
       }
     }
 
@@ -499,6 +519,12 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     CProfile chDtFixedstring = getCProfile(cProfiles, "ch_dt_fixedstring");
     assertEquals(ch_dt_fixedstring, getStackedColumnKey(tableName, chDtFixedstring).trim());
 
+    CProfile chDtIpv4 = getCProfile(cProfiles, "ch_dt_ipv4");
+    assertEquals(ch_dt_ipv4, getStackedColumnKey(tableName, chDtIpv4).trim());
+
+    CProfile chDtIpv6 = getCProfile(cProfiles, "ch_dt_ipv6");
+    assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(), getStackedColumnKey(tableName, chDtIpv6).trim());
+
     /* Test GanttColumn API */
     List<GanttColumn> chDtDecInt = getGanttColumn(tableName, chDtDec, chDtInt);
     assertEquals(ch_dt_dec, new BigDecimal(chDtDecInt.get(0).getKey()).setScale(2, RoundingMode.HALF_UP));
@@ -608,6 +634,14 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     assertEquals(ch_dt_smallint, Short.valueOf(chDtSmallintTimestamp.get(0).getKey()));
     assertEquals(ch_dt_fixedstring, getGanttKey(chDtSmallintTimestamp, ch_dt_fixedstring).trim());
 
+    List<GanttColumn> chDtFixedStringIpv4 = getGanttColumn(tableName, chDtFixedstring, chDtIpv4);
+    assertEquals(ch_dt_fixedstring, chDtFixedStringIpv4.get(0).getKey().trim());
+    assertEquals(ch_dt_ipv4, getGanttKey(chDtFixedStringIpv4, ch_dt_ipv4).trim());
+
+    List<GanttColumn> chDtIpv4tIpv6 = getGanttColumn(tableName, chDtIpv4, chDtIpv6);
+    assertEquals(ch_dt_ipv4, chDtIpv4tIpv6.get(0).getKey());
+    assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(), getGanttKey(chDtIpv4tIpv6, InetAddress.getByName(ch_dt_ipv6).getHostAddress()));
+
     /* Test Raw data API */
     List<List<Object>> rawDataAll = fStore.getRawDataAll(tableName, 0, Long.MAX_VALUE);
 
@@ -660,6 +694,10 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
         } else if (cProfile.equals(chDtDate32)) {
           LocalDate ch_dt_date_32_raw = Instant.ofEpochMilli(Long.parseLong(getStackedColumnKey(tableName, chDtDate32)) * 1000).atZone(ZoneId.systemDefault()).toLocalDate();
           assertEquals(ch_dt_date32, ch_dt_date_32_raw);
+        } else if (cProfile.equals(chDtIpv4)) {
+          assertEquals(ch_dt_ipv4, getStackedColumnKey(tableName, chDtIpv4));
+        } else if (cProfile.equals(chDtIpv6)) {
+          assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(), getStackedColumnKey(tableName, chDtIpv6));
         }
 
       } catch (Exception e) {

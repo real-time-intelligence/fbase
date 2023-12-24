@@ -4,6 +4,10 @@ import static java.lang.String.valueOf;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.Date;
@@ -207,6 +211,12 @@ public class Mapper {
       case NVARCHAR:
       case NULLABLE:
         return (String) obj;
+      case IPV4:
+        Inet4Address inet4Address = (Inet4Address) obj;
+        return inet4Address.getHostAddress();
+      case IPV6:
+        Inet6Address inet6Address = (Inet6Address) obj;
+        return inet6Address.getHostAddress();
       case NCHAR:
       case CHAR:
       case SYSNAME:
@@ -273,5 +283,14 @@ public class Mapper {
         .filter(isRaw)
         .filter(isCustom)
         .count();
+  }
+
+  private String getCanonicalHost(String host) {
+    try {
+      return InetAddress.getByName(host).getHostAddress();
+    } catch (UnknownHostException e) {
+      log.info(e.getMessage());
+      return host;
+    }
   }
 }

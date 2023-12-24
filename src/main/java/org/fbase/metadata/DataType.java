@@ -76,15 +76,17 @@ public enum DataType {
   BOOLEAN(66, "BOOLEAN"),
   FIXEDSTRING(67, "FIXEDSTRING"),
   NULLABLE(68, "NULLABLE"),
+  IPV4(69, "IPV4"),
+  IPV6(70, "IPV6"),
 
-  INTEGER(69, "INTEGER"),
-  OID(70, "OID"),
-  NAME(71, "NAME"),
+  INTEGER(122, "INTEGER"),
+  OID(123, "OID"),
+  NAME(124, "NAME"),
 
   // CSV
-  LONG(100, "LONG"),
-  DOUBLE(101, "DOUBLE"),
-  STRING(102, "STRING");
+  LONG(125, "LONG"),
+  DOUBLE(126, "DOUBLE"),
+  STRING(127, "STRING");
 
   private final byte key;
   private final String value;

@@ -13,7 +13,7 @@ import java.sql.Statement;
 import java.util.*;
 
 import lombok.extern.log4j.Log4j2;
-import org.fbase.common.AbstractOracleTest;
+import org.fbase.common.AbstractOracleSQLTest;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
@@ -36,7 +36,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 @Disabled
-public class FBaseOracleTest extends AbstractOracleTest {
+public class FBaseOracleSQLTest extends AbstractOracleSQLTest {
 
   private final String selectAsh = "SELECT * FROM v$active_session_history FETCH FIRST 10 ROWS ONLY";
   private final String selectRandom = "SELECT SYSDATE AS dt, "

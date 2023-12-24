@@ -3,6 +3,10 @@ package org.fbase.storage;
 import static org.fbase.service.mapping.Mapper.INT_NULL;
 
 import java.math.BigDecimal;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
@@ -121,6 +125,12 @@ public class Converter {
       case NVARCHAR:
       case NULLABLE:
         return dimensionDAO.getOrLoad((String) obj);
+      case IPV4:
+        Inet4Address inet4Address = (Inet4Address) obj;
+        return dimensionDAO.getOrLoad(inet4Address.getHostAddress());
+      case IPV6:
+        Inet6Address inet6Address = (Inet6Address) obj;
+        return dimensionDAO.getOrLoad(inet6Address.getHostAddress());
       case BYTEA:
       case BINARY:
       case RAW:
@@ -141,6 +151,7 @@ public class Converter {
       case DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, NCHAR, NCLOB, CLOB, NAME, TEXT, NTEXT,
           VARCHAR, NVARCHAR2, VARCHAR2, NVARCHAR, RAW, VARBINARY, BYTEA, BINARY, SYSNAME, NULLABLE ->
           dimensionDAO.getStringById(objIndex);
+      case IPV4, IPV6 -> getCanonicalHost(dimensionDAO.getStringById(objIndex));
       case TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME -> getDateForLongShorted(objIndex);
       case FLOAT64, DECIMAL, FLOAT4, REAL, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY, SMALLMONEY -> String.valueOf(dimensionDAO.getDoubleById(objIndex));
       default -> String.valueOf(objIndex);
@@ -184,5 +195,14 @@ public class Converter {
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
     Date dtDate= new Date(((long)longDate)*1000L);
     return simpleDateFormat.format(dtDate);
+  }
+
+  private String getCanonicalHost(String host) {
+    try {
+      return InetAddress.getByName(host).getHostAddress();
+    } catch (UnknownHostException e) {
+      log.info(e.getMessage());
+      return host;
+    }
   }
 }

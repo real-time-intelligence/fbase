@@ -27,7 +27,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
-public abstract class AbstractOracleTest implements JdbcSource {
+public abstract class AbstractOracleSQLTest implements JdbcSource {
   protected final String TEMP_DB_DIR = "C:\\Users\\.temp";
   protected final String BERKLEY_DB_DIR = Paths.get(TEMP_DB_DIR).toAbsolutePath().normalize() + FILE_SEPARATOR + "oracle_test";
   protected BerkleyDB berkleyDB;
