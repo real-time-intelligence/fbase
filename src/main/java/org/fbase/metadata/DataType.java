@@ -78,6 +78,7 @@ public enum DataType {
   NULLABLE(68, "NULLABLE"),
   IPV4(69, "IPV4"),
   IPV6(70, "IPV6"),
+  ARRAY(71, "ARRAY"),
 
   INTEGER(122, "INTEGER"),
   OID(123, "OID"),

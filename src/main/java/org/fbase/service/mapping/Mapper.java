@@ -1,6 +1,7 @@
 package org.fbase.service.mapping;
 
 import static java.lang.String.valueOf;
+import static org.fbase.util.MapArrayUtil.arrayToString;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -9,6 +10,7 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.sql.Array;
 import java.sql.Clob;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -18,6 +20,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -45,6 +49,7 @@ public class Mapper {
     if (cProfile.getColDbTypeName().contains("DECIMAL")) return CType.DOUBLE;
     if (cProfile.getColDbTypeName().contains("DATETIME")) return CType.LONG;
     if (cProfile.getColDbTypeName().contains("NULLABLE")) return CType.STRING;
+    if (cProfile.getColDbTypeName().contains("ARRAY")) return CType.STRING;
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName().toUpperCase())) {
       case UINT8, UINT16, INT16, INT2, INT4, INT8, INT32, NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT, TIME, TIMETZ, TINYINT -> CType.INT;
@@ -64,6 +69,7 @@ public class Mapper {
     if (cProfile.getColDbTypeName().contains("ENUM")) return DataType.ENUM;
     if (cProfile.getColDbTypeName().contains("DATETIME")) return DataType.DATETIME;
     if (cProfile.getColDbTypeName().contains("NULLABLE")) return DataType.NULLABLE;
+    if (cProfile.getColDbTypeName().contains("ARRAY")) return DataType.ARRAY;
 
     return DataType.valueOf(cProfile.getColDbTypeName().toUpperCase());
   }
@@ -211,6 +217,10 @@ public class Mapper {
       case NVARCHAR:
       case NULLABLE:
         return (String) obj;
+      case ARRAY:
+        if (obj.getClass().isArray()) {
+          return arrayToString(obj);
+        }
       case IPV4:
         Inet4Address inet4Address = (Inet4Address) obj;
         return inet4Address.getHostAddress();
@@ -283,14 +293,5 @@ public class Mapper {
         .filter(isRaw)
         .filter(isCustom)
         .count();
-  }
-
-  private String getCanonicalHost(String host) {
-    try {
-      return InetAddress.getByName(host).getHostAddress();
-    } catch (UnknownHostException e) {
-      log.info(e.getMessage());
-      return host;
-    }
   }
 }

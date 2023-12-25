@@ -1,6 +1,7 @@
 package org.fbase.storage;
 
 import static org.fbase.service.mapping.Mapper.INT_NULL;
+import static org.fbase.util.MapArrayUtil.arrayToString;
 
 import java.math.BigDecimal;
 import java.net.Inet4Address;
@@ -125,6 +126,10 @@ public class Converter {
       case NVARCHAR:
       case NULLABLE:
         return dimensionDAO.getOrLoad((String) obj);
+      case ARRAY:
+        if (obj.getClass().isArray()) {
+          return dimensionDAO.getOrLoad(arrayToString(obj));
+        }
       case IPV4:
         Inet4Address inet4Address = (Inet4Address) obj;
         return dimensionDAO.getOrLoad(inet4Address.getHostAddress());
@@ -146,9 +151,10 @@ public class Converter {
 
     if (cProfile.getColDbTypeName().contains("ENUM")) return dimensionDAO.getStringById(objIndex);
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getStringById(objIndex);
+    if (cProfile.getColDbTypeName().contains("ARRAY")) return dimensionDAO.getStringById(objIndex);
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName().toUpperCase())) {
-      case DATE, ENUM8, ENUM16, FIXEDSTRING, CHAR, NCHAR, NCLOB, CLOB, NAME, TEXT, NTEXT,
+      case DATE, ENUM8, ENUM16, CHAR, NCHAR, NCLOB, CLOB, NAME, TEXT, NTEXT,
           VARCHAR, NVARCHAR2, VARCHAR2, NVARCHAR, RAW, VARBINARY, BYTEA, BINARY, SYSNAME, NULLABLE ->
           dimensionDAO.getStringById(objIndex);
       case IPV4, IPV6 -> getCanonicalHost(dimensionDAO.getStringById(objIndex));

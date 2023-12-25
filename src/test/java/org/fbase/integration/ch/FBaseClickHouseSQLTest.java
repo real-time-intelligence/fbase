@@ -7,6 +7,7 @@ import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,12 +24,14 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.common.AbstractClickhouseSQLTest;
 import org.fbase.common.AbstractMicrosoftSQLTest;
@@ -75,8 +78,6 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
       "ipv4", "ipv6");
 
   private final String selectDataType = "SELECT * FROM default.ch_data_types";
-
-  protected final String tableNameDataType = "ch_table_dt";
 
   @Test
   public void loadDataTypes() throws SQLException {
@@ -131,7 +132,9 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
                     ch_dt_timestamp DateTime('Europe/Moscow'),
                     ch_dt_fixedstring FixedString(10),
                     ch_dt_ipv4 IPv4,
-                    ch_dt_ipv6 IPv6
+                    ch_dt_ipv6 IPv6,
+                    ch_dt_number_array Array(UInt64),
+                    ch_dt_string_array Array(String)
                   ) ENGINE = MergeTree() ORDER BY (ch_dt_int)
         """;
 
@@ -184,6 +187,8 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     String ch_dt_fixedstring = "Hello";
     String ch_dt_ipv4 = "192.168.1.1";
     String ch_dt_ipv6 = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
+    Long[] ch_dt_number_array = new Long[]{123L, 124L, 125L};
+    String[] ch_dt_string_array = new String[]{"1234", "1245", "1256"};
 
     Statement createTableStmt = dbConnection.createStatement();
 
@@ -193,55 +198,60 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
 
     String insertQuery = """
       INSERT INTO default.ch_data_types 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
               """;
 
-    PreparedStatement insertStatement = dbConnection.prepareStatement(insertQuery);
+    try (PreparedStatement ps = dbConnection.prepareStatement(insertQuery)) {
+      ps.setInt(1, ch_dt_bit);
+      ps.setBigDecimal(2, ch_dt_dec);
+      ps.setInt(3, ch_dt_int);
+      ps.setByte(4, ch_dt_byte);
+      ps.setBoolean(5, ch_dt_bool);
+      ps.setString(6, ch_dt_char);
+      ps.setString(7, ch_dt_clob);
+      ps.setDate(8, java.sql.Date.valueOf(ch_dt_date));
+      ps.setString(9, ch_dt_enum8);
+      ps.setString(10, ch_dt_enum16);
+      ps.setByte(11, ch_dt_int1);
+      ps.setByte(12, ch_dt_int8);
+      ps.setFloat(13, ch_dt_real);
+      ps.setString(14, ch_dt_text);
+      ps.setTimestamp(15, Timestamp.valueOf(ch_dt_time));
+      ps.setObject(16, ch_dt_uuid);
+      ps.setInt(17, ch_dt_uint8);
+      ps.setString(18, ch_dt_enum8_2);
+      ps.setShort(19, ch_dt_int16);
+      ps.setLong(20, ch_dt_int32);
+      ps.setLong(21, ch_dt_int64);
+      ps.setDouble(22, ch_dt_double);
+      ps.setDate(23, java.sql.Date.valueOf(ch_dt_date32));
+      ps.setString(24, ch_dt_enum16_2);
+      ps.setObject(25, ch_dt_int128);
+      ps.setObject(26, ch_dt_int256);
+      ps.setInt(27, ch_dt_uint16);
+      ps.setLong(28, ch_dt_uint32);
+      ps.setBigDecimal(29, ch_dt_decimal);
+      ps.setFloat(30, ch_dt_float32);
+      ps.setDouble(31, ch_dt_float64);
+      ps.setInt(32, ch_dt_integer);
+      ps.setBigDecimal(33, ch_dt_numeric);
+      ps.setString(34, ch_dt_varchar);
+      ps.setBoolean(35, ch_dt_boolean);
+      ps.setTimestamp(36, java.sql.Timestamp.valueOf(ch_dt_datetime));
+      ps.setString(37, ch_dt_nvarchar);
+      ps.setShort(38, ch_dt_smallint);
+      ps.setTimestamp(39, java.sql.Timestamp.valueOf(ch_dt_timestamp));
+      ps.setString(40, ch_dt_fixedstring);
+      ps.setString(41, ch_dt_ipv4);
+      ps.setString(42, ch_dt_ipv6);
 
-    insertStatement.setInt(1, ch_dt_bit);
-    insertStatement.setBigDecimal(2, ch_dt_dec);
-    insertStatement.setInt(3, ch_dt_int);
-    insertStatement.setByte(4, ch_dt_byte);
-    insertStatement.setBoolean(5, ch_dt_bool);
-    insertStatement.setString(6, ch_dt_char);
-    insertStatement.setString(7, ch_dt_clob);
-    insertStatement.setDate(8, java.sql.Date.valueOf(ch_dt_date));
-    insertStatement.setString(9, ch_dt_enum8);
-    insertStatement.setString(10, ch_dt_enum16);
-    insertStatement.setByte(11, ch_dt_int1);
-    insertStatement.setByte(12, ch_dt_int8);
-    insertStatement.setFloat(13, ch_dt_real);
-    insertStatement.setString(14, ch_dt_text);
-    insertStatement.setTimestamp(15, Timestamp.valueOf(ch_dt_time));
-    insertStatement.setObject(16, ch_dt_uuid);
-    insertStatement.setInt(17, ch_dt_uint8);
-    insertStatement.setString(18, ch_dt_enum8_2);
-    insertStatement.setShort(19, ch_dt_int16);
-    insertStatement.setLong(20, ch_dt_int32);
-    insertStatement.setLong(21, ch_dt_int64);
-    insertStatement.setDouble(22, ch_dt_double);
-    insertStatement.setDate(23, java.sql.Date.valueOf(ch_dt_date32));
-    insertStatement.setString(24, ch_dt_enum16_2);
-    insertStatement.setObject(25, ch_dt_int128);
-    insertStatement.setObject(26, ch_dt_int256);
-    insertStatement.setInt(27, ch_dt_uint16);
-    insertStatement.setLong(28, ch_dt_uint32);
-    insertStatement.setBigDecimal(29, ch_dt_decimal);
-    insertStatement.setFloat(30, ch_dt_float32);
-    insertStatement.setDouble(31, ch_dt_float64);
-    insertStatement.setInt(32, ch_dt_integer);
-    insertStatement.setBigDecimal(33, ch_dt_numeric);
-    insertStatement.setString(34, ch_dt_varchar);
-    insertStatement.setBoolean(35, ch_dt_boolean);
-    insertStatement.setTimestamp(36, java.sql.Timestamp.valueOf(ch_dt_datetime));
-    insertStatement.setString(37, ch_dt_nvarchar);
-    insertStatement.setShort(38, ch_dt_smallint);
-    insertStatement.setTimestamp(39, java.sql.Timestamp.valueOf(ch_dt_timestamp));
-    insertStatement.setString(40, ch_dt_fixedstring);
-    insertStatement.setString(41, ch_dt_ipv4);
-    insertStatement.setString(42, ch_dt_ipv6);
+      java.sql.Array sqlNumberArray = dbConnection.createArrayOf("Array(UInt64)", ch_dt_number_array);
+      ps.setArray(43, sqlNumberArray);
+      java.sql.Array sqlStringArray = dbConnection.createArrayOf("Array(String)", ch_dt_string_array);
+      ps.setArray(44, sqlStringArray);
 
-    insertStatement.executeUpdate();
+      ps.executeUpdate();
+    }
 
     Statement selectStmt = dbConnection.createStatement();
     ResultSet resultSet = selectStmt.executeQuery(selectDataType);
@@ -364,6 +374,17 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
         String retrieved_ch_dt_ipv6 = resultSet.getString("ch_dt_ipv6");
         Assertions.assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(),
             InetAddress.getByName(retrieved_ch_dt_ipv6).getHostAddress());
+
+        Array retrieved_ch_dt_number_array = resultSet.getArray("ch_dt_number_array");
+        Array retrieved_ch_dt_string_array = resultSet.getArray("ch_dt_string_array");
+
+        String numberArrayAsString = Arrays.stream((long[]) retrieved_ch_dt_number_array.getArray())
+            .mapToObj(Long::toString)
+            .collect(Collectors.joining(", ", "[", "]"));
+        String stringArrayAsString = Arrays.toString((Object[]) retrieved_ch_dt_string_array.getArray());
+
+        Assertions.assertEquals(Arrays.toString(ch_dt_number_array), numberArrayAsString);
+        Assertions.assertEquals(Arrays.toString(ch_dt_string_array), stringArrayAsString);
 
       } catch (SQLException e) {
         log.error(e);
@@ -525,6 +546,12 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     CProfile chDtIpv6 = getCProfile(cProfiles, "ch_dt_ipv6");
     assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(), getStackedColumnKey(tableName, chDtIpv6).trim());
 
+    CProfile chDtNumberArray = getCProfile(cProfiles, "ch_dt_number_array");
+    assertEquals(Arrays.toString(ch_dt_number_array), getStackedColumnKey(tableName, chDtNumberArray).trim());
+
+    CProfile chDtStringArray = getCProfile(cProfiles, "ch_dt_string_array");
+    assertEquals(Arrays.toString(ch_dt_string_array), getStackedColumnKey(tableName, chDtStringArray).trim());
+
     /* Test GanttColumn API */
     List<GanttColumn> chDtDecInt = getGanttColumn(tableName, chDtDec, chDtInt);
     assertEquals(ch_dt_dec, new BigDecimal(chDtDecInt.get(0).getKey()).setScale(2, RoundingMode.HALF_UP));
@@ -642,6 +669,14 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     assertEquals(ch_dt_ipv4, chDtIpv4tIpv6.get(0).getKey());
     assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(), getGanttKey(chDtIpv4tIpv6, InetAddress.getByName(ch_dt_ipv6).getHostAddress()));
 
+    List<GanttColumn> chDtIpv6NumberArray = getGanttColumn(tableName, chDtIpv6, chDtNumberArray);
+    assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(), chDtIpv6NumberArray.get(0).getKey());
+    assertEquals(Arrays.toString(ch_dt_number_array), getGanttKey(chDtIpv6NumberArray, Arrays.toString(ch_dt_number_array)));
+
+    List<GanttColumn> chDtNumberStringArray = getGanttColumn(tableName, chDtNumberArray, chDtStringArray);
+    assertEquals(Arrays.toString(ch_dt_number_array), chDtNumberStringArray.get(0).getKey());
+    assertEquals(Arrays.toString(ch_dt_string_array), getGanttKey(chDtNumberStringArray, Arrays.toString(ch_dt_string_array)));
+
     /* Test Raw data API */
     List<List<Object>> rawDataAll = fStore.getRawDataAll(tableName, 0, Long.MAX_VALUE);
 
@@ -698,6 +733,10 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
           assertEquals(ch_dt_ipv4, getStackedColumnKey(tableName, chDtIpv4));
         } else if (cProfile.equals(chDtIpv6)) {
           assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(), getStackedColumnKey(tableName, chDtIpv6));
+        }  else if (cProfile.equals(chDtNumberArray)) {
+          assertEquals(Arrays.toString(ch_dt_number_array), getStackedColumnKey(tableName, chDtNumberArray));
+        }  else if (cProfile.equals(chDtStringArray)) {
+          assertEquals(Arrays.toString(ch_dt_string_array), getStackedColumnKey(tableName, chDtStringArray));
         }
 
       } catch (Exception e) {

@@ -148,6 +148,7 @@ public class BdbStore implements FStore {
 
       cProfileList.forEach(cProfile ->
           {
+            log.info(cProfile);
             CSType csType = sProfile.getCsTypeMap().getOrDefault(cProfile.getColName(),
                 new CSType().toBuilder()
                     .isTimeStamp(false)
