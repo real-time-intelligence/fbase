@@ -24,11 +24,9 @@ public class EnumHelper {
 
       return value;
     }
-
   }
 
   public static int getIndexValue(int[] values, byte valueByte) {
     return values[valueByte < 0 ? (valueByte + 128) : valueByte];
   }
-
 }

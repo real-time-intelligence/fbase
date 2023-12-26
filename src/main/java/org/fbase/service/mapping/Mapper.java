@@ -33,6 +33,7 @@ import org.fbase.metadata.DataType;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.storage.helper.ClickHouseHelper;
 
 @Log4j2
 public class Mapper {
@@ -110,6 +111,8 @@ public class Mapper {
           return f.intValue();
         } else if (obj instanceof Byte b) {
           return b.intValue();
+        } else if (ClickHouseHelper.checkUnsigned(obj.getClass().getName())) {
+          return ClickHouseHelper.invokeMethod(obj, "intValue", Integer.class);
         }
         return (Integer) obj;
       case BIT:
@@ -143,7 +146,6 @@ public class Mapper {
           java.sql.Timestamp timestamp = new java.sql.Timestamp (
               java.nio.ByteBuffer.wrap(ba).getLong()
           );
-
           java.util.Date date = new java.util.Date(timestamp.getTime());
           return date.getTime();
         } else if (obj instanceof OffsetDateTime offsetDateTime) {
@@ -228,6 +230,13 @@ public class Mapper {
       case MAP:
         if (obj instanceof LinkedHashMap map) {
           return String.valueOf(map);
+        } else {
+          Map<?, ?> mapValue = (Map<?, ?>) obj;
+          if (mapValue.isEmpty()) {
+            return STRING_NULL;
+          } else {
+            return String.valueOf(mapValue);
+          }
         }
       case IPV4:
         Inet4Address inet4Address = (Inet4Address) obj;

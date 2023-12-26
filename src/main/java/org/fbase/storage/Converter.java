@@ -1,9 +1,12 @@
 package org.fbase.storage;
 
 import static org.fbase.service.mapping.Mapper.INT_NULL;
+import static org.fbase.service.mapping.Mapper.STRING_NULL;
 import static org.fbase.util.MapArrayUtil.arrayToString;
 import static org.fbase.util.MapArrayUtil.mapToJson;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -18,9 +21,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.DataType;
 import org.fbase.model.profile.CProfile;
+import org.fbase.storage.helper.ClickHouseHelper;
 
 @Log4j2
 public class Converter {
@@ -59,8 +64,12 @@ public class Converter {
       case SERIAL:
       case SMALLSERIAL:
       case BIGSERIAL:
-        Long l = (Long) obj;
-        return l.intValue();
+        if (ClickHouseHelper.checkUnsigned(obj.getClass().getName())) {
+          return ClickHouseHelper.invokeMethod(obj, "intValue", Integer.class);
+        } else {
+          Long l = (Long) obj;
+          return l.intValue();
+        }
       case UINT8:
       case UINT16:
       case INT16:
@@ -84,10 +93,18 @@ public class Converter {
           return bd.intValue();
         } else if (obj instanceof Double db) {
           return db.intValue();
-        } else if (obj instanceof Time db) {
-          return Math.toIntExact(db.getTime());
+        } else if (obj instanceof Long lng) {
+          return lng.intValue();
         } else if (obj instanceof Short sh) {
           return sh.intValue();
+        } else if (obj instanceof Time t) {
+          return Math.toIntExact(t.getTime());
+        } else if (obj instanceof Float f) {
+          return f.intValue();
+        } else if (obj instanceof Byte b) {
+          return b.intValue();
+        } else if (ClickHouseHelper.checkUnsigned(obj.getClass().getName())) {
+          return ClickHouseHelper.invokeMethod(obj, "intValue", Integer.class);
         }
         return (Integer) obj;
       case FLOAT64:
@@ -135,6 +152,13 @@ public class Converter {
       case MAP:
         if (obj instanceof LinkedHashMap map) {
           return dimensionDAO.getOrLoad(String.valueOf(map));
+        } else {
+          Map<?, ?> mapValue = (Map<?, ?>) obj;
+          if (mapValue.isEmpty()) {
+            return dimensionDAO.getOrLoad(STRING_NULL);
+          } else {
+            return dimensionDAO.getOrLoad(String.valueOf(mapValue));
+          }
         }
       case IPV4:
         Inet4Address inet4Address = (Inet4Address) obj;
