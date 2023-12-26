@@ -246,37 +246,37 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
          INSERT INTO mssql_data_types VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DEFAULT, ?, ?, ?, ?)
             """;
 
-    PreparedStatement statement = dbConnection.prepareStatement(insertQuery);
+    try (PreparedStatement ps = dbConnection.prepareStatement(insertQuery)) {
+      ps.setBoolean(1, bitValueTrue);
+      ps.setInt(2, intValue);
+      ps.setString(3, charValue);
+      ps.setDate(4, dateValue);
+      ps.setFloat(5, floatValue);
+      ps.setString(6, textValue);
+      ps.setTime(7, timeValue);
+      ps.setDouble(8, doubleValue);
+      ps.setBigDecimal(9, decimalValue);
+      ps.setNString(10, ncharValue);
+      ps.setString(11, ntextValue);
+      ps.setLong(12, bigintValue);
+      ps.setBytes(13, binaryValue);
+      ps.setBigDecimal(14, decimalValue1);
+      ps.setBigDecimal(15, decimalValue2);
+      ps.setString(16, sysnameValue);
+      ps.setShort(17, tinyintValue);
+      ps.setString(18, varcharValue);
+      ps.setTimestamp(19, datetimeValue);
+      ps.setString(20, nvarcharValue);
+      ps.setShort(21, smallintValue);
+      ps.setTimestamp(22, datetime2Value);
+      //statement.setTimestamp(23, timestampValue);
+      ps.setBytes(23, varbinaryValue);
+      ps.setBigDecimal(24, smallmoneyValue);
+      ps.setTimestamp(25, smallDatetimeValue);
+      ps.setString(26, uniqueIdentifierValue);
 
-    statement.setBoolean(1, bitValueTrue);
-    statement.setInt(2, intValue);
-    statement.setString(3, charValue);
-    statement.setDate(4, dateValue);
-    statement.setFloat(5, floatValue);
-    statement.setString(6, textValue);
-    statement.setTime(7, timeValue);
-    statement.setDouble(8, doubleValue);
-    statement.setBigDecimal(9, decimalValue);
-    statement.setNString(10, ncharValue);
-    statement.setString(11, ntextValue);
-    statement.setLong(12, bigintValue);
-    statement.setBytes(13, binaryValue);
-    statement.setBigDecimal(14, decimalValue1);
-    statement.setBigDecimal(15, decimalValue2);
-    statement.setString(16, sysnameValue);
-    statement.setShort(17, tinyintValue);
-    statement.setString(18, varcharValue);
-    statement.setTimestamp(19, datetimeValue);
-    statement.setString(20, nvarcharValue);
-    statement.setShort(21, smallintValue);
-    statement.setTimestamp(22, datetime2Value);
-    //statement.setTimestamp(23, timestampValue);
-    statement.setBytes(23, varbinaryValue);
-    statement.setBigDecimal(24, smallmoneyValue);
-    statement.setTimestamp(25, smallDatetimeValue);
-    statement.setString(26, uniqueIdentifierValue);
-
-    statement.executeUpdate();
+      ps.executeUpdate();
+    }
 
     Statement selectStmt = dbConnection.createStatement();
     ResultSet resultSet = selectStmt.executeQuery(selectDataType);

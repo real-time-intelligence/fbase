@@ -221,32 +221,33 @@ public class FBasePostgreSQLTest extends AbstractPostgreSQLTest {
          VALUES (?::bit, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
-    PreparedStatement insertStmt = dbConnection.prepareStatement(insertQuery);
-    insertStmt.setString(1, pg_dt_bit);
-    insertStmt.setBoolean(2, pg_dt_bool);
-    insertStmt.setString(3, pg_dt_char);
-    insertStmt.setString(4, pg_dt_bpchar);
-    insertStmt.setDate(5, new java.sql.Date(pg_dt_date.getTime()));
-    insertStmt.setShort(6, pg_dt_int2);
-    insertStmt.setInt(7, pg_dt_int4);
-    insertStmt.setLong(8, pg_dt_int8);
-    insertStmt.setString(9, pg_dt_text);
-    insertStmt.setTime(10, pg_dt_time);
-    insertStmt.setObject(11, pg_dt_uuid);
-    insertStmt.setBytes(12, pg_dt_bytea);
-    insertStmt.setBigDecimal(13, pg_dt_money);
-    insertStmt.setFloat(14, pg_dt_float4);
-    insertStmt.setDouble(15, pg_dt_float8);
-    insertStmt.setLong(16, pg_dt_serial);
-    insertStmt.setTime(17, pg_dt_timetz);
-    insertStmt.setBigDecimal(18, pg_dt_numeric);
-    insertStmt.setString(19, pg_dt_varchar);
-    insertStmt.setLong(20, pg_dt_bigserial);
-    insertStmt.setTimestamp(21, pg_dt_timestamp);
-    insertStmt.setLong(22, pg_dt_smallserial);
-    insertStmt.setTimestamp(23, pg_dt_timestamptz);
+    try (PreparedStatement ps = dbConnection.prepareStatement(insertQuery)) {
+      ps.setString(1, pg_dt_bit);
+      ps.setBoolean(2, pg_dt_bool);
+      ps.setString(3, pg_dt_char);
+      ps.setString(4, pg_dt_bpchar);
+      ps.setDate(5, new java.sql.Date(pg_dt_date.getTime()));
+      ps.setShort(6, pg_dt_int2);
+      ps.setInt(7, pg_dt_int4);
+      ps.setLong(8, pg_dt_int8);
+      ps.setString(9, pg_dt_text);
+      ps.setTime(10, pg_dt_time);
+      ps.setObject(11, pg_dt_uuid);
+      ps.setBytes(12, pg_dt_bytea);
+      ps.setBigDecimal(13, pg_dt_money);
+      ps.setFloat(14, pg_dt_float4);
+      ps.setDouble(15, pg_dt_float8);
+      ps.setLong(16, pg_dt_serial);
+      ps.setTime(17, pg_dt_timetz);
+      ps.setBigDecimal(18, pg_dt_numeric);
+      ps.setString(19, pg_dt_varchar);
+      ps.setLong(20, pg_dt_bigserial);
+      ps.setTimestamp(21, pg_dt_timestamp);
+      ps.setLong(22, pg_dt_smallserial);
+      ps.setTimestamp(23, pg_dt_timestamptz);
 
-    insertStmt.executeUpdate();
+      ps.executeUpdate();
+    }
 
     Statement selectStmt = dbConnection.createStatement();
     ResultSet resultSet = selectStmt.executeQuery(selectDataType);

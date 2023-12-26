@@ -178,21 +178,21 @@ public class FBaseOracleSQLTest extends AbstractOracleSQLTest {
          INSERT INTO oracle_data_types VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
-    PreparedStatement insertStmt = dbConnection.prepareStatement(insertQuery);
+    try (PreparedStatement ps = dbConnection.prepareStatement(insertQuery)) {
+      ps.setBytes(1, raw);
+      ps.setString(2, charVal);
+      ps.setString(3, clob);
+      ps.setDate(4, date);
+      ps.setFloat(5, floatVal);
+      ps.setString(6, nchar);
+      ps.setString(7, nclob);
+      ps.setInt(8, number);
+      ps.setString(9, varchar2);
+      ps.setString(10, nvarchar2);
+      ps.setTimestamp(11, timestamp);
 
-    insertStmt.setBytes(1, raw);
-    insertStmt.setString(2, charVal);
-    insertStmt.setString(3, clob);
-    insertStmt.setDate(4, date);
-    insertStmt.setFloat(5, floatVal);
-    insertStmt.setString(6, nchar);
-    insertStmt.setString(7, nclob);
-    insertStmt.setInt(8, number);
-    insertStmt.setString(9, varchar2);
-    insertStmt.setString(10, nvarchar2);
-    insertStmt.setTimestamp(11, timestamp);
-
-    insertStmt.executeUpdate();
+      ps.executeUpdate();
+    }
 
     Statement selectStmt = dbConnection.createStatement();
     ResultSet resultSet = selectStmt.executeQuery(selectDataType);

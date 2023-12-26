@@ -77,7 +77,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
   public void loadDataTypes() throws SQLException {
     ResultSet r = dbConnection.getMetaData().getTypeInfo();
 
-    loadDataTypes(r, includeListAll, 47);
+    loadDataTypes(r, includeList, 47);
   }
 
   @Test
