@@ -3,10 +3,7 @@ package org.fbase.storage;
 import static org.fbase.service.mapping.Mapper.INT_NULL;
 import static org.fbase.service.mapping.Mapper.STRING_NULL;
 import static org.fbase.util.MapArrayUtil.arrayToString;
-import static org.fbase.util.MapArrayUtil.mapToJson;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -17,9 +14,12 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.extern.log4j.Log4j2;
@@ -219,7 +219,10 @@ public class Converter {
         if (obj instanceof Timestamp ts) {
           return ts.getTime();
         } else if (obj instanceof LocalDateTime localDateTime) {
-          return localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
+          ZonedDateTime zdt = localDateTime.atZone(ZoneId.systemDefault());
+          Instant instant = zdt.toInstant();
+          Timestamp timestamp = Timestamp.from(instant);
+          return timestamp.getTime();
         } else if (obj instanceof LocalDate localDate) {
           return localDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond();
         }
