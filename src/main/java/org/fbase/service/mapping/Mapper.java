@@ -2,6 +2,7 @@ package org.fbase.service.mapping;
 
 import static java.lang.String.valueOf;
 import static org.fbase.util.MapArrayUtil.arrayToString;
+import static org.fbase.util.MapArrayUtil.mapToJson;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -22,6 +23,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -50,6 +52,7 @@ public class Mapper {
     if (cProfile.getColDbTypeName().contains("DATETIME")) return CType.LONG;
     if (cProfile.getColDbTypeName().contains("NULLABLE")) return CType.STRING;
     if (cProfile.getColDbTypeName().contains("ARRAY")) return CType.STRING;
+    if (cProfile.getColDbTypeName().contains("MAP")) return CType.STRING;
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName().toUpperCase())) {
       case UINT8, UINT16, INT16, INT2, INT4, INT8, INT32, NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT, TIME, TIMETZ, TINYINT -> CType.INT;
@@ -70,6 +73,7 @@ public class Mapper {
     if (cProfile.getColDbTypeName().contains("DATETIME")) return DataType.DATETIME;
     if (cProfile.getColDbTypeName().contains("NULLABLE")) return DataType.NULLABLE;
     if (cProfile.getColDbTypeName().contains("ARRAY")) return DataType.ARRAY;
+    if (cProfile.getColDbTypeName().contains("MAP")) return DataType.MAP;
 
     return DataType.valueOf(cProfile.getColDbTypeName().toUpperCase());
   }
@@ -220,6 +224,10 @@ public class Mapper {
       case ARRAY:
         if (obj.getClass().isArray()) {
           return arrayToString(obj);
+        }
+      case MAP:
+        if (obj instanceof LinkedHashMap map) {
+          return String.valueOf(map);
         }
       case IPV4:
         Inet4Address inet4Address = (Inet4Address) obj;

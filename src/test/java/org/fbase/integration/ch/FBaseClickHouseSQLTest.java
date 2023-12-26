@@ -1,12 +1,13 @@
 package org.fbase.integration.ch;
 
+import static org.fbase.util.MapArrayUtil.mapToJsonRaw;
+import static org.fbase.util.MapArrayUtil.parseStringToTypedMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -34,22 +35,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.common.AbstractClickhouseSQLTest;
-import org.fbase.common.AbstractMicrosoftSQLTest;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.output.GanttColumn;
-import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
-import org.fbase.model.profile.cstype.CSType;
-import org.fbase.model.profile.cstype.SType;
-import org.fbase.model.profile.table.IType;
-import org.fbase.model.profile.table.TType;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -134,7 +128,8 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
                     ch_dt_ipv4 IPv4,
                     ch_dt_ipv6 IPv6,
                     ch_dt_number_array Array(UInt64),
-                    ch_dt_string_array Array(String)
+                    ch_dt_string_array Array(String),
+                    ch_dt_string_long_map Map(String, UInt64)
                   ) ENGINE = MergeTree() ORDER BY (ch_dt_int)
         """;
 
@@ -189,6 +184,10 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     String ch_dt_ipv6 = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
     Long[] ch_dt_number_array = new Long[]{123L, 124L, 125L};
     String[] ch_dt_string_array = new String[]{"1234", "1245", "1256"};
+    Map<String, Long> ch_dt_string_long_map = new HashMap<>();
+    ch_dt_string_long_map.put("KeyOne", 1234567890L);
+    ch_dt_string_long_map.put("KeyTwo", 2345678901L);
+    ch_dt_string_long_map.put("KeyThree", 3456789012L);
 
     Statement createTableStmt = dbConnection.createStatement();
 
@@ -198,7 +197,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
 
     String insertQuery = """
       INSERT INTO default.ch_data_types 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
               """;
 
     try (PreparedStatement ps = dbConnection.prepareStatement(insertQuery)) {
@@ -249,6 +248,8 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
       ps.setArray(43, sqlNumberArray);
       java.sql.Array sqlStringArray = dbConnection.createArrayOf("Array(String)", ch_dt_string_array);
       ps.setArray(44, sqlStringArray);
+
+      ps.setString(45, mapToJsonRaw(ch_dt_string_long_map));
 
       ps.executeUpdate();
     }
@@ -376,15 +377,22 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
             InetAddress.getByName(retrieved_ch_dt_ipv6).getHostAddress());
 
         Array retrieved_ch_dt_number_array = resultSet.getArray("ch_dt_number_array");
-        Array retrieved_ch_dt_string_array = resultSet.getArray("ch_dt_string_array");
-
         String numberArrayAsString = Arrays.stream((long[]) retrieved_ch_dt_number_array.getArray())
             .mapToObj(Long::toString)
             .collect(Collectors.joining(", ", "[", "]"));
-        String stringArrayAsString = Arrays.toString((Object[]) retrieved_ch_dt_string_array.getArray());
-
         Assertions.assertEquals(Arrays.toString(ch_dt_number_array), numberArrayAsString);
+
+        Array retrieved_ch_dt_string_array = resultSet.getArray("ch_dt_string_array");
+        String stringArrayAsString = Arrays.toString((Object[]) retrieved_ch_dt_string_array.getArray());
         Assertions.assertEquals(Arrays.toString(ch_dt_string_array), stringArrayAsString);
+
+        String retrieved_ch_dt_string_long_map = resultSet.getString("ch_dt_string_long_map");
+        Map<String, Long> retrieved_parsed_string_long_map = parseStringToTypedMap(
+            retrieved_ch_dt_string_long_map,
+            String::new,
+            Long::parseLong
+        );
+        Assertions.assertEquals(retrieved_parsed_string_long_map, ch_dt_string_long_map);
 
       } catch (SQLException e) {
         log.error(e);
@@ -552,6 +560,9 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     CProfile chDtStringArray = getCProfile(cProfiles, "ch_dt_string_array");
     assertEquals(Arrays.toString(ch_dt_string_array), getStackedColumnKey(tableName, chDtStringArray).trim());
 
+    CProfile chDtStringLongMap = getCProfile(cProfiles, "ch_dt_string_long_map");
+    assertEquals(String.valueOf(ch_dt_string_long_map), getStackedColumnKey(tableName, chDtStringLongMap).trim());
+
     /* Test GanttColumn API */
     List<GanttColumn> chDtDecInt = getGanttColumn(tableName, chDtDec, chDtInt);
     assertEquals(ch_dt_dec, new BigDecimal(chDtDecInt.get(0).getKey()).setScale(2, RoundingMode.HALF_UP));
@@ -677,6 +688,10 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     assertEquals(Arrays.toString(ch_dt_number_array), chDtNumberStringArray.get(0).getKey());
     assertEquals(Arrays.toString(ch_dt_string_array), getGanttKey(chDtNumberStringArray, Arrays.toString(ch_dt_string_array)));
 
+    List<GanttColumn> chDtStringArrayMap = getGanttColumn(tableName, chDtStringArray, chDtStringLongMap);
+    assertEquals(Arrays.toString(ch_dt_string_array), chDtStringArrayMap.get(0).getKey());
+    assertEquals(String.valueOf(ch_dt_string_long_map), getGanttKey(chDtStringArrayMap, String.valueOf(ch_dt_string_long_map)));
+
     /* Test Raw data API */
     List<List<Object>> rawDataAll = fStore.getRawDataAll(tableName, 0, Long.MAX_VALUE);
 
@@ -737,6 +752,8 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
           assertEquals(Arrays.toString(ch_dt_number_array), getStackedColumnKey(tableName, chDtNumberArray));
         }  else if (cProfile.equals(chDtStringArray)) {
           assertEquals(Arrays.toString(ch_dt_string_array), getStackedColumnKey(tableName, chDtStringArray));
+        }  else if (cProfile.equals(chDtStringLongMap)) {
+          assertEquals(String.valueOf(ch_dt_string_long_map), getStackedColumnKey(tableName, chDtStringLongMap));
         }
 
       } catch (Exception e) {

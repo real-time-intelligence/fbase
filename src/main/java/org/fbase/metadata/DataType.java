@@ -79,6 +79,7 @@ public enum DataType {
   IPV4(69, "IPV4"),
   IPV6(70, "IPV6"),
   ARRAY(71, "ARRAY"),
+  MAP(72, "MAP"),
 
   INTEGER(122, "INTEGER"),
   OID(123, "OID"),

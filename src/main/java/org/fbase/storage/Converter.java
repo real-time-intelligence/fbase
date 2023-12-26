@@ -2,6 +2,7 @@ package org.fbase.storage;
 
 import static org.fbase.service.mapping.Mapper.INT_NULL;
 import static org.fbase.util.MapArrayUtil.arrayToString;
+import static org.fbase.util.MapArrayUtil.mapToJson;
 
 import java.math.BigDecimal;
 import java.net.Inet4Address;
@@ -16,6 +17,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.LinkedHashMap;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.DataType;
 import org.fbase.model.profile.CProfile;
@@ -130,6 +132,10 @@ public class Converter {
         if (obj.getClass().isArray()) {
           return dimensionDAO.getOrLoad(arrayToString(obj));
         }
+      case MAP:
+        if (obj instanceof LinkedHashMap map) {
+          return dimensionDAO.getOrLoad(String.valueOf(map));
+        }
       case IPV4:
         Inet4Address inet4Address = (Inet4Address) obj;
         return dimensionDAO.getOrLoad(inet4Address.getHostAddress());
@@ -152,6 +158,7 @@ public class Converter {
     if (cProfile.getColDbTypeName().contains("ENUM")) return dimensionDAO.getStringById(objIndex);
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return dimensionDAO.getStringById(objIndex);
     if (cProfile.getColDbTypeName().contains("ARRAY")) return dimensionDAO.getStringById(objIndex);
+    if (cProfile.getColDbTypeName().contains("MAP")) return dimensionDAO.getStringById(objIndex);
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName().toUpperCase())) {
       case DATE, ENUM8, ENUM16, CHAR, NCHAR, NCLOB, CLOB, NAME, TEXT, NTEXT,
