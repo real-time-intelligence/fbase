@@ -85,7 +85,6 @@ public class Converter {
       case BIGINT:
       case SMALLINT:
       case INT:
-      case BIT:
       case TIME:
       case TIMETZ:
       case TINYINT:
@@ -107,6 +106,10 @@ public class Converter {
           return ClickHouseHelper.invokeMethod(obj, "intValue", Integer.class);
         }
         return (Integer) obj;
+      case BIT:
+        if (obj instanceof Boolean b) {
+          return b ? 1 : 0;
+        }
       case FLOAT64:
       case DECIMAL:
       case FLOAT:
