@@ -99,10 +99,12 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
     map.forEach((keyInt, value) -> mapKeyCount
         .put(this.converter.convertIntToRaw(keyInt, cProfile), value));
 
-    list.add(StackedColumn.builder()
-        .key(blockId)
-        .tail(tail)
-        .keyCount(mapKeyCount).build());
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+          .key(blockId)
+          .tail(tail)
+          .keyCount(mapKeyCount).build());
+    }
   }
 
   private void computeIndexedForStackedBeginEnd(byte tableId, CProfile cProfile, long blockId,
@@ -165,10 +167,11 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
       });
     }
 
-    list.add(StackedColumn.builder()
-        .key(blockId)
-        .tail(tail)
-        .keyCount(map).build());
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+          .key(blockId)
+          .tail(tail)
+          .keyCount(map).build());
+    }
   }
-
 }

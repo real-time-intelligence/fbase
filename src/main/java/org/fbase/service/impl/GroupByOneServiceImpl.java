@@ -2,6 +2,7 @@ package org.fbase.service.impl;
 
 import com.sleepycat.persist.EntityCursor;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -138,10 +139,12 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
     map.forEach((keyInt, value) -> mapKeyCount
             .put(this.converter.convertIntToRaw(keyInt, cProfile), value));
 
-    list.add(StackedColumn.builder()
-            .key(blockId)
-            .tail(tail)
-            .keyCount(mapKeyCount).build());
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+          .key(blockId)
+          .tail(tail)
+          .keyCount(mapKeyCount).build());
+    }
   }
 
   private void computeHistTailOverFlow(byte tableId, CProfile cProfile, long blockId,
@@ -211,10 +214,12 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
       });
     }
 
-    list.add(StackedColumn.builder()
-            .key(blockId)
-            .tail(tail)
-            .keyCount(map).build());
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+          .key(blockId)
+          .tail(tail)
+          .keyCount(map).build());
+    }
   }
 
   private void computeRaw(byte tableId, CProfile cProfile, long blockId,
@@ -235,10 +240,12 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
       });
     }
 
-    list.add(StackedColumn.builder()
-            .key(blockId)
-            .tail(tail)
-            .keyCount(map).build());
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+          .key(blockId)
+          .tail(tail)
+          .keyCount(map).build());
+    }
   }
 
   private void computeEnum(byte tableId, CProfile cProfile, long blockId,
@@ -261,10 +268,11 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
     map.forEach((keyByte, value) -> mapKeyCount.put(converter.convertIntToRaw(
             EnumHelper.getIndexValue(eColumn.getValues(), keyByte), cProfile), value));
 
-    list.add(StackedColumn.builder()
-            .key(blockId)
-            .tail(tail)
-            .keyCount(mapKeyCount).build());
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+          .key(blockId)
+          .tail(tail)
+          .keyCount(mapKeyCount).build());
+    }
   }
-
 }

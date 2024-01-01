@@ -22,6 +22,7 @@ import org.fbase.exception.EnumByteExceedException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.metadata.DataType;
 import org.fbase.model.Person;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
@@ -62,11 +63,12 @@ public abstract class AbstractH2Test implements JdbcSource {
   protected List<List<Object>> data05;
   protected List<List<Object>> data06;
   protected List<List<Object>> data07;
+  protected List<List<Object>> data08;
 
   protected LocalDateTime birthday = LocalDateTime.of(2023, 1, 1, 1, 1, 1);
 
   private TProfile tProfile;
-  private List<CProfile> cProfiles;
+  protected List<CProfile> cProfiles;
   private String select = "SELECT * FROM person WHERE ROWNUM < 2";
 
   protected String tableName = "h2_table_test";
@@ -129,6 +131,11 @@ public abstract class AbstractH2Test implements JdbcSource {
     h2Db.insert(Person.builder().id(26).firstname("Ivan").lastname("Ivanov").house(2).city("Moscow").birthday(birthday).build());
     h2Db.insert(Person.builder().id(27).firstname("Ivan").lastname("Ivanov").house(3).city("Moscow").birthday(birthday).build());
     data07 = h2Db.getData("SELECT * FROM person WHERE id=26 OR id=27");
+
+    h2Db.insert(Person.builder().id(46901).firstname("Test").lastname("Test").house(1).city("Test").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(46901).firstname("Test").lastname("Test").house(1).city("Test").birthday(birthday).build());
+    h2Db.insert(Person.builder().id(46901).firstname("Test").lastname("Test").house(1).city("Test").birthday(birthday).build());
+    data08 = h2Db.getData("SELECT * FROM person WHERE id=46901 OR id=46901");
   }
 
   protected void putDataDirect(Map<String, SType> csTypeMap) {
@@ -149,6 +156,7 @@ public abstract class AbstractH2Test implements JdbcSource {
                             .isTimeStamp(col.getColName().equalsIgnoreCase("ID"))
                             .sType(csTypeMap.get(col.getColName()))
                             .cType(col.getColName().equalsIgnoreCase("ID") ? CType.LONG : Mapper.isCType(col))
+                            .dType(DataType.valueOf(col.getColDbTypeName().toUpperCase()))
                             .build())
                     .build()).toList();
 
@@ -189,6 +197,7 @@ public abstract class AbstractH2Test implements JdbcSource {
       fStore.putDataDirect(tableName, data05);
       fStore.putDataDirect(tableName, data06);
       fStore.putDataDirect(tableName, data07);
+      fStore.putDataDirect(tableName, data08);
     } catch (SqlColMetadataException | SQLException | EnumByteExceedException e) {
       throw new RuntimeException(e);
     }
@@ -373,7 +382,7 @@ public abstract class AbstractH2Test implements JdbcSource {
       List<CProfile> cProfiles, String colName, int begin, int end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
     return fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfiles.stream()
-        .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow(),begin, end);
+        .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow(), begin, end);
   }
 
   public Object lastListStackedKey(List<StackedColumn> list) {
@@ -401,7 +410,7 @@ public abstract class AbstractH2Test implements JdbcSource {
   }
 
   public List<List<Object>> getRawDataByColumn(CProfile cProfile, int begin, int end) {
-    return fStore.getRawDataByColumn(tProfile.getTableName(), cProfile,  begin, end);
+    return fStore.getRawDataByColumn(tProfile.getTableName(), cProfile, begin, end);
   }
 
   public CProfile getCProfileByColumnName(String colName) {

@@ -355,10 +355,11 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
       });
     }
 
-    list.add(StackedColumn.builder()
-        .key(blockId)
-        .tail(tail)
-        .keyCount(map).build());
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+          .key(blockId)
+          .tail(tail)
+          .keyCount(map).build());
+    }
   }
-
 }

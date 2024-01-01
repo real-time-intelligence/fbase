@@ -89,9 +89,11 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
     map.forEach((keyByte, value) -> mapKeyCount.put(converter.convertIntToRaw(
         EnumHelper.getIndexValue(eColumn.getValues(), keyByte), cProfile), value));
 
-    list.add(StackedColumn.builder()
-        .key(blockId)
-        .tail(tail)
-        .keyCount(mapKeyCount).build());
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+          .key(blockId)
+          .tail(tail)
+          .keyCount(mapKeyCount).build());
+    }
   }
 }
