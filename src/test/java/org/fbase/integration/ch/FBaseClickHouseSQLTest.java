@@ -390,9 +390,10 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
         Map<String, Long> retrieved_parsed_string_long_map = parseStringToTypedMap(
             retrieved_ch_dt_string_long_map,
             String::new,
-            Long::parseLong
+            Long::parseLong,
+            ":"
         );
-        Assertions.assertEquals(retrieved_parsed_string_long_map, ch_dt_string_long_map);
+        Assertions.assertEquals(ch_dt_string_long_map, retrieved_parsed_string_long_map);
 
       } catch (SQLException e) {
         log.error(e);

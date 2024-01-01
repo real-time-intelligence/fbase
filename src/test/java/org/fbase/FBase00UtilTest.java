@@ -1,5 +1,6 @@
 package org.fbase;
 
+import static org.fbase.util.MapArrayUtil.parseStringToTypedMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -8,12 +9,14 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.fbase.config.FBaseConfig;
 import org.fbase.config.FileConfig;
 import org.fbase.handler.MetaModelHandler;
 import org.fbase.model.MetaModel;
 import org.fbase.model.MetaModel.TableMetadata;
 import org.fbase.model.profile.CProfile;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -63,4 +66,37 @@ public class FBase00UtilTest {
     fileConfig.deleteFile();
   }
 
+  @Test
+  public void parseStringToTypedMapTest() {
+    Map<String, Long> mapEquals = new HashMap<>();
+    mapEquals.put("Query", 1L);
+    mapEquals.put("SelectQuery", 1L);
+    mapEquals.put("QueriesWithSubqueries", 1L);
+    mapEquals.put("SelectQueriesWithSubqueries", 1L);
+
+    Map<String, Long> mapColon = new HashMap<>();
+    mapColon.put("KeyOne", 1234567890L);
+    mapColon.put("KeyTwo", 2345678901L);
+    mapColon.put("KeyThree", 3456789012L);
+
+    String inputEquals = "{Query=1, SelectQuery=1, QueriesWithSubqueries=1, SelectQueriesWithSubqueries=1}";
+    String inputColon = "{KeyOne:1234567890,KeyThree:3456789012,KeyTwo:2345678901}";
+
+    Map<String, Long> retrievedInputEquals = parseStringToTypedMap(
+        inputEquals,
+        String::new,
+        Long::parseLong,
+        "="
+    );
+
+    Map<String, Long> retrievedInputColon = parseStringToTypedMap(
+        inputColon,
+        String::new,
+        Long::parseLong,
+        ":"
+    );
+
+    Assertions.assertEquals(mapEquals, retrievedInputEquals);
+    Assertions.assertEquals(mapColon, retrievedInputColon);
+  }
 }

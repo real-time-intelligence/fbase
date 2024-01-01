@@ -39,9 +39,9 @@ public class MapArrayUtil {
     V parse(String input);
   }
 
-  public static <K, V> Map<K, V> parseStringToTypedMap(String input, KeyParser<K> keyParser, ValueParser<V> valueParser) {
+  public static <K, V> Map<K, V> parseStringToTypedMap(String input, KeyParser<K> keyParser, ValueParser<V> valueParser, String KVDelimiter) {
     Map<K, V> map = new HashMap<>();
-    Pattern p = Pattern.compile("([\\w]+):([0-9]+\\.?[0-9]*)");
+    Pattern p = Pattern.compile("([\\w]+)" + KVDelimiter + "([0-9]+\\.?[0-9]*)");
     Matcher m = p.matcher(input);
 
     while (m.find()) {
