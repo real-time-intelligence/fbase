@@ -4,6 +4,8 @@ import static org.fbase.service.mapping.Mapper.DOUBLE_NULL;
 import static org.fbase.service.mapping.Mapper.FLOAT_NULL;
 import static org.fbase.service.mapping.Mapper.INT_NULL;
 import static org.fbase.service.mapping.Mapper.LONG_NULL;
+import static org.fbase.util.MapArrayUtil.parseStringToTypedArray;
+import static org.fbase.util.MapArrayUtil.parseStringToTypedMap;
 
 import java.nio.FloatBuffer;
 import java.sql.Date;
@@ -14,14 +16,15 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.fbase.metadata.DataType;
 import org.fbase.model.MetaModel;
+import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
@@ -341,6 +344,60 @@ public abstract class CommonServiceApi {
     }
 
     throw new RuntimeException("Undefined storage type for column id: " + colId);
+  }
+
+  protected List<StackedColumn> handleMap(List<StackedColumn> sColumnList) {
+    List<StackedColumn> sColumnListParsedMap = new ArrayList<>();
+
+    sColumnList.forEach(stackedColumn -> {
+
+      Map<String, Integer> keyCount = new HashMap<>();
+      stackedColumn.getKeyCount().forEach((key, value) -> {
+        Map<String, Long> parsedMap = parseStringToTypedMap(
+            key,
+            String::new,
+            Long::parseLong,
+            "="
+        );
+
+        for (Entry<String, Long> pair : parsedMap.entrySet()) {
+          Long newCount = (pair.getValue() == null) ? 0 : pair.getValue() * value;
+          pair.setValue(newCount);
+        }
+
+        parsedMap.forEach((keyParsed, valueParsed) ->
+            keyCount.merge(keyParsed, Math.toIntExact(valueParsed), Integer::sum));
+      });
+
+      sColumnListParsedMap.add(StackedColumn.builder()
+          .key(stackedColumn.getKey())
+          .tail(stackedColumn.getTail())
+          .keyCount(keyCount).build());
+    });
+
+    return sColumnListParsedMap;
+  }
+
+
+  protected List<StackedColumn> handleArray(List<StackedColumn> sColumnList) {
+    List<StackedColumn> sColumnListParsedMap = new ArrayList<>();
+
+    sColumnList.forEach(stackedColumn -> {
+
+      Map<String, Integer> keyCount = new HashMap<>();
+      stackedColumn.getKeyCount().forEach((key, value) -> {
+        String[] array = parseStringToTypedArray(key,",");
+
+        Arrays.stream(array).forEach(e -> keyCount.merge(e.trim(), value, Integer::sum));
+
+        sColumnListParsedMap.add(StackedColumn.builder()
+          .key(stackedColumn.getKey())
+          .tail(stackedColumn.getTail())
+          .keyCount(keyCount).build());
+      });
+    });
+
+    return sColumnListParsedMap;
   }
 
   private String getDateForLongShorted(int longDate) {

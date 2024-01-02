@@ -1,8 +1,10 @@
 package org.fbase.service.impl;
 
+import static org.fbase.metadata.DataType.ARRAY;
+import static org.fbase.metadata.DataType.MAP;
+
 import com.sleepycat.persist.EntityCursor;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,6 +110,12 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
     } catch (Exception e) {
       log.catching(e);
       log.error(e.getMessage());
+    }
+
+    if (MAP.equals(cProfile.getCsType().getDType())) {
+      return handleMap(list);
+    } else if (ARRAY.equals(cProfile.getCsType().getDType())) {
+      return handleArray(list);
     }
 
     return list;

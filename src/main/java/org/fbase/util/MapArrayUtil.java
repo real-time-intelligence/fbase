@@ -53,6 +53,12 @@ public class MapArrayUtil {
     return map;
   }
 
+  public static String[] parseStringToTypedArray(String input, String d) {
+    String dsv = input.replace("[", "").replace("]", "");
+
+    return dsv.split(d);
+  }
+
   public static String mapToJson(Map<?, ?> map) {
     StringJoiner sj = new StringJoiner(",", "{", "}");
     for (Map.Entry<?, ?> entry : map.entrySet()) {

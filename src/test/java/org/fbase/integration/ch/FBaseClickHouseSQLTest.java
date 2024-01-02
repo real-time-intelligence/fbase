@@ -26,12 +26,16 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.common.AbstractClickhouseSQLTest;
@@ -40,6 +44,7 @@ import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.output.GanttColumn;
+import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
@@ -129,7 +134,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
                     ch_dt_ipv6 IPv6,
                     ch_dt_number_array Array(UInt64),
                     ch_dt_string_array Array(String),
-                    ch_dt_string_long_map Map(String, UInt64)
+                    ch_dt_string_int_map Map(String, UInt64)
                   ) ENGINE = MergeTree() ORDER BY (ch_dt_int)
         """;
 
@@ -184,10 +189,10 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     String ch_dt_ipv6 = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
     Long[] ch_dt_number_array = new Long[]{123L, 124L, 125L};
     String[] ch_dt_string_array = new String[]{"1234", "1245", "1256"};
-    Map<String, Long> ch_dt_string_long_map = new HashMap<>();
-    ch_dt_string_long_map.put("KeyOne", 1234567890L);
-    ch_dt_string_long_map.put("KeyTwo", 2345678901L);
-    ch_dt_string_long_map.put("KeyThree", 3456789012L);
+    Map<String, Integer> ch_dt_string_int_map = new HashMap<>();
+    ch_dt_string_int_map.put("KeyOne", 1234567);
+    ch_dt_string_int_map.put("KeyTwo", 2345678);
+    ch_dt_string_int_map.put("KeyThree", 3456789);
 
     Statement createTableStmt = dbConnection.createStatement();
 
@@ -249,7 +254,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
       java.sql.Array sqlStringArray = dbConnection.createArrayOf("Array(String)", ch_dt_string_array);
       ps.setArray(44, sqlStringArray);
 
-      ps.setString(45, mapToJsonRaw(ch_dt_string_long_map));
+      ps.setString(45, mapToJsonRaw(ch_dt_string_int_map));
 
       ps.executeUpdate();
     }
@@ -386,14 +391,14 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
         String stringArrayAsString = Arrays.toString((Object[]) retrieved_ch_dt_string_array.getArray());
         Assertions.assertEquals(Arrays.toString(ch_dt_string_array), stringArrayAsString);
 
-        String retrieved_ch_dt_string_long_map = resultSet.getString("ch_dt_string_long_map");
-        Map<String, Long> retrieved_parsed_string_long_map = parseStringToTypedMap(
-            retrieved_ch_dt_string_long_map,
+        String retrieved_ch_dt_string_int_map = resultSet.getString("ch_dt_string_int_map");
+        Map<String, Integer> retrieved_parsed_string_int_map = parseStringToTypedMap(
+            retrieved_ch_dt_string_int_map,
             String::new,
-            Long::parseLong,
+            Integer::parseInt,
             ":"
         );
-        Assertions.assertEquals(ch_dt_string_long_map, retrieved_parsed_string_long_map);
+        Assertions.assertEquals(ch_dt_string_int_map, retrieved_parsed_string_int_map);
 
       } catch (SQLException e) {
         log.error(e);
@@ -556,13 +561,18 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(), getStackedColumnKey(tableName, chDtIpv6).trim());
 
     CProfile chDtNumberArray = getCProfile(cProfiles, "ch_dt_number_array");
-    assertEquals(Arrays.toString(ch_dt_number_array), getStackedColumnKey(tableName, chDtNumberArray).trim());
+    Map<String, Integer> expectedChDtNumberArrayMap = new HashMap<>();
+    Arrays.stream(ch_dt_number_array).toList().stream().sorted().forEach(e -> expectedChDtNumberArrayMap.put(String.valueOf(e), 1));
+    assertEquals(expectedChDtNumberArrayMap, getStackedColumn(tableName, chDtNumberArray).orElseThrow().getKeyCount());
 
     CProfile chDtStringArray = getCProfile(cProfiles, "ch_dt_string_array");
-    assertEquals(Arrays.toString(ch_dt_string_array), getStackedColumnKey(tableName, chDtStringArray).trim());
+    Map<String, Integer> expectedChDtStringArrayMap = new HashMap<>();
+    Arrays.stream(ch_dt_string_array).toList().stream().sorted().forEach(e -> expectedChDtStringArrayMap.put(e, 1));
+    assertEquals(expectedChDtStringArrayMap, getStackedColumn(tableName, chDtStringArray).orElseThrow().getKeyCount());
 
-    CProfile chDtStringLongMap = getCProfile(cProfiles, "ch_dt_string_long_map");
-    assertEquals(String.valueOf(ch_dt_string_long_map), getStackedColumnKey(tableName, chDtStringLongMap).trim());
+    CProfile chDtStringLongMap = getCProfile(cProfiles, "ch_dt_string_int_map");
+    Optional<StackedColumn> stackedColumnMap = getStackedColumn(tableName, chDtStringLongMap);
+    assertEquals(ch_dt_string_int_map, stackedColumnMap.orElseThrow().getKeyCount());
 
     /* Test GanttColumn API */
     List<GanttColumn> chDtDecInt = getGanttColumn(tableName, chDtDec, chDtInt);
@@ -691,7 +701,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
 
     List<GanttColumn> chDtStringArrayMap = getGanttColumn(tableName, chDtStringArray, chDtStringLongMap);
     assertEquals(Arrays.toString(ch_dt_string_array), chDtStringArrayMap.get(0).getKey());
-    assertEquals(String.valueOf(ch_dt_string_long_map), getGanttKey(chDtStringArrayMap, String.valueOf(ch_dt_string_long_map)));
+    assertEquals(String.valueOf(ch_dt_string_int_map), getGanttKey(chDtStringArrayMap, String.valueOf(ch_dt_string_int_map)));
 
     /* Test Raw data API */
     List<List<Object>> rawDataAll = fStore.getRawDataAll(tableName, 0, Long.MAX_VALUE);
@@ -750,11 +760,14 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
         } else if (cProfile.equals(chDtIpv6)) {
           assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(), getStackedColumnKey(tableName, chDtIpv6));
         }  else if (cProfile.equals(chDtNumberArray)) {
-          assertEquals(Arrays.toString(ch_dt_number_array), getStackedColumnKey(tableName, chDtNumberArray));
+          String arrayString = (String) getRawDataByColumn(tableName, chDtNumberArray).orElseThrow().get(1);
+          assertEquals(Arrays.toString(ch_dt_number_array), arrayString);
         }  else if (cProfile.equals(chDtStringArray)) {
-          assertEquals(Arrays.toString(ch_dt_string_array), getStackedColumnKey(tableName, chDtStringArray));
+          String arrayString = (String) getRawDataByColumn(tableName, chDtStringArray).orElseThrow().get(1);
+          assertEquals(Arrays.toString(ch_dt_string_array), arrayString);
         }  else if (cProfile.equals(chDtStringLongMap)) {
-          assertEquals(String.valueOf(ch_dt_string_long_map), getStackedColumnKey(tableName, chDtStringLongMap));
+          String mapString = (String) getRawDataByColumn(tableName, chDtStringLongMap).orElseThrow().get(1);
+          assertEquals(String.valueOf(ch_dt_string_int_map), mapString);
         }
 
       } catch (Exception e) {
@@ -814,6 +827,19 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
         .findAny()
         .orElseThrow()
         .getKey();
+  }
+
+  private Optional<StackedColumn> getStackedColumn(String tableName, CProfile cProfile)
+      throws BeginEndWrongOrderException, SqlColMetadataException {
+    return fStore.getSColumnListByCProfile(tableName, cProfile, 0, Long.MAX_VALUE)
+        .stream()
+        .findAny();
+  }
+
+  private Optional<List<Object>> getRawDataByColumn(String tableName, CProfile cProfile) {
+    return fStore.getRawDataByColumn(tableName, cProfile, Long.MIN_VALUE, Long.MAX_VALUE)
+        .stream()
+        .findAny();
   }
 
   private CProfile getCProfile(List<CProfile> cProfiles, String colName) {

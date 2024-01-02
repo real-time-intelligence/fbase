@@ -156,5 +156,4 @@ public interface JdbcSource {
       }
     });
   }
-
 }
