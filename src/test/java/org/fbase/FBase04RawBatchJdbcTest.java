@@ -46,8 +46,7 @@ public class FBase04RawBatchJdbcTest extends AbstractH2Test {
     List<List<Object>> actual = getRawDataAll(7, 7);
 
     assertEquals(expected.stream().filter(e -> e.get(0) == "7").count(), actual.size());
-    assertForRaw(expected.stream().filter(e -> e.get(0) == "7").collect(Collectors.toList()),
-        actual);
+    assertForRaw(expected.stream().filter(e -> e.get(0) == "7").collect(Collectors.toList()), actual);
   }
 
   @Test

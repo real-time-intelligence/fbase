@@ -27,6 +27,28 @@ import org.fbase.model.profile.cstype.SType;
 @Log4j2
 public class MetadataHandler {
 
+  public static List<CProfile> getDirectCProfileList(SProfile sProfile) {
+    List<CProfile> cProfileList = new ArrayList<>();
+
+    AtomicInteger counter = new AtomicInteger(0);
+
+    sProfile.getCsTypeMap().forEach((k, csType) ->
+        cProfileList.add(CProfile.builder()
+            .colId(counter.getAndAdd(1))
+            .colIdSql(counter.get())
+            .colDbTypeName(csType.getCType().name().toUpperCase())
+            .colName(k)
+            .csType(CSType.builder()
+                .isTimeStamp(csType.isTimeStamp())
+                .sType(csType.getSType())
+                .cType(csType.getCType())
+                .dType(csType.getDType())
+                .build())
+            .build()));
+
+    return cProfileList;
+  }
+
   public static List<CProfile> getJdbcCProfileList(Connection connection, String select) throws SQLException {
     List<CProfile> cProfileList = new ArrayList<>();
 

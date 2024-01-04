@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -18,7 +19,6 @@ import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.handler.MetaModelHandler;
 import org.fbase.handler.MetadataHandler;
-import org.fbase.metadata.DataType;
 import org.fbase.model.MetaModel;
 import org.fbase.model.MetaModel.TableMetadata;
 import org.fbase.model.output.GanttColumn;
@@ -117,102 +117,121 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public TProfile loadJdbcTableMetadata(Connection connection, String select, SProfile sProfile) throws TableNameEmptyException {
-    checkIsTableNameEmpty(sProfile);
+  public TProfile loadDirectTableMetadata(SProfile sProfile) throws TableNameEmptyException {
+    checkAndInitializeMetaModel();
+    return loadTableMetadata(sProfile,
+        () -> fetchMetadataDirect(sProfile),
+        () -> updateTimestampMetadata(sProfile.getTableName(), sProfile));
+  }
 
-    TProfile tProfile = new TProfile().setTableName(sProfile.getTableName());
+  @Override
+  public TProfile loadJdbcTableMetadata(Connection connection, String select, SProfile sProfile)
+      throws TableNameEmptyException {
+    checkAndInitializeMetaModel();
+    return loadTableMetadata(sProfile,
+        () -> fetchMetadataFromJdbc(connection, select, sProfile),
+        () -> updateTimestampMetadata(sProfile.getTableName(), sProfile));
+  }
 
+  @Override
+  public TProfile loadCsvTableMetadata(String fileName, String csvSplitBy, SProfile sProfile)
+      throws TableNameEmptyException {
+    checkAndInitializeMetaModel();
+    return loadTableMetadata(sProfile,
+        () -> fetchMetadataFromCsv(fileName, csvSplitBy, sProfile),
+        () -> {});
+  }
+
+  private void checkAndInitializeMetaModel() {
     if (metaModel.getMetadata().isEmpty()) {
       saveMetaModel();
     }
+  }
+
+  private TProfile loadTableMetadata(SProfile sProfile, Runnable fetchMetadata, Runnable updateTimestampMetadata)
+      throws TableNameEmptyException {
+    checkIsTableNameEmpty(sProfile);
 
     String tableName = sProfile.getTableName();
+    TProfile tProfile = new TProfile().setTableName(tableName);
 
-    if (!metaModel.getMetadata().isEmpty()
-        && metaModel.getMetadata().get(tableName) != null
-        && metaModel.getMetadata().get(tableName).getTableId() != null) {
-
-      updateTimestampMetadata(tableName, sProfile);
-
-      fillTProfile(tableName, sProfile, tProfile);
-
-      saveMetaModel();
-
-      return tProfile;
+    if (metaModelExistsForTable(tableName)) {
+      updateTimestampMetadata.run();
+      fillTProfileFromMetaModel(tableName, tProfile);
+    } else {
+      fetchMetadata.run();
+      fillTProfileAndSaveMetaModel(tableName, sProfile, tProfile);
     }
-
-    byte tableId = MetaModelHandler.getNextInternalTableId(metaModel);
-
-    try {
-      List<CProfile> cProfileList = MetadataHandler.getJdbcCProfileList(connection, select);
-
-      cProfileList.forEach(cProfile ->
-          {
-            log.info(cProfile);
-            CSType csType = sProfile.getCsTypeMap().getOrDefault(cProfile.getColName(),
-                new CSType().toBuilder()
-                    .isTimeStamp(false)
-                    .sType(SType.RAW)
-                    .build());
-            csType.setCType(Mapper.isCType(cProfile));
-            csType.setDType(Mapper.isDBType(cProfile));
-
-            cProfile.setCsType(csType);
-          }
-      );
-
-      metaModel.getMetadata().put(tableName,
-          new TableMetadata()
-              .setTableId(tableId)
-              .setTableType(sProfile.getTableType())
-              .setIndexType(sProfile.getIndexType())
-              .setCompression(sProfile.getCompression())
-              .setCProfiles(cProfileList));
-
-    } catch (Exception e) {
-      log.catching(e);
-    }
-
-    fillTProfile(tableName, sProfile, tProfile);
 
     saveMetaModel();
 
     return tProfile;
   }
 
-  @Override
-  public TProfile loadCsvTableMetadata(String fileName, String csvSplitBy, SProfile sProfile)
-      throws TableNameEmptyException {
-    checkIsTableNameEmpty(sProfile);
+  private boolean metaModelExistsForTable(String tableName) {
+    TableMetadata tableMetadata = metaModel.getMetadata().get(tableName);
+    return tableMetadata != null && tableMetadata.getTableId() != null;
+  }
 
-    TProfile tProfile = new TProfile().setTableName(sProfile.getTableName());
+  private void fetchMetadataDirect(SProfile sProfile) {
+    byte tableId = MetaModelHandler.getNextInternalTableId(metaModel);
     String tableName = sProfile.getTableName();
 
-    if (metaModel.getMetadata().isEmpty()) {
-      saveMetaModel();
+    if (sProfile.getCsTypeMap().isEmpty()) {
+      throw new RuntimeException("Storage profile is empty");
     }
 
-    if (!metaModel.getMetadata().isEmpty()
-        && metaModel.getMetadata().get(tableName) != null
-        && metaModel.getMetadata().get(tableName).getTableId() != null) {
+    try {
+      List<CProfile> cProfileList = MetadataHandler.getDirectCProfileList(sProfile);
 
-      updateTimestampMetadata(tableName, sProfile);
-
-      tProfile.setTableType(sProfile.getTableType());
-      tProfile.setCompression(sProfile.getCompression());
-
-      try {
-        tProfile.setCProfiles(getCProfileList(tableName));
-      } catch (TableNameEmptyException e) {
-        throw new RuntimeException(e);
-      }
-
-      saveMetaModel();
-
-      return tProfile;
+      metaModel.getMetadata().put(tableName, new TableMetadata()
+          .setTableId(tableId)
+          .setTableType(sProfile.getTableType())
+          .setIndexType(sProfile.getIndexType())
+          .setCompression(sProfile.getCompression())
+          .setCProfiles(cProfileList));
+    } catch (Exception e) {
+      log.catching(e);
     }
+  }
 
+  private void fetchMetadataFromJdbc(Connection connection, String select, SProfile sProfile) {
     byte tableId = MetaModelHandler.getNextInternalTableId(metaModel);
+    String tableName = sProfile.getTableName();
+
+    try {
+      List<CProfile> cProfileList = MetadataHandler.getJdbcCProfileList(connection, select);
+      Map<String, CSType> csTypeMap = sProfile.getCsTypeMap();
+
+      cProfileList.forEach(cProfile -> {
+        CSType csType = csTypeMap.getOrDefault(cProfile.getColName(), defaultCSType());
+        csType.setCType(Mapper.isCType(cProfile));
+        csType.setDType(Mapper.isDBType(cProfile));
+        cProfile.setCsType(csType);
+        log.info(cProfile);
+      });
+
+      metaModel.getMetadata().put(tableName, new TableMetadata()
+          .setTableId(tableId)
+          .setTableType(sProfile.getTableType())
+          .setIndexType(sProfile.getIndexType())
+          .setCompression(sProfile.getCompression())
+          .setCProfiles(cProfileList));
+    } catch (Exception e) {
+      log.catching(e);
+    }
+  }
+
+  private CSType defaultCSType() {
+    return new CSType().toBuilder()
+        .isTimeStamp(false)
+        .sType(SType.RAW)
+        .build();
+  }
+
+  private void fetchMetadataFromCsv(String fileName, String csvSplitBy, SProfile sProfile) {
+    byte tableId = MetaModelHandler.getNextInternalTableId(metaModel);
+    String tableName = sProfile.getTableName();
 
     try {
       if (sProfile.getCsTypeMap().isEmpty()) {
@@ -221,45 +240,48 @@ public class BdbStore implements FStore {
 
       List<CProfile> cProfileList = MetadataHandler.getCsvCProfileList(sProfile);
 
-      metaModel.getMetadata().put(tableName,
-          new TableMetadata()
-              .setTableId(tableId)
-              .setTableType(sProfile.getTableType())
-              .setIndexType(sProfile.getIndexType())
-              .setCompression(sProfile.getCompression())
-              .setCProfiles(cProfileList));
-
+      metaModel.getMetadata().put(tableName, new TableMetadata()
+          .setTableId(tableId)
+          .setTableType(sProfile.getTableType())
+          .setIndexType(sProfile.getIndexType())
+          .setCompression(sProfile.getCompression())
+          .setCProfiles(cProfileList));
     } catch (Exception e) {
       log.catching(e);
     }
+  }
 
-    saveMetaModel();
-
+  private void fillTProfileAndSaveMetaModel(String tableName, SProfile sProfile, TProfile tProfile) {
     tProfile.setTableType(sProfile.getTableType());
     tProfile.setCompression(sProfile.getCompression());
-    try {
-      tProfile.setCProfiles(getCProfileList(tableName));
-    } catch (TableNameEmptyException e) {
-      throw new RuntimeException(e);
+
+    TableMetadata tableMetadata = metaModel.getMetadata().get(tableName);
+
+    if (tableMetadata != null) {
+      List<CProfile> cProfiles = tableMetadata.getCProfiles();
+      tProfile.setCProfiles(cProfiles);
     }
 
-    return tProfile;
+    saveMetaModel();
+  }
+
+  private void fillTProfileFromMetaModel(String tableName, TProfile tProfile) {
+    TableMetadata tableMetadata = metaModel.getMetadata().get(tableName);
+    if (tableMetadata != null) {
+      List<CProfile> cProfileList = tableMetadata.getCProfiles();
+
+      tProfile.setTableType(tableMetadata.getTableType());
+      tProfile.setIndexType(tableMetadata.getIndexType());
+      tProfile.setCompression(tableMetadata.getCompression());
+      tProfile.setCProfiles(cProfileList);
+    } else {
+      log.warn("No metadata found for table: " + tableName);
+    }
   }
 
   private void checkIsTableNameEmpty(SProfile sProfile) throws TableNameEmptyException {
     if (Objects.isNull(sProfile.getTableName()) || sProfile.getTableName().isBlank()) {
       throw new TableNameEmptyException("Empty table name. Please, define it explicitly..");
-    }
-  }
-
-  private void fillTProfile(String tableName, SProfile sProfile, TProfile tProfile) {
-    try {
-      tProfile.setTableType(sProfile.getTableType());
-      tProfile.setIndexType(sProfile.getIndexType());
-      tProfile.setCompression(sProfile.getCompression());
-      tProfile.setCProfiles(getCProfileList(tableName));
-    } catch (TableNameEmptyException e) {
-      throw new RuntimeException(e);
     }
   }
 

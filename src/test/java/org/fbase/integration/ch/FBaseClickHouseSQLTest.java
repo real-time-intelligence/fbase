@@ -703,6 +703,10 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     assertEquals(Arrays.toString(ch_dt_string_array), chDtStringArrayMap.get(0).getKey());
     assertEquals(String.valueOf(ch_dt_string_int_map), getGanttKey(chDtStringArrayMap, String.valueOf(ch_dt_string_int_map)));
 
+    List<GanttColumn> chDtStringMapArray = getGanttColumn(tableName, chDtStringLongMap, chDtStringArray);
+    assertEquals(String.valueOf(ch_dt_string_int_map), chDtStringMapArray.get(0).getKey());
+    assertEquals(Arrays.toString(ch_dt_string_array), getGanttKey(chDtStringMapArray, Arrays.toString(ch_dt_string_array)));
+
     /* Test Raw data API */
     List<List<Object>> rawDataAll = fStore.getRawDataAll(tableName, 0, Long.MAX_VALUE);
 

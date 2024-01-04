@@ -1,5 +1,8 @@
 package org.fbase.service.impl;
 
+import static org.fbase.metadata.DataType.ARRAY;
+import static org.fbase.metadata.DataType.MAP;
+
 import com.sleepycat.persist.EntityCursor;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -170,6 +173,12 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
       }
 
     List<GanttColumn> list = new ArrayList<>();
+
+    if (MAP.equals(firstLevelGroupBy.getCsType().getDType())) {
+
+    } else if (ARRAY.equals(firstLevelGroupBy.getCsType().getDType())) {
+
+    }
 
     mapFinal.forEach((key, value) -> list.add(GanttColumn.builder().key(key).gantt(value).build()));
 

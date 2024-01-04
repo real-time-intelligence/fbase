@@ -29,6 +29,13 @@ public interface FStore {
   TProfile getTProfile(String tableName) throws TableNameEmptyException;
 
   /**
+   * Load metadata from storage profile directly
+   * @param sProfile - Storage profile
+   * @return TProfile - Table profile
+   */
+  TProfile loadDirectTableMetadata(SProfile sProfile) throws TableNameEmptyException;
+
+  /**
    * Load metadata from connection using query
    * @param connection - JDBC connection
    * @param query - Query text
