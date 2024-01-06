@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,14 +42,17 @@ public abstract class AbstractDirectTest {
   protected FStore fStore;
 
   protected List<List<Object>> data01;
+  protected List<List<Object>> data02;
 
   private TProfile tProfile;
   protected List<CProfile> cProfiles;
 
   protected String tableName = "direct_table_test";
 
-  protected String testMessage = "Test message";
-  protected Map<String, Integer> integerMap;
+  protected String testMessage1 = "Test message 1";
+  protected String testMessage2 = "Test message 2";
+  protected Map<String, Integer> testMap1;
+  protected Map<String, Integer> testMap2;
   protected int kMap;
 
   @BeforeAll
@@ -62,61 +64,71 @@ public abstract class AbstractDirectTest {
     fStore = fBase.getFStore();
 
     kMap = 2;
-    integerMap = new HashMap<>();
-    integerMap.put("val1", 1);
-    integerMap.put("val2", 2);
-    integerMap.put("val3", 3);
+    testMap1 = new HashMap<>();
+    testMap1.put("val1", 1);
+    testMap1.put("val2", 2);
+    testMap1.put("val3", 3);
+
+    testMap2 = new HashMap<>();
+    testMap2.put("val4", 4);
+    testMap2.put("val5", 5);
+    testMap2.put("val6", 6);
   }
 
   protected void putDataDirect(SProfile sProfile) {
     fStore = fBase.getFStore();
 
     try {
-      try {
-        tProfile = fStore.loadDirectTableMetadata(sProfile);
-      } catch (TableNameEmptyException e) {
-        throw new RuntimeException(e);
-      }
+      tProfile = loadTableMetadata(sProfile);
 
       String tableName = tProfile.getTableName();
       cProfiles = tProfile.getCProfiles();
 
-      // load data here
-      data01 = new ArrayList<>();
-      cProfiles.forEach(v -> data01.add(v.getColId(), new ArrayList<>()));
-
-      for (int i = 0; i < kMap; i++) {
-        int finalI = i;
-        cProfiles.forEach(v -> {
-          if (DataType.MAP.equals(v.getCsType().getDType())) {
-            data01.get(v.getColId()).add(integerMap);
-          } else if (DataType.LONG.equals(v.getCsType().getDType())) {
-            data01.get(v.getColId()).add(finalI);
-          } else if (DataType.VARCHAR.equals(v.getCsType().getDType())) {
-            data01.get(v.getColId()).add(testMessage);
-          }
-        });
-      }
+      data01 = loadData(cProfiles, 0, kMap, testMap1, testMessage1);
+      data02 = loadData(cProfiles, 10, kMap + 10, testMap2, testMessage2);
 
       fStore.putDataDirect(tableName, data01);
-    } catch (SqlColMetadataException | EnumByteExceedException e) {
+      fStore.putDataDirect(tableName, data02);
+
+    } catch (SqlColMetadataException | EnumByteExceedException | TableNameEmptyException e) {
       throw new RuntimeException(e);
     }
   }
 
-  protected void loadExpected(List<List<Object>> expected) {
-    expected.add(Arrays.asList(new String[]{"1", "Alex", "Ivanov", "1", "Moscow", "01.01.2023 01:01:01"}));
-    expected.add(Arrays.asList(new String[]{"2", "Ivan", "Ivanov", "2", "Moscow", "01.01.2023 01:01:01"}));
-    expected.add(Arrays.asList(new String[]{"3", "Oleg", "Petrov", "1", "Moscow", "01.01.2023 01:01:01"}));
-    expected.add(Arrays.asList(new String[]{"4", "Lee", "Sui", "1", "Moscow", "01.01.2023 01:01:01"}));
-    expected.add(Arrays.asList(new String[]{"5", "Lee", "Ivanov", "1", "Moscow", "01.01.2023 01:01:01"}));
-    expected.add(Arrays.asList(new String[]{"6", "Lee", "Ivanov", "2", "Moscow", "01.01.2023 01:01:01"}));
-    expected.add(Arrays.asList(new String[]{"7", "Men", "Petrov", "1", "Yekaterinburg", "01.01.2023 01:01:01"}));
-    expected.add(Arrays.asList(new String[]{"8", "Ion", "Тихий", "1", "Moscow", "01.01.2023 01:01:01"}));
-    expected.add(Arrays.asList(new String[]{"9", "Федор", "Шаляпин", "1", "Moscow", "01.01.2023 01:01:01"}));
-    expected.add(Arrays.asList(new String[]{"10", "Петр", "Пирогов", "1", "Moscow", "01.01.2023 01:01:01"}));
-    expected.add(Arrays.asList(new String[]{"11", "Oleg", "Semenov", "1", "Moscow", "01.01.2023 01:01:01"}));
-    expected.add(Arrays.asList(new String[]{"12", "Oleg", "Mirko", "2", "Yekaterinburg", "01.01.2023 01:01:01"}));
+  private TProfile loadTableMetadata(SProfile sProfile) throws TableNameEmptyException {
+    return fStore.loadDirectTableMetadata(sProfile);
+  }
+
+  private List<List<Object>> loadData(List<CProfile> cProfiles, int start, int end, Map<String, Integer> mapData, String messageData) {
+    List<List<Object>> data = new ArrayList<>();
+    initializeDataStructure(cProfiles, data);
+
+    for (int i = start; i < end; i++) {
+      final int index = i;
+      cProfiles.forEach(v -> addToDataStructure(v, data, index, mapData, messageData));
+    }
+    return data;
+  }
+
+  private void initializeDataStructure(List<CProfile> cProfiles, List<List<Object>> data) {
+    cProfiles.forEach(v -> data.add(v.getColId(), new ArrayList<>()));
+  }
+
+  private void addToDataStructure(CProfile v, List<List<Object>> data, int index, Map<String, Integer> mapData, String messageData) {
+    Object valueToAdd = determineValue(v, index, mapData, messageData);
+    data.get(v.getColId()).add(valueToAdd);
+  }
+
+  private Object determineValue(CProfile profile, int index, Map<String, Integer> mapData, String messageData) {
+    DataType dType = profile.getCsType().getDType();
+    if (DataType.MAP.equals(dType)) {
+      return mapData;
+    } else if (DataType.LONG.equals(dType)) {
+      return index;
+    } else if (DataType.VARCHAR.equals(dType)) {
+      return messageData;
+    }
+    return null;
   }
 
   protected List<GanttColumn> getDataGanttColumn(String firstColName, String secondColName, int begin, int end)
@@ -137,13 +149,14 @@ public abstract class AbstractDirectTest {
     return fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), firstLevelGroupBy, secondLevelGroupBy, begin, end);
   }
 
-  protected void assertForGanttColumn(List<GanttColumn> expected, List<GanttColumn> actual) {
-    expected.forEach(e ->
-        assertEquals(e.getGantt(), actual.stream()
-            .filter(f -> f.getKey().equals(e.getKey()))
+  protected void compareKeySetForMapDataType(Map<String, Integer> expectedMap, List<StackedColumn> listMapActual) {
+    assertEquals(expectedMap.keySet(),
+        listMapActual.stream().filter(f -> f.getKeyCount()
+            .keySet().equals(expectedMap.keySet()))
             .findAny()
             .orElseThrow()
-            .getGantt()));
+            .getKeyCount()
+            .keySet());
   }
 
   public List<StackedColumn> getListStackedDataBySqlCol(FStore fStore, TProfile tProfile,
@@ -153,19 +166,26 @@ public abstract class AbstractDirectTest {
         .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow(), begin, end);
   }
 
-  public Object lastListStackedKey(List<StackedColumn> list) {
-    return list.stream().reduce((first, second) -> second).orElseThrow()
-        .getKeyCount().entrySet().stream().reduce((first, second) -> second).orElseThrow().getKey();
+  public Object findListStackedKey(List<StackedColumn> list, String filter) {
+    for (StackedColumn stackedColumn : list) {
+      if (stackedColumn.getKeyCount().containsKey(filter)) {
+        return stackedColumn.getKeyCount().entrySet()
+            .stream()
+            .filter((k) -> k.getKey().equals(filter)).findAny().orElseThrow().getKey();
+      }
+    }
+    return null;
   }
 
-  public Object firstListStackedKey(List<StackedColumn> list) {
-    return list.stream().findFirst().orElseThrow()
-        .getKeyCount().entrySet().stream().findFirst().orElseThrow().getKey();
-  }
-
-  public Object firstListStackedValue(List<StackedColumn> list) {
-    return list.stream().findFirst().orElseThrow()
-        .getKeyCount().entrySet().stream().findFirst().orElseThrow().getValue();
+  public Object findListStackedValue(List<StackedColumn> list, String filter) {
+    for (StackedColumn stackedColumn : list) {
+      if (stackedColumn.getKeyCount().containsKey(filter)) {
+        return stackedColumn.getKeyCount().entrySet()
+            .stream()
+            .filter((k) -> k.getKey().equals(filter)).findAny().orElseThrow().getValue();
+      }
+    }
+    return null;
   }
 
   public List<StackedColumn> getDataStackedColumn(String colName, int begin, int end)
@@ -175,27 +195,6 @@ public abstract class AbstractDirectTest {
 
   public List<List<Object>> getRawDataAll(int begin, int end) {
     return fStore.getRawDataAll(tProfile.getTableName(), begin, end);
-  }
-
-  public List<List<Object>> getRawDataByColumn(CProfile cProfile, int begin, int end) {
-    return fStore.getRawDataByColumn(tProfile.getTableName(), cProfile, begin, end);
-  }
-
-  public CProfile getCProfileByColumnName(String colName) {
-    return cProfiles.stream().filter(f -> f.getColName().equals(colName)).findAny().orElseThrow();
-  }
-
-  public List<StackedColumn> getStackedData(String colName, int begin, int end)
-      throws BeginEndWrongOrderException, SqlColMetadataException {
-    return getListStackedDataBySqlCol(fStore, tProfile, cProfiles, colName, begin, end);
-  }
-
-  protected void assertForRaw(List<List<Object>> expected, List<List<Object>> actual) {
-    for (int i = 0; i < expected.size(); i++) {
-      for (int j = 0; j < expected.get(i).size(); j++) {
-        assertEquals(String.valueOf(expected.get(i).get(j)), String.valueOf(actual.get(i).get(j)));
-      }
-    }
   }
 
   @AfterAll

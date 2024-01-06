@@ -1,9 +1,9 @@
 package org.fbase;
 
+import static org.fbase.service.CommonServiceApi.transpose;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.fbase.common.AbstractDirectTest;
@@ -32,7 +32,7 @@ public class FBase11MapArrayTest extends AbstractDirectTest {
     sProfile.setIndexType(IType.GLOBAL);
     sProfile.setCompression(true);
 
-    Map<String, CSType> csTypeMap = new LinkedHashMap<>();
+    Map<String, CSType> csTypeMap = new HashMap<>();
     csTypeMap.put("ID", CSType.builder().isTimeStamp(true).sType(SType.RAW).cType(CType.LONG).dType(DataType.LONG).build());
     csTypeMap.put("MESSAGE", CSType.builder().isTimeStamp(false).sType(SType.RAW).cType(CType.STRING).dType(DataType.VARCHAR).build());
     csTypeMap.put("MAP", CSType.builder().isTimeStamp(false).sType(SType.RAW).cType(CType.STRING).dType(DataType.MAP).build());
@@ -47,13 +47,14 @@ public class FBase11MapArrayTest extends AbstractDirectTest {
     List<StackedColumn> listMessage = getDataStackedColumn("MESSAGE", Integer.MIN_VALUE, Integer.MAX_VALUE);
     List<StackedColumn> listMap = getDataStackedColumn("MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
 
-    assertEquals(firstListStackedKey(listMessage), testMessage);
-    assertEquals(firstListStackedValue(listMessage), 2);
+    assertEquals(findListStackedKey(listMessage, testMessage1), testMessage1);
+    assertEquals(findListStackedValue(listMessage, testMessage1), 2);
 
-    Map<String, Integer> integerMapLocal = new HashMap<>(integerMap);
-    integerMapLocal.replaceAll((key, value) -> value * kMap);
+    assertEquals(findListStackedKey(listMessage, testMessage2), testMessage2);
+    assertEquals(findListStackedValue(listMessage, testMessage2), 2);
 
-    assertEquals(integerMapLocal, listMap.get(0).getKeyCount());
+    compareKeySetForMapDataType(testMap1, listMap);
+    compareKeySetForMapDataType(testMap2, listMap);
   }
 
   @Test
@@ -61,12 +62,18 @@ public class FBase11MapArrayTest extends AbstractDirectTest {
     List<GanttColumn> actualMapMessage = getDataGanttColumn("MAP", "MESSAGE", Integer.MIN_VALUE, Integer.MAX_VALUE);
     List<GanttColumn> actualMessageMap = getDataGanttColumn("MESSAGE", "MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
 
-
+    System.out.println(actualMapMessage);
+    System.out.println(actualMessageMap);
   }
 
   @Test
   public void computeRawTest() {
+    List<List<Object>> expected01 = transpose(data01);
+    List<List<Object>> expected02 = transpose(data02);
+    expected01.addAll(expected02);
+
     List<List<Object>> actual = getRawDataAll(Integer.MIN_VALUE, Integer.MAX_VALUE);
-    assertEquals(testMessage, actual.get(0).get(1));
+
+    assertEquals(String.valueOf(expected01), String.valueOf(actual));
   }
 }

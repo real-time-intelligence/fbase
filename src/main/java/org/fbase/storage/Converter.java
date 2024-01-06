@@ -211,6 +211,7 @@ public class Converter {
     }
 
     switch (cProfile.getCsType().getDType()) {
+      case LONG:
       case INTEGER:
         return ((Integer) obj).longValue();
       case DATE:
