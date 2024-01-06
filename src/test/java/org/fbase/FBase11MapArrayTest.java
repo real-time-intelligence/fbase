@@ -61,9 +61,11 @@ public class FBase11MapArrayTest extends AbstractDirectTest {
   public void computeGanttTest() throws BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
     List<GanttColumn> actualMapMessage = getDataGanttColumn("MAP", "MESSAGE", Integer.MIN_VALUE, Integer.MAX_VALUE);
     List<GanttColumn> actualMessageMap = getDataGanttColumn("MESSAGE", "MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
+    List<GanttColumn> actualMapMap = getDataGanttColumn("MAP", "MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     System.out.println(actualMapMessage);
     System.out.println(actualMessageMap);
+    System.out.println(actualMapMap);
   }
 
   @Test

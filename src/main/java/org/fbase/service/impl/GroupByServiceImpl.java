@@ -172,13 +172,13 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
         log.error(e.getMessage());
       }
 
-    List<GanttColumn> list = new ArrayList<>();
-
-    if (MAP.equals(firstLevelGroupBy.getCsType().getDType())) {
-
+    if (MAP.equals(firstLevelGroupBy.getCsType().getDType()) || MAP.equals(secondLevelGroupBy.getCsType().getDType())) {
+      return handleMap(firstLevelGroupBy, secondLevelGroupBy, mapFinal);
     } else if (ARRAY.equals(firstLevelGroupBy.getCsType().getDType())) {
 
     }
+
+    List<GanttColumn> list = new ArrayList<>();
 
     mapFinal.forEach((key, value) -> list.add(GanttColumn.builder().key(key).gantt(value).build()));
 

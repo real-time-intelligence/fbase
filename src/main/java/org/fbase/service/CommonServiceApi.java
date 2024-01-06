@@ -1,5 +1,6 @@
 package org.fbase.service;
 
+import static org.fbase.metadata.DataType.MAP;
 import static org.fbase.service.mapping.Mapper.DOUBLE_NULL;
 import static org.fbase.service.mapping.Mapper.FLOAT_NULL;
 import static org.fbase.service.mapping.Mapper.INT_NULL;
@@ -24,6 +25,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.fbase.model.MetaModel;
+import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
@@ -398,6 +400,60 @@ public abstract class CommonServiceApi {
     });
 
     return sColumnListParsedMap;
+  }
+
+  protected List<GanttColumn> handleMap(CProfile firstLevelGroupBy, CProfile secondLevelGroupBy,
+      Map<String, Map<String, Integer>> mapFinalIn) {
+    List<GanttColumn> list = new ArrayList<>();
+    Map<String, Map<String, Integer>> mapFinalOut = new HashMap<>();
+
+    if (MAP.equals(firstLevelGroupBy.getCsType().getDType())) {
+
+      mapFinalIn.forEach((kIn, vIn) -> {
+        Map<String, Long> parsedMap = parsedMap(kIn);
+        parsedMap.forEach((kP, vP) -> {
+          vIn.forEach((kvIn, vvIn) -> setMapValue(mapFinalOut, kP, kvIn, Math.toIntExact(vP) * vvIn));
+        });
+      });
+    }
+
+    if (MAP.equals(secondLevelGroupBy.getCsType().getDType())) {
+      if (MAP.equals(firstLevelGroupBy.getCsType().getDType())) {
+       Map<String, Map<String, Integer>> updates = new HashMap<>();
+
+        mapFinalOut.forEach((kIn, vIn) -> {
+          vIn.forEach((kvIn, vvIn) -> {
+            Map<String, Long> parsedMap = parsedMap(kvIn);
+            parsedMap.forEach((kP, vP) -> setMapValue(updates, kIn, kP, Math.toIntExact(vP) * vvIn));
+          });
+        });
+
+        mapFinalOut.clear();
+        updates.forEach((key, value) -> {
+          value.forEach((updateKey, updateValue) -> setMapValue(mapFinalOut, key, updateKey, updateValue));
+        });
+      } else {
+        mapFinalIn.forEach((kIn, vIn) -> {
+          vIn.forEach((kvIn, vvIn) -> {
+            Map<String, Long> parsedMap = parsedMap(kvIn);
+            parsedMap.forEach((kP, vP) -> setMapValue(mapFinalOut, kIn, kP, Math.toIntExact(vP) * vvIn));
+          });
+        });
+      }
+    }
+
+    mapFinalOut.forEach((key, value) -> list.add(GanttColumn.builder().key(key).gantt(value).build()));
+
+    return list;
+  }
+
+  private Map<String, Long> parsedMap(String input) {
+    return parseStringToTypedMap(
+        input,
+        String::new,
+        Long::parseLong,
+        "="
+    );
   }
 
   private String getDateForLongShorted(int longDate) {
