@@ -172,10 +172,12 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
         log.error(e.getMessage());
       }
 
+    if (ARRAY.equals(firstLevelGroupBy.getCsType().getDType())) {
+
+    }
+
     if (MAP.equals(firstLevelGroupBy.getCsType().getDType()) || MAP.equals(secondLevelGroupBy.getCsType().getDType())) {
       return handleMap(firstLevelGroupBy, secondLevelGroupBy, mapFinal);
-    } else if (ARRAY.equals(firstLevelGroupBy.getCsType().getDType())) {
-
     }
 
     List<GanttColumn> list = new ArrayList<>();

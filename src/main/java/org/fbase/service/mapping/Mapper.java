@@ -232,11 +232,7 @@ public class Mapper {
           return String.valueOf(map);
         } else {
           Map<?, ?> mapValue = (Map<?, ?>) obj;
-          if (mapValue.isEmpty()) {
-            return STRING_NULL;
-          } else {
-            return String.valueOf(mapValue);
-          }
+          return String.valueOf(mapValue);
         }
       case IPV4:
         Inet4Address inet4Address = (Inet4Address) obj;

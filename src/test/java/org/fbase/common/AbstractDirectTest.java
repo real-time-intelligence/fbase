@@ -43,6 +43,7 @@ public abstract class AbstractDirectTest {
 
   protected List<List<Object>> data01;
   protected List<List<Object>> data02;
+  protected List<List<Object>> data03;
 
   private TProfile tProfile;
   protected List<CProfile> cProfiles;
@@ -51,8 +52,10 @@ public abstract class AbstractDirectTest {
 
   protected String testMessage1 = "Test message 1";
   protected String testMessage2 = "Test message 2";
+  protected String testMessage3 = "Test message 3";
   protected Map<String, Integer> testMap1;
   protected Map<String, Integer> testMap2;
+  protected Map<String, Integer> testMap3;
   protected int kMap;
 
   @BeforeAll
@@ -73,6 +76,8 @@ public abstract class AbstractDirectTest {
     testMap2.put("val4", 4);
     testMap2.put("val5", 5);
     testMap2.put("val6", 6);
+
+    testMap3 = new HashMap<>();
   }
 
   protected void putDataDirect(SProfile sProfile) {
@@ -86,9 +91,11 @@ public abstract class AbstractDirectTest {
 
       data01 = loadData(cProfiles, 0, kMap, testMap1, testMessage1);
       data02 = loadData(cProfiles, 10, kMap + 10, testMap2, testMessage2);
+      data03 = loadData(cProfiles, 20, kMap + 20, testMap3, testMessage3);
 
       fStore.putDataDirect(tableName, data01);
       fStore.putDataDirect(tableName, data02);
+      fStore.putDataDirect(tableName, data03);
 
     } catch (SqlColMetadataException | EnumByteExceedException | TableNameEmptyException e) {
       throw new RuntimeException(e);

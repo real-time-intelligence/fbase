@@ -5,6 +5,7 @@ import static org.fbase.service.mapping.Mapper.DOUBLE_NULL;
 import static org.fbase.service.mapping.Mapper.FLOAT_NULL;
 import static org.fbase.service.mapping.Mapper.INT_NULL;
 import static org.fbase.service.mapping.Mapper.LONG_NULL;
+import static org.fbase.service.mapping.Mapper.STRING_NULL;
 import static org.fbase.util.MapArrayUtil.parseStringToTypedArray;
 import static org.fbase.util.MapArrayUtil.parseStringToTypedMap;
 
@@ -408,43 +409,52 @@ public abstract class CommonServiceApi {
     Map<String, Map<String, Integer>> mapFinalOut = new HashMap<>();
 
     if (MAP.equals(firstLevelGroupBy.getCsType().getDType())) {
-
-      mapFinalIn.forEach((kIn, vIn) -> {
-        Map<String, Long> parsedMap = parsedMap(kIn);
-        parsedMap.forEach((kP, vP) -> {
-          vIn.forEach((kvIn, vvIn) -> setMapValue(mapFinalOut, kP, kvIn, Math.toIntExact(vP) * vvIn));
-        });
-      });
+      handlerFirstLevel(mapFinalIn, mapFinalOut);
     }
 
     if (MAP.equals(secondLevelGroupBy.getCsType().getDType())) {
       if (MAP.equals(firstLevelGroupBy.getCsType().getDType())) {
        Map<String, Map<String, Integer>> updates = new HashMap<>();
 
-        mapFinalOut.forEach((kIn, vIn) -> {
-          vIn.forEach((kvIn, vvIn) -> {
-            Map<String, Long> parsedMap = parsedMap(kvIn);
-            parsedMap.forEach((kP, vP) -> setMapValue(updates, kIn, kP, Math.toIntExact(vP) * vvIn));
-          });
-        });
+        handlerSecondLevel(mapFinalOut, updates);
 
         mapFinalOut.clear();
+        
         updates.forEach((key, value) -> {
           value.forEach((updateKey, updateValue) -> setMapValue(mapFinalOut, key, updateKey, updateValue));
         });
       } else {
-        mapFinalIn.forEach((kIn, vIn) -> {
-          vIn.forEach((kvIn, vvIn) -> {
-            Map<String, Long> parsedMap = parsedMap(kvIn);
-            parsedMap.forEach((kP, vP) -> setMapValue(mapFinalOut, kIn, kP, Math.toIntExact(vP) * vvIn));
-          });
-        });
+        handlerSecondLevel(mapFinalIn, mapFinalOut);
       }
     }
 
     mapFinalOut.forEach((key, value) -> list.add(GanttColumn.builder().key(key).gantt(value).build()));
 
     return list;
+  }
+
+  private void handlerFirstLevel(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
+    mapFinalIn.forEach((kIn, vIn) -> {
+      Map<String, Long> parsedMap = parsedMap(kIn);
+
+      if (parsedMap.isEmpty()) {
+        vIn.forEach((kvIn, vvIn) -> setMapValue(mapFinalOut, STRING_NULL, kvIn, vvIn));
+      }
+
+      parsedMap.forEach((kP, vP) -> vIn.forEach((kvIn, vvIn) -> setMapValue(mapFinalOut, kP, kvIn, Math.toIntExact(vP) * vvIn)));
+    });
+  }
+
+  private void handlerSecondLevel(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
+    mapFinalIn.forEach((kIn, vIn) -> vIn.forEach((kvIn, vvIn) -> {
+      Map<String, Long> parsedMap = parsedMap(kvIn);
+
+      if (parsedMap.isEmpty()) {
+        setMapValue(mapFinalOut, kIn, STRING_NULL, vvIn);
+      }
+
+      parsedMap.forEach((kP, vP) -> setMapValue(mapFinalOut, kIn, kP, Math.toIntExact(vP) * vvIn));
+    }));
   }
 
   private Map<String, Long> parsedMap(String input) {

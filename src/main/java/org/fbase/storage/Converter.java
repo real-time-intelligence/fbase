@@ -157,11 +157,7 @@ public class Converter {
           return dimensionDAO.getOrLoad(String.valueOf(map));
         } else {
           Map<?, ?> mapValue = (Map<?, ?>) obj;
-          if (mapValue.isEmpty()) {
-            return dimensionDAO.getOrLoad(STRING_NULL);
-          } else {
-            return dimensionDAO.getOrLoad(String.valueOf(mapValue));
-          }
+          return dimensionDAO.getOrLoad(String.valueOf(mapValue));
         }
       case IPV4:
         Inet4Address inet4Address = (Inet4Address) obj;

@@ -55,6 +55,7 @@ public class FBase11MapArrayTest extends AbstractDirectTest {
 
     compareKeySetForMapDataType(testMap1, listMap);
     compareKeySetForMapDataType(testMap2, listMap);
+    assertEquals(testMap3, listMap.stream().filter(f -> f.getKeyCount().isEmpty()).findAny().orElseThrow().getKeyCount());
   }
 
   @Test
@@ -72,9 +73,13 @@ public class FBase11MapArrayTest extends AbstractDirectTest {
   public void computeRawTest() {
     List<List<Object>> expected01 = transpose(data01);
     List<List<Object>> expected02 = transpose(data02);
+    List<List<Object>> expected03 = transpose(data03);
     expected01.addAll(expected02);
+    expected01.addAll(expected03);
 
     List<List<Object>> actual = getRawDataAll(Integer.MIN_VALUE, Integer.MAX_VALUE);
+
+    System.out.println(actual);
 
     assertEquals(String.valueOf(expected01), String.valueOf(actual));
   }
