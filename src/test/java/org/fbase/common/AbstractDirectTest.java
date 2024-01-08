@@ -56,6 +56,7 @@ public abstract class AbstractDirectTest {
   protected Map<String, Integer> testMap1;
   protected Map<String, Integer> testMap2;
   protected Map<String, Integer> testMap3;
+  protected String[] array1;
   protected int kMap;
 
   @BeforeAll
@@ -78,6 +79,10 @@ public abstract class AbstractDirectTest {
     testMap2.put("val6", 6);
 
     testMap3 = new HashMap<>();
+
+    array1 = new String[2];
+    array1[0] = "array value 1";
+    array1[1] = "array value 2";
   }
 
   protected void putDataDirect(SProfile sProfile) {
@@ -89,9 +94,9 @@ public abstract class AbstractDirectTest {
       String tableName = tProfile.getTableName();
       cProfiles = tProfile.getCProfiles();
 
-      data01 = loadData(cProfiles, 0, kMap, testMap1, testMessage1);
-      data02 = loadData(cProfiles, 10, kMap + 10, testMap2, testMessage2);
-      data03 = loadData(cProfiles, 20, kMap + 20, testMap3, testMessage3);
+      data01 = loadData(cProfiles, 0, kMap, testMap1, testMessage1, array1);
+      data02 = loadData(cProfiles, 10, kMap + 10, testMap2, testMessage2, array1);
+      data03 = loadData(cProfiles, 20, kMap + 20, testMap3, testMessage3, array1);
 
       fStore.putDataDirect(tableName, data01);
       fStore.putDataDirect(tableName, data02);
@@ -106,13 +111,14 @@ public abstract class AbstractDirectTest {
     return fStore.loadDirectTableMetadata(sProfile);
   }
 
-  private List<List<Object>> loadData(List<CProfile> cProfiles, int start, int end, Map<String, Integer> mapData, String messageData) {
+  private List<List<Object>> loadData(List<CProfile> cProfiles, int start, int end, Map<String, Integer> mapData,
+      String messageData, String[] array) {
     List<List<Object>> data = new ArrayList<>();
     initializeDataStructure(cProfiles, data);
 
     for (int i = start; i < end; i++) {
       final int index = i;
-      cProfiles.forEach(v -> addToDataStructure(v, data, index, mapData, messageData));
+      cProfiles.forEach(v -> addToDataStructure(v, data, index, mapData, messageData, array));
     }
     return data;
   }
@@ -121,12 +127,13 @@ public abstract class AbstractDirectTest {
     cProfiles.forEach(v -> data.add(v.getColId(), new ArrayList<>()));
   }
 
-  private void addToDataStructure(CProfile v, List<List<Object>> data, int index, Map<String, Integer> mapData, String messageData) {
-    Object valueToAdd = determineValue(v, index, mapData, messageData);
+  private void addToDataStructure(CProfile v, List<List<Object>> data, int index, Map<String, Integer> mapData,
+      String messageData, String[] array) {
+    Object valueToAdd = determineValue(v, index, mapData, messageData, array);
     data.get(v.getColId()).add(valueToAdd);
   }
 
-  private Object determineValue(CProfile profile, int index, Map<String, Integer> mapData, String messageData) {
+  private Object determineValue(CProfile profile, int index, Map<String, Integer> mapData, String messageData, String[] array) {
     DataType dType = profile.getCsType().getDType();
     if (DataType.MAP.equals(dType)) {
       return mapData;
@@ -134,6 +141,8 @@ public abstract class AbstractDirectTest {
       return index;
     } else if (DataType.VARCHAR.equals(dType)) {
       return messageData;
+    } else if (DataType.ARRAY.equals(dType)) {
+      return array;
     }
     return null;
   }

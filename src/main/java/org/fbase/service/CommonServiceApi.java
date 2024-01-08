@@ -1,5 +1,6 @@
 package org.fbase.service;
 
+import static org.fbase.metadata.DataType.ARRAY;
 import static org.fbase.metadata.DataType.MAP;
 import static org.fbase.service.mapping.Mapper.DOUBLE_NULL;
 import static org.fbase.service.mapping.Mapper.FLOAT_NULL;
@@ -409,14 +410,14 @@ public abstract class CommonServiceApi {
     Map<String, Map<String, Integer>> mapFinalOut = new HashMap<>();
 
     if (MAP.equals(firstLevelGroupBy.getCsType().getDType())) {
-      handlerFirstLevel(mapFinalIn, mapFinalOut);
+      handlerFirstLevelMap(mapFinalIn, mapFinalOut);
     }
 
     if (MAP.equals(secondLevelGroupBy.getCsType().getDType())) {
       if (MAP.equals(firstLevelGroupBy.getCsType().getDType())) {
        Map<String, Map<String, Integer>> updates = new HashMap<>();
 
-        handlerSecondLevel(mapFinalOut, updates);
+        handlerSecondLevelMap(mapFinalOut, updates);
 
         mapFinalOut.clear();
         
@@ -424,7 +425,7 @@ public abstract class CommonServiceApi {
           value.forEach((updateKey, updateValue) -> setMapValue(mapFinalOut, key, updateKey, updateValue));
         });
       } else {
-        handlerSecondLevel(mapFinalIn, mapFinalOut);
+        handlerSecondLevelMap(mapFinalIn, mapFinalOut);
       }
     }
 
@@ -433,7 +434,7 @@ public abstract class CommonServiceApi {
     return list;
   }
 
-  private void handlerFirstLevel(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
+  private void handlerFirstLevelMap(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
     mapFinalIn.forEach((kIn, vIn) -> {
       Map<String, Long> parsedMap = parsedMap(kIn);
 
@@ -445,7 +446,7 @@ public abstract class CommonServiceApi {
     });
   }
 
-  private void handlerSecondLevel(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
+  private void handlerSecondLevelMap(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
     mapFinalIn.forEach((kIn, vIn) -> vIn.forEach((kvIn, vvIn) -> {
       Map<String, Long> parsedMap = parsedMap(kvIn);
 
@@ -464,6 +465,63 @@ public abstract class CommonServiceApi {
         Long::parseLong,
         "="
     );
+  }
+
+  protected Map<String, Map<String, Integer>> handleArray(CProfile firstLevelGroupBy, CProfile secondLevelGroupBy,
+      Map<String, Map<String, Integer>> mapFinalIn) {
+    Map<String, Map<String, Integer>> mapFinalOut = new HashMap<>();
+
+    if (ARRAY.equals(firstLevelGroupBy.getCsType().getDType())) {
+      handlerFirstLevelArray(mapFinalIn, mapFinalOut);
+    }
+
+    if (ARRAY.equals(secondLevelGroupBy.getCsType().getDType())) {
+      if (ARRAY.equals(firstLevelGroupBy.getCsType().getDType())) {
+        Map<String, Map<String, Integer>> updates = new HashMap<>();
+
+        handlerSecondLevelArray(mapFinalOut, updates);
+
+        mapFinalOut.clear();
+
+        updates.forEach((key, value) -> {
+          value.forEach((updateKey, updateValue) -> setMapValue(mapFinalOut, key, updateKey, updateValue));
+        });
+      } else {
+        handlerSecondLevelArray(mapFinalIn, mapFinalOut);
+      }
+    }
+
+    return mapFinalOut;
+  }
+
+  private void handlerFirstLevelArray(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
+    mapFinalIn.forEach((kIn, vIn) -> {
+      String[] array = parseStringToTypedArray(kIn,",");
+
+      if (array.length == 0) {
+        vIn.forEach((kvIn, vvIn) -> setMapValue(mapFinalOut, STRING_NULL, kvIn, vvIn));
+      }
+
+      for (int i = 0; i < array.length; i++) {
+        int finalI = i;
+        vIn.forEach((kvIn, vvIn) -> setMapValue(mapFinalOut, array[finalI].trim(), kvIn, vvIn));
+      }
+    });
+  }
+
+  private void handlerSecondLevelArray(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
+    mapFinalIn.forEach((kIn, vIn) -> vIn.forEach((kvIn, vvIn) -> {
+      String[] array = parseStringToTypedArray(kvIn,",");
+
+      if (array.length == 0) {
+        setMapValue(mapFinalOut, kIn, STRING_NULL, vvIn);
+      }
+
+      for (int i = 0; i < array.length; i++) {
+        int finalI = i;
+        setMapValue(mapFinalOut, kIn, array[finalI], vvIn);
+      }
+    }));
   }
 
   private String getDateForLongShorted(int longDate) {
