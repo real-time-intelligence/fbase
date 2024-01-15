@@ -5,11 +5,9 @@ import static org.fbase.metadata.DataType.MAP;
 
 import com.sleepycat.persist.EntityCursor;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
@@ -21,7 +19,6 @@ import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.GroupByService;
-import org.fbase.service.mapping.Mapper;
 import org.fbase.storage.Converter;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
@@ -225,7 +222,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     return list;
   }
 
-  public void enumEnum(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  private void enumEnum(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
@@ -256,7 +253,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     setMapValueEnumEnumBlock(map, listFirst, listSecond, 1);
   }
 
-  public void rawRaw(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  private void rawRaw(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
     Map<String, Map<String, Integer>> map = new HashMap<>();
@@ -294,7 +291,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     }
   }
 
-  public void histEnum(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  private void histEnum(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
@@ -408,7 +405,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     return list;
   }
 
-  public void enumHist(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  private void enumHist(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
@@ -439,7 +436,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     setMapValueCommonBlockLevel(map, listFirst, listSecond, 1);
   }
 
-  public void histHist(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  private void histHist(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
     Map<Integer, Map<Integer, Integer>> map = new HashMap<>();
@@ -529,7 +526,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     }
   }
 
-  public void histRaw(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  private void histRaw(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
     Map<Integer, Map<String, Integer>> map = new HashMap<>();
@@ -561,7 +558,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     setMapValueCommon(map, listFirst, listSecond, 1);
   }
 
-  public void rawHist(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  private void rawHist(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
     Map<String, Map<Integer, Integer>> map = new HashMap<>();
@@ -592,7 +589,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     setMapValueCommon(map, listFirst, listSecond, 1);
   }
 
-  public void enumRaw(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  private void enumRaw(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
     Map<Integer, Map<String, Integer>> map = new HashMap<>();
@@ -623,7 +620,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     setMapValueEnumRawBlock(map, listFirst, listSecond, 1);
   }
 
-  public void rawEnum(byte tableId, int tsColId, CProfile firstLevelGroupBy,
+  private void rawEnum(byte tableId, int tsColId, CProfile firstLevelGroupBy,
       CProfile secondLevelGroupBy, long begin, long end, List<GanttColumn> list) {
 
     Map<String, Map<Integer, Integer>> map = new HashMap<>();
