@@ -9,14 +9,16 @@ import org.fbase.service.CommonServiceApi;
 import org.fbase.util.CachedLastLinkedHashMap;
 
 @Getter
-@EqualsAndHashCode(callSuper=true)
+@EqualsAndHashCode(callSuper = true)
 public class TStore extends CommonServiceApi {
+
   private final int initialCapacity;
 
   private final List<List<Long>> rawData;
   private final CachedLastLinkedHashMap<Integer, Integer> mapping;
 
-  public TStore(int initialCapacity, List<CProfile> cProfiles) {
+  public TStore(int initialCapacity,
+                List<CProfile> cProfiles) {
     this.initialCapacity = initialCapacity;
 
     rawData = new ArrayList<>(this.initialCapacity);
@@ -26,7 +28,9 @@ public class TStore extends CommonServiceApi {
     fillTimestampMap(cProfiles, mapping);
   }
 
-  public void add(int iC, int iR, long key) {
+  public void add(int iC,
+                  int iR,
+                  long key) {
     this.rawData.get(mapping.get(iC)).add(iR, key);
   }
 

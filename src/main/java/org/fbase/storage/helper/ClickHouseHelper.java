@@ -12,14 +12,16 @@ public class ClickHouseHelper {
   public static boolean checkUnsigned(String className) {
     return switch (className) {
       case "com.clickhouse.data.value.UnsignedByte",
-           "com.clickhouse.data.value.UnsignedInteger",
-           "com.clickhouse.data.value.UnsignedLong",
-           "com.clickhouse.data.value.UnsignedShort" -> true;
+          "com.clickhouse.data.value.UnsignedInteger",
+          "com.clickhouse.data.value.UnsignedLong",
+          "com.clickhouse.data.value.UnsignedShort" -> true;
       default -> false;
     };
   }
 
-  public static <T> T invokeMethod(Object obj, String method, Class<T> returnType) {
+  public static <T> T invokeMethod(Object obj,
+                                   String method,
+                                   Class<T> returnType) {
     Method m;
     try {
       m = obj.getClass().getMethod(method);
@@ -30,7 +32,8 @@ public class ClickHouseHelper {
       Object result = m.invoke(obj);
 
       if (!returnType.isInstance(result)) {
-        throw new RuntimeException("Expected return type " + returnType.getName() + ", but got " + result.getClass().getName());
+        throw new RuntimeException(
+            "Expected return type " + returnType.getName() + ", but got " + result.getClass().getName());
       }
 
       return returnType.cast(result);

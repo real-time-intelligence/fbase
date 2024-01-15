@@ -5,7 +5,8 @@ import org.fbase.util.CachedLastLinkedHashMap;
 
 public class EnumHelper {
 
-  public static byte getByteValue(CachedLastLinkedHashMap<Integer, Byte> values, int valueInt)
+  public static byte getByteValue(CachedLastLinkedHashMap<Integer, Byte> values,
+                                  int valueInt)
       throws EnumByteExceedException {
     if (values.isEmpty()) {
       values.put(valueInt, Byte.MIN_VALUE);
@@ -26,7 +27,8 @@ public class EnumHelper {
     }
   }
 
-  public static int getIndexValue(int[] values, byte valueByte) {
+  public static int getIndexValue(int[] values,
+                                  byte valueByte) {
     return values[valueByte < 0 ? (valueByte + 128) : valueByte];
   }
 }

@@ -7,6 +7,9 @@ import org.fbase.model.profile.CProfile;
 
 public interface HistogramService {
 
-  List<StackedColumn> getListStackedColumn(String tableName, CProfile cProfile, long begin, long end)
+  List<StackedColumn> getListStackedColumn(String tableName,
+                                           CProfile cProfile,
+                                           long begin,
+                                           long end)
       throws SqlColMetadataException;
 }

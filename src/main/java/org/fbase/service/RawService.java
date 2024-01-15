@@ -10,19 +10,39 @@ import org.fbase.sql.BatchResultSet;
 
 public interface RawService {
 
-  List<StackedColumn> getListStackedColumn(String tableName, CProfile cProfile, long begin, long end)
+  List<StackedColumn> getListStackedColumn(String tableName,
+                                           CProfile cProfile,
+                                           long begin,
+                                           long end)
       throws SqlColMetadataException;
 
-  List<List<Object>> getRawDataAll(String tableName, long begin, long end);
+  List<List<Object>> getRawDataAll(String tableName,
+                                   long begin,
+                                   long end);
 
-  List<List<Object>> getRawDataByColumn(String tableName, CProfile cProfile, long begin, long end);
+  List<List<Object>> getRawDataByColumn(String tableName,
+                                        CProfile cProfile,
+                                        long begin,
+                                        long end);
 
-  BatchResultSet getBatchResultSet(String tableName, long begin, long end, int fetchSize);
+  BatchResultSet getBatchResultSet(String tableName,
+                                   long begin,
+                                   long end,
+                                   int fetchSize);
 
-  Entry<Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colIndex, int tsColIndex,
-      CProfile cProfile, int fetchSize, boolean isStarted, long maxBlockId, Entry<Long, Integer> pointer, AtomicInteger fetchCounter);
+  Entry<Entry<Long, Integer>, List<Object>> getColumnData(byte tableId,
+                                                          int colIndex,
+                                                          int tsColIndex,
+                                                          CProfile cProfile,
+                                                          int fetchSize,
+                                                          boolean isStarted,
+                                                          long maxBlockId,
+                                                          Entry<Long, Integer> pointer,
+                                                          AtomicInteger fetchCounter);
 
   long getMaxBlockId(byte tableId);
 
-  long getLastTimestamp(String tableName, long begin, long end);
+  long getLastTimestamp(String tableName,
+                        long begin,
+                        long end);
 }

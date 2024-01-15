@@ -49,7 +49,8 @@ public class MetadataHandler {
     return cProfileList;
   }
 
-  public static List<CProfile> getJdbcCProfileList(Connection connection, String select) throws SQLException {
+  public static List<CProfile> getJdbcCProfileList(Connection connection,
+                                                   String select) throws SQLException {
     List<CProfile> cProfileList = new ArrayList<>();
 
     Statement s;
@@ -98,7 +99,9 @@ public class MetadataHandler {
     return cProfileList;
   }
 
-  public static void loadMetadataFromCsv(String csvFile, String csvSplitBy, SProfile sProfile) {
+  public static void loadMetadataFromCsv(String csvFile,
+                                         String csvSplitBy,
+                                         SProfile sProfile) {
     String line = "";
     Map<String, CSType> csTypeMapSorted = new LinkedHashMap<>();
 
@@ -119,9 +122,9 @@ public class MetadataHandler {
 
         if (isParsableAsLong(colData)) {
           csTypeMapEntry.put(Map.entry(i, header), CSType.builder()
-                  .sType(SType.RAW)
-                  .cType(CType.LONG)
-                  .build());
+              .sType(SType.RAW)
+              .cType(CType.LONG)
+              .build());
         } else if (isParsableAsDouble(colData)) {
           csTypeMapEntry.put(Map.entry(i, header), CSType.builder()
               .sType(SType.RAW)
@@ -164,5 +167,4 @@ public class MetadataHandler {
       return false;
     }
   }
-
 }

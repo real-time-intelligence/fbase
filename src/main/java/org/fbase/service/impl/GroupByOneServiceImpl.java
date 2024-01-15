@@ -36,8 +36,11 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
   private final RawDAO rawDAO;
   private final EnumDAO enumDAO;
 
-  public GroupByOneServiceImpl(MetaModel metaModel, Converter converter, HistogramDAO histogramDAO,
-                               RawDAO rawDAO, EnumDAO enumDAO) {
+  public GroupByOneServiceImpl(MetaModel metaModel,
+                               Converter converter,
+                               HistogramDAO histogramDAO,
+                               RawDAO rawDAO,
+                               EnumDAO enumDAO) {
     this.metaModel = metaModel;
     this.converter = converter;
     this.histogramDAO = histogramDAO;
@@ -46,7 +49,10 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
   }
 
   @Override
-  public List<StackedColumn> getListStackedColumn(String tableName, CProfile cProfile, long begin, long end) throws SqlColMetadataException {
+  public List<StackedColumn> getListStackedColumn(String tableName,
+                                                  CProfile cProfile,
+                                                  long begin,
+                                                  long end) throws SqlColMetadataException {
     CProfile tsProfile = getTimestampProfile(getCProfiles(tableName, metaModel));
 
     if (!tsProfile.getCsType().isTimeStamp()) {
@@ -60,8 +66,11 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
     return this.getListStackedColumn(tableName, tsProfile, cProfile, begin, end);
   }
 
-  public List<StackedColumn> getListStackedColumn(String tableName, CProfile tsProfile,
-                                                  CProfile cProfile, long begin, long end) {
+  public List<StackedColumn> getListStackedColumn(String tableName,
+                                                  CProfile tsProfile,
+                                                  CProfile cProfile,
+                                                  long begin,
+                                                  long end) {
     byte tableId = getTableId(tableName, metaModel);
 
     List<StackedColumn> list = new ArrayList<>();
@@ -121,7 +130,10 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
     return list;
   }
 
-  private void computeHistFull(byte tableId, CProfile cProfile, long blockId, long[] timestamps,
+  private void computeHistFull(byte tableId,
+                               CProfile cProfile,
+                               long blockId,
+                               long[] timestamps,
                                List<StackedColumn> list) {
 
     Map<Integer, Integer> map = new LinkedHashMap<>();
@@ -145,18 +157,23 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
 
     Map<String, Integer> mapKeyCount = new LinkedHashMap<>();
     map.forEach((keyInt, value) -> mapKeyCount
-            .put(this.converter.convertIntToRaw(keyInt, cProfile), value));
+        .put(this.converter.convertIntToRaw(keyInt, cProfile), value));
 
     if (!map.isEmpty()) {
       list.add(StackedColumn.builder()
-          .key(blockId)
-          .tail(tail)
-          .keyCount(mapKeyCount).build());
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(mapKeyCount).build());
     }
   }
 
-  private void computeHistTailOverFlow(byte tableId, CProfile cProfile, long blockId,
-                                       long[] timestamps, long begin, long end, List<StackedColumn> list) {
+  private void computeHistTailOverFlow(byte tableId,
+                                       CProfile cProfile,
+                                       long blockId,
+                                       long[] timestamps,
+                                       long begin,
+                                       long end,
+                                       List<StackedColumn> list) {
 
     long tail = timestamps[timestamps.length - 1];
 
@@ -224,14 +241,19 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
 
     if (!map.isEmpty()) {
       list.add(StackedColumn.builder()
-          .key(blockId)
-          .tail(tail)
-          .keyCount(map).build());
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(map).build());
     }
   }
 
-  private void computeRaw(byte tableId, CProfile cProfile, long blockId,
-                          long[] timestamps, long begin, long end, List<StackedColumn> list) {
+  private void computeRaw(byte tableId,
+                          CProfile cProfile,
+                          long blockId,
+                          long[] timestamps,
+                          long begin,
+                          long end,
+                          List<StackedColumn> list) {
 
     Map<String, Integer> map = new LinkedHashMap<>();
 
@@ -250,14 +272,19 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
 
     if (!map.isEmpty()) {
       list.add(StackedColumn.builder()
-          .key(blockId)
-          .tail(tail)
-          .keyCount(map).build());
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(map).build());
     }
   }
 
-  private void computeEnum(byte tableId, CProfile cProfile, long blockId,
-                          long[] timestamps, long begin, long end, List<StackedColumn> list) {
+  private void computeEnum(byte tableId,
+                           CProfile cProfile,
+                           long blockId,
+                           long[] timestamps,
+                           long begin,
+                           long end,
+                           List<StackedColumn> list) {
     Map<Byte, Integer> map = new LinkedHashMap<>();
 
     EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
@@ -274,13 +301,13 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
     Map<String, Integer> mapKeyCount = new LinkedHashMap<>();
 
     map.forEach((keyByte, value) -> mapKeyCount.put(converter.convertIntToRaw(
-            EnumHelper.getIndexValue(eColumn.getValues(), keyByte), cProfile), value));
+        EnumHelper.getIndexValue(eColumn.getValues(), keyByte), cProfile), value));
 
     if (!map.isEmpty()) {
       list.add(StackedColumn.builder()
-          .key(blockId)
-          .tail(tail)
-          .keyCount(mapKeyCount).build());
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(mapKeyCount).build());
     }
   }
 }

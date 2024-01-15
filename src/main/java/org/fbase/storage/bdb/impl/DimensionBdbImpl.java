@@ -10,6 +10,7 @@ import org.fbase.storage.bdb.entity.dictionary.DIntString;
 
 @Log4j2
 public class DimensionBdbImpl implements DimensionDAO {
+
   private final SecondaryIndex<Double, Integer, DIntDouble> secondaryIndexDouble;
   private final SecondaryIndex<String, Integer, DIntString> secondaryIndexString;
   private final PrimaryIndex<Integer, DIntDouble> primaryIndexDouble;
@@ -48,5 +49,4 @@ public class DimensionBdbImpl implements DimensionDAO {
   public double getDoubleById(int key) {
     return this.primaryIndexDouble.get(key).getValue();
   }
-
 }

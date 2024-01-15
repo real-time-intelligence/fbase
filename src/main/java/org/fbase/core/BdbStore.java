@@ -45,6 +45,7 @@ import org.fbase.storage.bdb.impl.RawBdbImpl;
 
 @Log4j2
 public class BdbStore implements FStore {
+
   private final EntityStore store;
 
   private final MetaModel metaModel;
@@ -63,7 +64,8 @@ public class BdbStore implements FStore {
   private final EnumService enumService;
   private final Converter converter;
 
-  public BdbStore(FBaseConfig fBaseConfig, EntityStore store) {
+  public BdbStore(FBaseConfig fBaseConfig,
+                  EntityStore store) {
     this.store = store;
 
     this.fileConfig = new FileConfig(fBaseConfig);
@@ -105,13 +107,13 @@ public class BdbStore implements FStore {
         .filter(cProfile -> cProfile.getCsType().isTimeStamp())
         .findAny()
         .ifPresentOrElse((value) -> {
-              tProfile.setTableType(TType.TIME_SERIES);
-              tProfile.setCProfiles(cProfiles);
-            },
-            () -> {
-              tProfile.setTableType(TType.REGULAR);
-              tProfile.setCProfiles(cProfiles);
-            });
+                           tProfile.setTableType(TType.TIME_SERIES);
+                           tProfile.setCProfiles(cProfiles);
+                         },
+                         () -> {
+                           tProfile.setTableType(TType.REGULAR);
+                           tProfile.setCProfiles(cProfiles);
+                         });
 
     return tProfile;
   }
@@ -120,26 +122,31 @@ public class BdbStore implements FStore {
   public TProfile loadDirectTableMetadata(SProfile sProfile) throws TableNameEmptyException {
     checkAndInitializeMetaModel();
     return loadTableMetadata(sProfile,
-        () -> fetchMetadataDirect(sProfile),
-        () -> updateTimestampMetadata(sProfile.getTableName(), sProfile));
+                             () -> fetchMetadataDirect(sProfile),
+                             () -> updateTimestampMetadata(sProfile.getTableName(), sProfile));
   }
 
   @Override
-  public TProfile loadJdbcTableMetadata(Connection connection, String select, SProfile sProfile)
+  public TProfile loadJdbcTableMetadata(Connection connection,
+                                        String select,
+                                        SProfile sProfile)
       throws TableNameEmptyException {
     checkAndInitializeMetaModel();
     return loadTableMetadata(sProfile,
-        () -> fetchMetadataFromJdbc(connection, select, sProfile),
-        () -> updateTimestampMetadata(sProfile.getTableName(), sProfile));
+                             () -> fetchMetadataFromJdbc(connection, select, sProfile),
+                             () -> updateTimestampMetadata(sProfile.getTableName(), sProfile));
   }
 
   @Override
-  public TProfile loadCsvTableMetadata(String fileName, String csvSplitBy, SProfile sProfile)
+  public TProfile loadCsvTableMetadata(String fileName,
+                                       String csvSplitBy,
+                                       SProfile sProfile)
       throws TableNameEmptyException {
     checkAndInitializeMetaModel();
     return loadTableMetadata(sProfile,
-        () -> fetchMetadataFromCsv(fileName, csvSplitBy, sProfile),
-        () -> {});
+                             () -> fetchMetadataFromCsv(fileName, csvSplitBy, sProfile),
+                             () -> {
+                             });
   }
 
   private void checkAndInitializeMetaModel() {
@@ -148,7 +155,9 @@ public class BdbStore implements FStore {
     }
   }
 
-  private TProfile loadTableMetadata(SProfile sProfile, Runnable fetchMetadata, Runnable updateTimestampMetadata)
+  private TProfile loadTableMetadata(SProfile sProfile,
+                                     Runnable fetchMetadata,
+                                     Runnable updateTimestampMetadata)
       throws TableNameEmptyException {
     checkIsTableNameEmpty(sProfile);
 
@@ -195,7 +204,9 @@ public class BdbStore implements FStore {
     }
   }
 
-  private void fetchMetadataFromJdbc(Connection connection, String select, SProfile sProfile) {
+  private void fetchMetadataFromJdbc(Connection connection,
+                                     String select,
+                                     SProfile sProfile) {
     byte tableId = MetaModelHandler.getNextInternalTableId(metaModel);
     String tableName = sProfile.getTableName();
 
@@ -229,7 +240,9 @@ public class BdbStore implements FStore {
         .build();
   }
 
-  private void fetchMetadataFromCsv(String fileName, String csvSplitBy, SProfile sProfile) {
+  private void fetchMetadataFromCsv(String fileName,
+                                    String csvSplitBy,
+                                    SProfile sProfile) {
     byte tableId = MetaModelHandler.getNextInternalTableId(metaModel);
     String tableName = sProfile.getTableName();
 
@@ -251,7 +264,9 @@ public class BdbStore implements FStore {
     }
   }
 
-  private void fillTProfileAndSaveMetaModel(String tableName, SProfile sProfile, TProfile tProfile) {
+  private void fillTProfileAndSaveMetaModel(String tableName,
+                                            SProfile sProfile,
+                                            TProfile tProfile) {
     tProfile.setTableType(sProfile.getTableType());
     tProfile.setCompression(sProfile.getCompression());
 
@@ -265,7 +280,8 @@ public class BdbStore implements FStore {
     saveMetaModel();
   }
 
-  private void fillTProfileFromMetaModel(String tableName, TProfile tProfile) {
+  private void fillTProfileFromMetaModel(String tableName,
+                                         TProfile tProfile) {
     TableMetadata tableMetadata = metaModel.getMetadata().get(tableName);
     if (tableMetadata != null) {
       List<CProfile> cProfileList = tableMetadata.getCProfiles();
@@ -285,28 +301,29 @@ public class BdbStore implements FStore {
     }
   }
 
-  private void updateTimestampMetadata(String tableName, SProfile sProfile) {
-      Optional<CProfile> optionalTsCProfile = metaModel.getMetadata().get(tableName)
-          .getCProfiles()
-          .stream()
-          .filter(cProfile -> cProfile.getCsType().isTimeStamp())
-          .findAny();
+  private void updateTimestampMetadata(String tableName,
+                                       SProfile sProfile) {
+    Optional<CProfile> optionalTsCProfile = metaModel.getMetadata().get(tableName)
+        .getCProfiles()
+        .stream()
+        .filter(cProfile -> cProfile.getCsType().isTimeStamp())
+        .findAny();
 
-      Optional<Entry<String, CSType>> optionalTsEntry = sProfile.getCsTypeMap().entrySet()
-          .stream()
-          .filter(entry -> Objects.nonNull(entry.getValue()))
-          .filter(entry -> entry.getValue().isTimeStamp())
-          .findAny();
+    Optional<Entry<String, CSType>> optionalTsEntry = sProfile.getCsTypeMap().entrySet()
+        .stream()
+        .filter(entry -> Objects.nonNull(entry.getValue()))
+        .filter(entry -> entry.getValue().isTimeStamp())
+        .findAny();
 
-      if (optionalTsCProfile.isEmpty() & optionalTsEntry.isPresent()) {
-        log.info("Update timestamp column in FBase metadata");
-        for (CProfile cProfile : metaModel.getMetadata().get(tableName).getCProfiles()) {
-          if (cProfile != null && optionalTsEntry.get().getKey().equals(cProfile.getColName())) {
-            cProfile.getCsType().setTimeStamp(true);
-            break;
-          }
+    if (optionalTsCProfile.isEmpty() & optionalTsEntry.isPresent()) {
+      log.info("Update timestamp column in FBase metadata");
+      for (CProfile cProfile : metaModel.getMetadata().get(tableName).getCProfiles()) {
+        if (cProfile != null && optionalTsEntry.get().getKey().equals(cProfile.getColName())) {
+          cProfile.getCsType().setTimeStamp(true);
+          break;
         }
       }
+    }
 
     metaModel.getMetadata().get(tableName).setTableType(sProfile.getTableType());
     metaModel.getMetadata().get(tableName).setIndexType(sProfile.getIndexType());
@@ -341,7 +358,8 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public void putDataDirect(String tableName, List<List<Object>> data) throws SqlColMetadataException, EnumByteExceedException {
+  public void putDataDirect(String tableName,
+                            List<List<Object>> data) throws SqlColMetadataException, EnumByteExceedException {
 
     if (this.metaModel.getMetadata().get(tableName) == null) {
       throw new SqlColMetadataException("Empty sql column metadata for FBase instance..");
@@ -351,7 +369,8 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public long putDataJdbc(String tableName, ResultSet resultSet) throws SqlColMetadataException, EnumByteExceedException {
+  public long putDataJdbc(String tableName,
+                          ResultSet resultSet) throws SqlColMetadataException, EnumByteExceedException {
 
     if (this.metaModel.getMetadata().get(tableName) == null) {
       throw new SqlColMetadataException("Empty sql column metadata for FBase instance..");
@@ -359,8 +378,11 @@ public class BdbStore implements FStore {
 
     return this.storeService.putDataJdbc(tableName, resultSet);
   }
+
   @Override
-  public void putDataJdbcBatch(String tableName, ResultSet resultSet, Integer fBaseBatchSize) throws SqlColMetadataException, EnumByteExceedException {
+  public void putDataJdbcBatch(String tableName,
+                               ResultSet resultSet,
+                               Integer fBaseBatchSize) throws SqlColMetadataException, EnumByteExceedException {
 
     if (this.metaModel.getMetadata().get(tableName) == null) {
       throw new SqlColMetadataException("Empty sql column metadata for FBase instance..");
@@ -370,7 +392,10 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public void putDataCsvBatch(String tableName, String fileName, String csvSplitBy, Integer fBaseBatchSize) throws SqlColMetadataException {
+  public void putDataCsvBatch(String tableName,
+                              String fileName,
+                              String csvSplitBy,
+                              Integer fBaseBatchSize) throws SqlColMetadataException {
 
     if (this.metaModel.getMetadata().get(tableName) == null) {
       throw new SqlColMetadataException("Empty sql column metadata for FBase instance..");
@@ -385,8 +410,11 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public List<StackedColumn> getSColumnListByCProfile(String tableName, CProfile cProfile,
-      long begin, long end) throws SqlColMetadataException, BeginEndWrongOrderException {
+  public List<StackedColumn> getSColumnListByCProfile(String tableName,
+                                                      CProfile cProfile,
+                                                      long begin,
+                                                      long end)
+      throws SqlColMetadataException, BeginEndWrongOrderException {
 
     if (begin > end) {
       throw new BeginEndWrongOrderException("Begin value must be less the end one..");
@@ -397,7 +425,10 @@ public class BdbStore implements FStore {
 
   @Override
   public List<GanttColumn> getGColumnListTwoLevelGroupBy(String tableName,
-      CProfile firstGrpBy, CProfile secondGrpBy, long begin, long end)
+                                                         CProfile firstGrpBy,
+                                                         CProfile secondGrpBy,
+                                                         long begin,
+                                                         long end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
 
     if (firstGrpBy.getCsType().isTimeStamp() | secondGrpBy.getCsType().isTimeStamp()) {
@@ -415,17 +446,23 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public List<List<Object>> getRawDataByColumn(String tableName, CProfile cProfile, long begin, long end) {
+  public List<List<Object>> getRawDataByColumn(String tableName,
+                                               CProfile cProfile,
+                                               long begin,
+                                               long end) {
     return rawService.getRawDataByColumn(tableName, cProfile, begin, end);
   }
 
   @Override
-  public List<List<Object>> getRawDataAll(String tableName, long begin, long end) {
+  public List<List<Object>> getRawDataAll(String tableName,
+                                          long begin,
+                                          long end) {
     return rawService.getRawDataAll(tableName, begin, end);
   }
 
   @Override
-  public BatchResultSet getBatchResultSet(String tableName, int fetchSize) {
+  public BatchResultSet getBatchResultSet(String tableName,
+                                          int fetchSize) {
     if (fetchSize <= 0) {
       log.warn("Fetch size can not be less or equal 0. Set to the default value of 1");
       fetchSize = 1;
@@ -435,7 +472,10 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public BatchResultSet getBatchResultSet(String tableName, long begin, long end, int fetchSize) {
+  public BatchResultSet getBatchResultSet(String tableName,
+                                          long begin,
+                                          long end,
+                                          int fetchSize) {
     if (fetchSize <= 0) {
       log.warn("Fetch size can not be less or equal 0. Set to the default value of 1");
       fetchSize = 1;
@@ -445,13 +485,17 @@ public class BdbStore implements FStore {
   }
 
   @Override
-  public long getLastTimestamp(String tableName, long begin, long end) {
+  public long getLastTimestamp(String tableName,
+                               long begin,
+                               long end) {
     return rawService.getLastTimestamp(tableName, begin, end);
   }
 
   @Override
-  public void syncBackendDb() {}
+  public void syncBackendDb() {
+  }
 
   @Override
-  public void closeBackendDb() {}
+  public void closeBackendDb() {
+  }
 }

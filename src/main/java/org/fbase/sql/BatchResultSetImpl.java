@@ -13,6 +13,7 @@ import org.fbase.service.CommonServiceApi;
 import org.fbase.service.RawService;
 
 public class BatchResultSetImpl extends CommonServiceApi implements BatchResultSet {
+
   private final String tableName;
   private final byte tableId;
   private final int fetchSize;
@@ -32,16 +33,21 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
   /**
    * Constructor
    *
-   * @param tableName table name
-   * @param tableId table id
-   * @param fetchSize the number of rows to fetch
-   * @param begin the start range
-   * @param end the end range
-   * @param cProfiles list of column profiles
+   * @param tableName  table name
+   * @param tableId    table id
+   * @param fetchSize  the number of rows to fetch
+   * @param begin      the start range
+   * @param end        the end range
+   * @param cProfiles  list of column profiles
    * @param rawService service layer for raw data
    */
-  public BatchResultSetImpl(String tableName, byte tableId, int fetchSize, long begin, long end,
-      List<CProfile> cProfiles, RawService rawService) {
+  public BatchResultSetImpl(String tableName,
+                            byte tableId,
+                            int fetchSize,
+                            long begin,
+                            long end,
+                            List<CProfile> cProfiles,
+                            RawService rawService) {
     this.tableName = tableName;
     this.tableId = tableId;
     this.fetchSize = fetchSize;
@@ -82,8 +88,8 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
 
           Map.Entry<Map.Entry<Long, Integer>, List<Object>> columnData =
               rawService.getColumnData(tableId, cProfile.getColId(),
-                  optionalCProfile.map(CProfile::getColId).orElse(-1),
-                  cProfile, fetchSize, isStarted, maxBlockId, pointer, fetchCounter);
+                                       optionalCProfile.map(CProfile::getColId).orElse(-1),
+                                       cProfile, fetchSize, isStarted, maxBlockId, pointer, fetchCounter);
 
           pointerLocal.set(columnData.getKey());
 
@@ -94,7 +100,9 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
 
     isStarted = false;
 
-    if (pointer.getKey() > maxBlockId) isNext = false;
+    if (pointer.getKey() > maxBlockId) {
+      isNext = false;
+    }
 
     return transpose(columnDataListLocal);
   }

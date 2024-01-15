@@ -52,7 +52,9 @@ public abstract class CommonServiceApi {
   public Predicate<CProfile> isDouble = Predicate.not(f -> Mapper.isCType(f) != CType.DOUBLE);
   public Predicate<CProfile> isString = Predicate.not(f -> Mapper.isCType(f) != CType.STRING);
 
-  protected int getHistogramValue(int iR, int[][] histogram, long[] timestamps) {
+  protected int getHistogramValue(int iR,
+                                  int[][] histogram,
+                                  long[] timestamps) {
     int curValue = 0;
 
     for (int i = 0; i < histogram[0].length; i++) {
@@ -61,8 +63,8 @@ public abstract class CommonServiceApi {
 
       curValue = histogram[1][i];
 
-      if (histogram[0].length != i+1) {
-        nextIndex = histogram[0][i+1];
+      if (histogram[0].length != i + 1) {
+        nextIndex = histogram[0][i + 1];
 
         if (iR >= curIndex & iR < nextIndex) {
           return curValue;
@@ -87,41 +89,49 @@ public abstract class CommonServiceApi {
     int[][] array = new int[2][hEntry.getIndex().size()];
 
     System.arraycopy(hEntry.getIndex()
-        .stream().mapToInt(Integer::intValue).toArray(), 0, array[0], 0, hEntry.getIndex().size());
+                         .stream().mapToInt(Integer::intValue).toArray(), 0, array[0], 0, hEntry.getIndex().size());
     System.arraycopy(hEntry.getValue().stream()
-        .mapToInt(Integer::intValue).toArray(), 0, array[1], 0, hEntry.getValue().size());
+                         .mapToInt(Integer::intValue).toArray(), 0, array[1], 0, hEntry.getValue().size());
 
     return array;
   }
 
-  public byte getTableId(String tableName, MetaModel metaModel) {
+  public byte getTableId(String tableName,
+                         MetaModel metaModel) {
     return metaModel.getMetadata().get(tableName).getTableId();
   }
 
-  public TType getTableType(String tableName, MetaModel metaModel) {
+  public TType getTableType(String tableName,
+                            MetaModel metaModel) {
     return metaModel.getMetadata().get(tableName).getTableType();
   }
 
-  public IType getIndexType(String tableName, MetaModel metaModel) {
+  public IType getIndexType(String tableName,
+                            MetaModel metaModel) {
     return metaModel.getMetadata().get(tableName).getIndexType();
   }
 
-  public Boolean getTableCompression(String tableName, MetaModel metaModel) {
+  public Boolean getTableCompression(String tableName,
+                                     MetaModel metaModel) {
     return metaModel.getMetadata().get(tableName).getCompression();
   }
 
-  public List<CProfile> getCProfiles(String tableName, MetaModel metaModel) {
+  public List<CProfile> getCProfiles(String tableName,
+                                     MetaModel metaModel) {
     return metaModel.getMetadata().get(tableName).getCProfiles();
   }
 
   public CProfile getTimestampProfile(List<CProfile> cProfileList) {
-   return cProfileList.stream()
-          .filter(k -> k.getCsType().isTimeStamp())
-          .findAny()
-          .orElseThrow(() -> new RuntimeException("Not found timestamp column"));
+    return cProfileList.stream()
+        .filter(k -> k.getCsType().isTimeStamp())
+        .findAny()
+        .orElseThrow(() -> new RuntimeException("Not found timestamp column"));
   }
 
-  protected <T, V> void setMapValue(Map<T, Map<V, Integer>> map, T vFirst, V vSecond, int sum) {
+  protected <T, V> void setMapValue(Map<T, Map<V, Integer>> map,
+                                    T vFirst,
+                                    V vSecond,
+                                    int sum) {
     if (map.get(vFirst) == null) {
       map.put(vFirst, new HashMap<>());
       map.get(vFirst).putIfAbsent(vSecond, sum);
@@ -134,7 +144,10 @@ public abstract class CommonServiceApi {
     }
   }
 
-  protected void setMapValueEnumBlock(Map<Integer, Map<Integer, Integer>> map, Integer vFirst, int vSecond, int sum) {
+  protected void setMapValueEnumBlock(Map<Integer, Map<Integer, Integer>> map,
+                                      Integer vFirst,
+                                      int vSecond,
+                                      int sum) {
     if (map.get(vFirst) == null) {
       map.put(vFirst, new HashMap<>());
       map.get(vFirst).putIfAbsent(vSecond, sum);
@@ -147,7 +160,10 @@ public abstract class CommonServiceApi {
     }
   }
 
-  protected void setMapValueRawEnumBlock(Map<String, Map<Integer, Integer>> map, String vFirst, int vSecond, int sum) {
+  protected void setMapValueRawEnumBlock(Map<String, Map<Integer, Integer>> map,
+                                         String vFirst,
+                                         int vSecond,
+                                         int sum) {
     if (map.get(vFirst) == null) {
       map.put(vFirst, new HashMap<>());
       map.get(vFirst).putIfAbsent(vSecond, sum);
@@ -160,7 +176,10 @@ public abstract class CommonServiceApi {
     }
   }
 
-  protected void setMapValueRawEnumBlock(Map<Integer, Map<String, Integer>> map, int vFirst, String vSecond, int sum) {
+  protected void setMapValueRawEnumBlock(Map<Integer, Map<String, Integer>> map,
+                                         int vFirst,
+                                         String vSecond,
+                                         int sum) {
     if (map.get(vFirst) == null) {
       map.put(vFirst, new HashMap<>());
       map.get(vFirst).putIfAbsent(vSecond, sum);
@@ -173,7 +192,8 @@ public abstract class CommonServiceApi {
     }
   }
 
-  protected <T> void fillArrayList(List<List<T>> array, int colCount) {
+  protected <T> void fillArrayList(List<List<T>> array,
+                                   int colCount) {
     for (int i = 0; i < colCount; i++) {
       array.add(new ArrayList<>());
     }
@@ -202,9 +222,11 @@ public abstract class CommonServiceApi {
     for (int i = 0; i < rawDataFloat.size(); i++) {
       List<Float> row = rawDataFloat.get(i);
       array[i] = row.stream().collect(
-          ()-> FloatBuffer.allocate(row.size()),
+          () -> FloatBuffer.allocate(row.size()),
           FloatBuffer::put,
-          (left, right) -> {throw new UnsupportedOperationException("Only called in parallel stream");}).array();
+          (left, right) -> {
+            throw new UnsupportedOperationException("Only called in parallel stream");
+          }).array();
     }
     return array;
   }
@@ -236,7 +258,8 @@ public abstract class CommonServiceApi {
     return stringArray;
   }
 
-  public void fillTimestampMap(List<CProfile> cProfiles, CachedLastLinkedHashMap<Integer, Integer> mapping) {
+  public void fillTimestampMap(List<CProfile> cProfiles,
+                               CachedLastLinkedHashMap<Integer, Integer> mapping) {
     final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
 
     cProfiles.stream()
@@ -244,8 +267,10 @@ public abstract class CommonServiceApi {
         .forEach(e -> mapping.put(e.getColId(), iRawDataLongMapping.getAndAdd(1)));
   }
 
-  public void fillAllEnumMappingSType(List<CProfile> cProfiles, CachedLastLinkedHashMap<Integer, Integer> mapping,
-      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn, Map<Integer, SType> colIdSTypeMap) {
+  public void fillAllEnumMappingSType(List<CProfile> cProfiles,
+                                      CachedLastLinkedHashMap<Integer, Integer> mapping,
+                                      List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEnumEColumn,
+                                      Map<Integer, SType> colIdSTypeMap) {
 
     final AtomicInteger iRawDataEnumMapping = new AtomicInteger(0);
 
@@ -260,8 +285,11 @@ public abstract class CommonServiceApi {
   }
 
   public void fillMappingRaw(List<CProfile> cProfiles,
-      CachedLastLinkedHashMap<Integer, Integer> mapping, Map<Integer, SType> colIdSTypeMap,
-      Predicate<CProfile> isNotTimestamp, Predicate<CProfile> isRaw, Predicate<CProfile> isCustom) {
+                             CachedLastLinkedHashMap<Integer, Integer> mapping,
+                             Map<Integer, SType> colIdSTypeMap,
+                             Predicate<CProfile> isNotTimestamp,
+                             Predicate<CProfile> isRaw,
+                             Predicate<CProfile> isCustom) {
     final AtomicInteger iRaw = new AtomicInteger(0);
 
     cProfiles.stream()
@@ -271,8 +299,10 @@ public abstract class CommonServiceApi {
         .forEach(cProfile -> mapping.put(cProfile.getColId(), iRaw.getAndAdd(1)));
   }
 
-  public void fillMappingRaw(List<CProfile> cProfiles, List<Integer> mapping,
-      Predicate<CProfile> isRaw, Predicate<CProfile> isCustom) {
+  public void fillMappingRaw(List<CProfile> cProfiles,
+                             List<Integer> mapping,
+                             Predicate<CProfile> isRaw,
+                             Predicate<CProfile> isCustom) {
     final AtomicInteger iRawDataLongMapping = new AtomicInteger(0);
 
     cProfiles.stream()
@@ -280,7 +310,10 @@ public abstract class CommonServiceApi {
         .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
   }
 
-  public String[] getStringArrayValue(RawDAO rawDAO, byte tableId, long blockId, CProfile cProfile) {
+  public String[] getStringArrayValue(RawDAO rawDAO,
+                                      byte tableId,
+                                      long blockId,
+                                      CProfile cProfile) {
     int colId = cProfile.getColId();
     CType cType = Mapper.isCType(cProfile);
 
@@ -290,12 +323,13 @@ public abstract class CommonServiceApi {
           .toArray(String[]::new);
     } else if (CType.LONG == cType) {
       return switch (cProfile.getCsType().getDType()) {
-        case TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME -> Arrays.stream(rawDAO.getRawLong(tableId, blockId, colId))
+        case TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME ->
+            Arrays.stream(rawDAO.getRawLong(tableId, blockId, colId))
                 .mapToObj(val -> val == LONG_NULL ? "" : getDateForLongShorted(Math.toIntExact(val / 1000)))
                 .toArray(String[]::new);
         default -> Arrays.stream(rawDAO.getRawLong(tableId, blockId, colId))
-                .mapToObj(val -> val == LONG_NULL ? "" : String.valueOf(val))
-                .toArray(String[]::new);
+            .mapToObj(val -> val == LONG_NULL ? "" : String.valueOf(val))
+            .toArray(String[]::new);
       };
     } else if (CType.FLOAT == cType) {
       float[] floats = rawDAO.getRawFloat(tableId, blockId, colId);
@@ -336,7 +370,8 @@ public abstract class CommonServiceApi {
     return ret;
   }
 
-  protected SType getSType(int colId, Metadata metadata) {
+  protected SType getSType(int colId,
+                           Metadata metadata) {
     IntPredicate colIdPredicate = (x) -> x == colId;
 
     if (Arrays.stream(metadata.getRawColIds()).anyMatch(colIdPredicate)) {
@@ -370,13 +405,13 @@ public abstract class CommonServiceApi {
         }
 
         parsedMap.forEach((keyParsed, valueParsed) ->
-            keyCount.merge(keyParsed, Math.toIntExact(valueParsed), Integer::sum));
+                              keyCount.merge(keyParsed, Math.toIntExact(valueParsed), Integer::sum));
       });
 
       sColumnListParsedMap.add(StackedColumn.builder()
-          .key(stackedColumn.getKey())
-          .tail(stackedColumn.getTail())
-          .keyCount(keyCount).build());
+                                   .key(stackedColumn.getKey())
+                                   .tail(stackedColumn.getTail())
+                                   .keyCount(keyCount).build());
     });
 
     return sColumnListParsedMap;
@@ -390,22 +425,23 @@ public abstract class CommonServiceApi {
 
       Map<String, Integer> keyCount = new HashMap<>();
       stackedColumn.getKeyCount().forEach((key, value) -> {
-        String[] array = parseStringToTypedArray(key,",");
+        String[] array = parseStringToTypedArray(key, ",");
 
         Arrays.stream(array).forEach(e -> keyCount.merge(e.trim(), value, Integer::sum));
 
         sColumnListParsedMap.add(StackedColumn.builder()
-          .key(stackedColumn.getKey())
-          .tail(stackedColumn.getTail())
-          .keyCount(keyCount).build());
+                                     .key(stackedColumn.getKey())
+                                     .tail(stackedColumn.getTail())
+                                     .keyCount(keyCount).build());
       });
     });
 
     return sColumnListParsedMap;
   }
 
-  protected List<GanttColumn> handleMap(CProfile firstLevelGroupBy, CProfile secondLevelGroupBy,
-      Map<String, Map<String, Integer>> mapFinalIn) {
+  protected List<GanttColumn> handleMap(CProfile firstLevelGroupBy,
+                                        CProfile secondLevelGroupBy,
+                                        Map<String, Map<String, Integer>> mapFinalIn) {
     List<GanttColumn> list = new ArrayList<>();
     Map<String, Map<String, Integer>> mapFinalOut = new HashMap<>();
 
@@ -415,12 +451,12 @@ public abstract class CommonServiceApi {
 
     if (MAP.equals(secondLevelGroupBy.getCsType().getDType())) {
       if (MAP.equals(firstLevelGroupBy.getCsType().getDType())) {
-       Map<String, Map<String, Integer>> updates = new HashMap<>();
+        Map<String, Map<String, Integer>> updates = new HashMap<>();
 
         handlerSecondLevelMap(mapFinalOut, updates);
 
         mapFinalOut.clear();
-        
+
         updates.forEach((key, value) -> {
           value.forEach((updateKey, updateValue) -> setMapValue(mapFinalOut, key, updateKey, updateValue));
         });
@@ -434,7 +470,8 @@ public abstract class CommonServiceApi {
     return list;
   }
 
-  private void handlerFirstLevelMap(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
+  private void handlerFirstLevelMap(Map<String, Map<String, Integer>> mapFinalIn,
+                                    Map<String, Map<String, Integer>> mapFinalOut) {
     mapFinalIn.forEach((kIn, vIn) -> {
       Map<String, Long> parsedMap = parsedMap(kIn);
 
@@ -442,11 +479,13 @@ public abstract class CommonServiceApi {
         vIn.forEach((kvIn, vvIn) -> setMapValue(mapFinalOut, STRING_NULL, kvIn, vvIn));
       }
 
-      parsedMap.forEach((kP, vP) -> vIn.forEach((kvIn, vvIn) -> setMapValue(mapFinalOut, kP, kvIn, Math.toIntExact(vP) * vvIn)));
+      parsedMap.forEach((kP, vP) -> vIn.forEach((kvIn, vvIn) -> setMapValue(mapFinalOut, kP, kvIn,
+                                                                            Math.toIntExact(vP) * vvIn)));
     });
   }
 
-  private void handlerSecondLevelMap(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
+  private void handlerSecondLevelMap(Map<String, Map<String, Integer>> mapFinalIn,
+                                     Map<String, Map<String, Integer>> mapFinalOut) {
     mapFinalIn.forEach((kIn, vIn) -> vIn.forEach((kvIn, vvIn) -> {
       Map<String, Long> parsedMap = parsedMap(kvIn);
 
@@ -467,8 +506,9 @@ public abstract class CommonServiceApi {
     );
   }
 
-  protected Map<String, Map<String, Integer>> handleArray(CProfile firstLevelGroupBy, CProfile secondLevelGroupBy,
-      Map<String, Map<String, Integer>> mapFinalIn) {
+  protected Map<String, Map<String, Integer>> handleArray(CProfile firstLevelGroupBy,
+                                                          CProfile secondLevelGroupBy,
+                                                          Map<String, Map<String, Integer>> mapFinalIn) {
     Map<String, Map<String, Integer>> mapFinalOut = new HashMap<>();
 
     if (ARRAY.equals(firstLevelGroupBy.getCsType().getDType())) {
@@ -494,9 +534,10 @@ public abstract class CommonServiceApi {
     return mapFinalOut;
   }
 
-  private void handlerFirstLevelArray(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
+  private void handlerFirstLevelArray(Map<String, Map<String, Integer>> mapFinalIn,
+                                      Map<String, Map<String, Integer>> mapFinalOut) {
     mapFinalIn.forEach((kIn, vIn) -> {
-      String[] array = parseStringToTypedArray(kIn,",");
+      String[] array = parseStringToTypedArray(kIn, ",");
 
       if (array.length == 0) {
         vIn.forEach((kvIn, vvIn) -> setMapValue(mapFinalOut, STRING_NULL, kvIn, vvIn));
@@ -509,9 +550,10 @@ public abstract class CommonServiceApi {
     });
   }
 
-  private void handlerSecondLevelArray(Map<String, Map<String, Integer>> mapFinalIn, Map<String, Map<String, Integer>> mapFinalOut) {
+  private void handlerSecondLevelArray(Map<String, Map<String, Integer>> mapFinalIn,
+                                       Map<String, Map<String, Integer>> mapFinalOut) {
     mapFinalIn.forEach((kIn, vIn) -> vIn.forEach((kvIn, vvIn) -> {
-      String[] array = parseStringToTypedArray(kvIn,",");
+      String[] array = parseStringToTypedArray(kvIn, ",");
 
       if (array.length == 0) {
         setMapValue(mapFinalOut, kIn, STRING_NULL, vvIn);
@@ -526,7 +568,7 @@ public abstract class CommonServiceApi {
 
   private String getDateForLongShorted(int longDate) {
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
-    Date dtDate= new Date(((long)longDate)*1000L);
+    Date dtDate = new Date(((long) longDate) * 1000L);
     return simpleDateFormat.format(dtDate);
   }
 }

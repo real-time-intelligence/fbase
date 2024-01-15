@@ -13,6 +13,7 @@ import org.xerial.snappy.Snappy;
 
 @Log4j2
 public class EnumBdbImpl extends QueryBdbApi implements EnumDAO {
+
   private final PrimaryIndex<ColumnKey, EColumn> primaryIndexEnumColumn;
 
   public EnumBdbImpl(EntityStore store) {
@@ -20,7 +21,12 @@ public class EnumBdbImpl extends QueryBdbApi implements EnumDAO {
   }
 
   @Override
-  public EColumn putEColumn(byte tableId, long blockId, int colId, int[] values, byte[] data, boolean compression)
+  public EColumn putEColumn(byte tableId,
+                            long blockId,
+                            int colId,
+                            int[] values,
+                            byte[] data,
+                            boolean compression)
       throws IOException {
     ColumnKey columnKey = ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build();
 
@@ -36,7 +42,9 @@ public class EnumBdbImpl extends QueryBdbApi implements EnumDAO {
   }
 
   @Override
-  public EColumn getEColumnValues(byte tableId, long blockId, int colId) {
+  public EColumn getEColumnValues(byte tableId,
+                                  long blockId,
+                                  int colId) {
     EColumn eColumn =
         this.primaryIndexEnumColumn.get(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
@@ -59,5 +67,4 @@ public class EnumBdbImpl extends QueryBdbApi implements EnumDAO {
 
     return eColumn;
   }
-
 }

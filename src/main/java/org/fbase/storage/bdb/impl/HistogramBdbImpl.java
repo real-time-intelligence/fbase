@@ -21,16 +21,22 @@ public class HistogramBdbImpl extends QueryBdbApi implements HistogramDAO {
   }
 
   @Override
-  public void put(byte tableId, long blockId, int colId, int[][] data) {
+  public void put(byte tableId,
+                  long blockId,
+                  int colId,
+                  int[][] data) {
     this.primaryIndex.put(new HColumn(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build(),
-            CompressType.NONE, data, null, null));
+                                      CompressType.NONE, data, null, null));
   }
 
   @Override
-  public void putCompressed(byte tableId, long blockId, int colId, int[][] data) {
+  public void putCompressed(byte tableId,
+                            long blockId,
+                            int colId,
+                            int[][] data) {
     try {
       this.primaryIndex.put(new HColumn(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build(),
-          CompressType.INT, null, Snappy.compress(data[0]), Snappy.compress(data[1])));
+                                        CompressType.INT, null, Snappy.compress(data[0]), Snappy.compress(data[1])));
     } catch (IOException e) {
       log.catching(e);
       throw new RuntimeException(e);
@@ -38,10 +44,14 @@ public class HistogramBdbImpl extends QueryBdbApi implements HistogramDAO {
   }
 
   @Override
-  public void putCompressedKeysValues(byte tableId, long blockId, int colId, int[] keys, int[] values) {
+  public void putCompressedKeysValues(byte tableId,
+                                      long blockId,
+                                      int colId,
+                                      int[] keys,
+                                      int[] values) {
     try {
       this.primaryIndex.put(new HColumn(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build(),
-          CompressType.INT, null, Snappy.compress(keys), Snappy.compress(values)));
+                                        CompressType.INT, null, Snappy.compress(keys), Snappy.compress(values)));
     } catch (IOException e) {
       log.catching(e);
       throw new RuntimeException(e);
@@ -49,7 +59,9 @@ public class HistogramBdbImpl extends QueryBdbApi implements HistogramDAO {
   }
 
   @Override
-  public int[][] get(byte tableId, long blockId, int colId) {
+  public int[][] get(byte tableId,
+                     long blockId,
+                     int colId) {
     HColumn hColumn = this.primaryIndex.get(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
     if (hColumn == null) {
@@ -75,5 +87,4 @@ public class HistogramBdbImpl extends QueryBdbApi implements HistogramDAO {
 
     return new int[0][0];
   }
-
 }

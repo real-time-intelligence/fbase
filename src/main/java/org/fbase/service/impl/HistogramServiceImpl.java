@@ -25,7 +25,10 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
   private final HistogramDAO histogramDAO;
   private final RawDAO rawDAO;
 
-  public HistogramServiceImpl(MetaModel metaModel, Converter converter, HistogramDAO histogramDAO, RawDAO rawDAO) {
+  public HistogramServiceImpl(MetaModel metaModel,
+                              Converter converter,
+                              HistogramDAO histogramDAO,
+                              RawDAO rawDAO) {
     this.metaModel = metaModel;
     this.converter = converter;
     this.histogramDAO = histogramDAO;
@@ -33,7 +36,10 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
   }
 
   @Override
-  public List<StackedColumn> getListStackedColumn(String tableName, CProfile cProfile, long begin, long end)
+  public List<StackedColumn> getListStackedColumn(String tableName,
+                                                  CProfile cProfile,
+                                                  long begin,
+                                                  long end)
       throws SqlColMetadataException {
     byte tableId = getTableId(tableName, metaModel);
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
@@ -73,8 +79,11 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
     return list;
   }
 
-  private void computeIndexedForStackedFull(byte tableId, CProfile cProfile, long blockId, long[] timestamps,
-      List<StackedColumn> list) {
+  private void computeIndexedForStackedFull(byte tableId,
+                                            CProfile cProfile,
+                                            long blockId,
+                                            long[] timestamps,
+                                            List<StackedColumn> list) {
 
     Map<Integer, Integer> map = new LinkedHashMap<>();
 
@@ -101,14 +110,19 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
 
     if (!map.isEmpty()) {
       list.add(StackedColumn.builder()
-          .key(blockId)
-          .tail(tail)
-          .keyCount(mapKeyCount).build());
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(mapKeyCount).build());
     }
   }
 
-  private void computeIndexedForStackedBeginEnd(byte tableId, CProfile cProfile, long blockId,
-      long[] timestamps, long begin, long end, List<StackedColumn> list) {
+  private void computeIndexedForStackedBeginEnd(byte tableId,
+                                                CProfile cProfile,
+                                                long blockId,
+                                                long[] timestamps,
+                                                long begin,
+                                                long end,
+                                                List<StackedColumn> list) {
 
     long tail = timestamps[timestamps.length - 1];
 
@@ -169,9 +183,9 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
 
     if (!map.isEmpty()) {
       list.add(StackedColumn.builder()
-          .key(blockId)
-          .tail(tail)
-          .keyCount(map).build());
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(map).build());
     }
   }
 }

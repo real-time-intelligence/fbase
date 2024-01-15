@@ -58,5 +58,4 @@ public class FileConfig {
     String absolutePath = resourceDirectory.toFile().getAbsolutePath();
     return absolutePath + FILE_SEPARATOR + fBaseConfig.getConfigFileName();
   }
-
 }

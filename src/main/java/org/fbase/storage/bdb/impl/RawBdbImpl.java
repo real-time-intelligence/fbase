@@ -13,10 +13,9 @@ import org.fbase.metadata.CompressType;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.QueryBdbApi;
 import org.fbase.storage.bdb.entity.ColumnKey;
-import org.fbase.storage.bdb.entity.MetadataKey;
-import org.fbase.storage.bdb.entity.column.HColumn;
-import org.fbase.storage.bdb.entity.column.RColumn;
 import org.fbase.storage.bdb.entity.Metadata;
+import org.fbase.storage.bdb.entity.MetadataKey;
+import org.fbase.storage.bdb.entity.column.RColumn;
 import org.fbase.util.CachedLastLinkedHashMap;
 import org.xerial.snappy.Snappy;
 
@@ -32,18 +31,25 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public void putMetadata(byte tableId, long blockId, byte[] rawCTypeKeys, int[] rawColIds,
-      int[] enumColIds, int[] histogramColIds) {
+  public void putMetadata(byte tableId,
+                          long blockId,
+                          byte[] rawCTypeKeys,
+                          int[] rawColIds,
+                          int[] enumColIds,
+                          int[] histogramColIds) {
     this.primaryIndex.putNoOverwrite(
         new Metadata(MetadataKey.builder()
-            .tableId(tableId)
-            .blockId(blockId)
-            .build(), rawCTypeKeys, rawColIds, enumColIds, histogramColIds)
+                         .tableId(tableId)
+                         .blockId(blockId)
+                         .build(), rawCTypeKeys, rawColIds, enumColIds, histogramColIds)
     );
   }
 
   @Override
-  public void putByte(byte tableId, long blockId, int[] mapping, byte[][] data) {
+  public void putByte(byte tableId,
+                      long blockId,
+                      int[] mapping,
+                      byte[][] data) {
     for (int i = 0; i < mapping.length; i++) {
       this.primaryIndexDataColumn.putNoOverwrite(
           RColumn.builder()
@@ -53,7 +59,10 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public void putInt(byte tableId, long blockId, int[] mapping, int[][] data) {
+  public void putInt(byte tableId,
+                     long blockId,
+                     int[] mapping,
+                     int[][] data) {
     for (int i = 0; i < mapping.length; i++) {
       this.primaryIndexDataColumn.putNoOverwrite(
           RColumn.builder()
@@ -63,7 +72,10 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public void putLong(byte tableId, long blockId, int[] mapping, long[][] data) {
+  public void putLong(byte tableId,
+                      long blockId,
+                      int[] mapping,
+                      long[][] data) {
     for (int i = 0; i < mapping.length; i++) {
       this.primaryIndexDataColumn.putNoOverwrite(
           RColumn.builder()
@@ -73,7 +85,10 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public void putFloat(byte tableId, long blockId, int[] mapping, float[][] data) {
+  public void putFloat(byte tableId,
+                       long blockId,
+                       int[] mapping,
+                       float[][] data) {
     for (int i = 0; i < mapping.length; i++) {
       this.primaryIndexDataColumn.putNoOverwrite(
           RColumn.builder()
@@ -83,7 +98,10 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public void putDouble(byte tableId, long blockId, int[] mapping, double[][] data) {
+  public void putDouble(byte tableId,
+                        long blockId,
+                        int[] mapping,
+                        double[][] data) {
     for (int i = 0; i < mapping.length; i++) {
       this.primaryIndexDataColumn.putNoOverwrite(
           RColumn.builder()
@@ -93,7 +111,10 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public void putString(byte tableId, long blockId, int[] mapping, String[][] data) {
+  public void putString(byte tableId,
+                        long blockId,
+                        int[] mapping,
+                        String[][] data) {
     for (int i = 0; i < mapping.length; i++) {
       this.primaryIndexDataColumn.putNoOverwrite(
           RColumn.builder()
@@ -103,7 +124,10 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public void putEnum(byte tableId, long blockId, int[] mapping, byte[][] data) {
+  public void putEnum(byte tableId,
+                      long blockId,
+                      int[] mapping,
+                      byte[][] data) {
     for (int i = 0; i < mapping.length; i++) {
       this.primaryIndexDataColumn.putNoOverwrite(
           RColumn.builder()
@@ -113,13 +137,20 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public void putCompressed(byte tableId, long blockId,
-      List<Integer> rawDataTimeStampMapping, List<List<Long>> rawDataTimestamp,
-      List<Integer> rawDataIntMapping, List<List<Integer>> rawDataInt,
-      List<Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
-      List<Integer> rawDataFloatMapping, List<List<Float>> rawDataFloat,
-      List<Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
-      List<Integer> rawDataStringMapping, List<List<String>> rawDataString)
+  public void putCompressed(byte tableId,
+                            long blockId,
+                            List<Integer> rawDataTimeStampMapping,
+                            List<List<Long>> rawDataTimestamp,
+                            List<Integer> rawDataIntMapping,
+                            List<List<Integer>> rawDataInt,
+                            List<Integer> rawDataLongMapping,
+                            List<List<Long>> rawDataLong,
+                            List<Integer> rawDataFloatMapping,
+                            List<List<Float>> rawDataFloat,
+                            List<Integer> rawDataDoubleMapping,
+                            List<List<Double>> rawDataDouble,
+                            List<Integer> rawDataStringMapping,
+                            List<List<String>> rawDataString)
       throws IOException {
 
     for (int i = 0; i < rawDataTimeStampMapping.size(); i++) {
@@ -180,13 +211,20 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public void putCompressed(byte tableId, long blockId,
-      CachedLastLinkedHashMap<Integer, Integer> rawDataTimeStampMapping, List<List<Long>> rawDataTimestamp,
-      CachedLastLinkedHashMap<Integer, Integer> rawDataIntMapping, List<List<Integer>> rawDataInt,
-      CachedLastLinkedHashMap<Integer, Integer> rawDataLongMapping, List<List<Long>> rawDataLong,
-      CachedLastLinkedHashMap<Integer, Integer> rawDataFloatMapping, List<List<Float>> rawDataFloat,
-      CachedLastLinkedHashMap<Integer, Integer> rawDataDoubleMapping, List<List<Double>> rawDataDouble,
-      CachedLastLinkedHashMap<Integer, Integer> rawDataStringMapping, List<List<String>> rawDataString) {
+  public void putCompressed(byte tableId,
+                            long blockId,
+                            CachedLastLinkedHashMap<Integer, Integer> rawDataTimeStampMapping,
+                            List<List<Long>> rawDataTimestamp,
+                            CachedLastLinkedHashMap<Integer, Integer> rawDataIntMapping,
+                            List<List<Integer>> rawDataInt,
+                            CachedLastLinkedHashMap<Integer, Integer> rawDataLongMapping,
+                            List<List<Long>> rawDataLong,
+                            CachedLastLinkedHashMap<Integer, Integer> rawDataFloatMapping,
+                            List<List<Float>> rawDataFloat,
+                            CachedLastLinkedHashMap<Integer, Integer> rawDataDoubleMapping,
+                            List<List<Double>> rawDataDouble,
+                            CachedLastLinkedHashMap<Integer, Integer> rawDataStringMapping,
+                            List<List<String>> rawDataString) {
 
     rawDataTimeStampMapping.forEach((colId, i) -> {
       try {
@@ -272,7 +310,9 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public byte[] getRawByte(byte tableId, long blockId, int colId) {
+  public byte[] getRawByte(byte tableId,
+                           long blockId,
+                           int colId) {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
@@ -295,7 +335,9 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public int[] getRawInt(byte tableId, long blockId, int colId) {
+  public int[] getRawInt(byte tableId,
+                         long blockId,
+                         int colId) {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
@@ -318,7 +360,9 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public long[] getRawLong(byte tableId, long blockId, int colId) {
+  public long[] getRawLong(byte tableId,
+                           long blockId,
+                           int colId) {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
@@ -341,7 +385,9 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public float[] getRawFloat(byte tableId, long blockId, int colId) {
+  public float[] getRawFloat(byte tableId,
+                             long blockId,
+                             int colId) {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
@@ -364,7 +410,9 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public double[] getRawDouble(byte tableId, long blockId, int colId) {
+  public double[] getRawDouble(byte tableId,
+                               long blockId,
+                               int colId) {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
@@ -387,7 +435,9 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public String[] getRawString(byte tableId, long blockId, int colId) {
+  public String[] getRawString(byte tableId,
+                               long blockId,
+                               int colId) {
     RColumn rColumn = this.primaryIndexDataColumn.get(
         ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build());
 
@@ -407,7 +457,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
       Arrays.stream(rColumn.getDataInt())
           .asLongStream()
           .forEach(l ->
-              dataString.add(uncompressString.substring((int) counter.get(), (int) (counter.addAndGet(l)))));
+                       dataString.add(uncompressString.substring((int) counter.get(), (int) (counter.addAndGet(l)))));
 
       return getStringFromList(dataString);
     } catch (Exception e) {
@@ -418,7 +468,9 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public List<Long> getListBlockIds(byte tableId, long begin, long end) {
+  public List<Long> getListBlockIds(byte tableId,
+                                    long begin,
+                                    long end) {
     List<Long> list = new ArrayList<>();
 
     MetadataKey beginMK = MetadataKey.builder().tableId(tableId).blockId(begin).build();
@@ -437,7 +489,8 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public EntityCursor<Metadata> getMetadataEntityCursor(MetadataKey begin, MetadataKey end) {
+  public EntityCursor<Metadata> getMetadataEntityCursor(MetadataKey begin,
+                                                        MetadataKey end) {
     return doRangeQuery(this.primaryIndex, begin, true, end, true);
   }
 
@@ -463,7 +516,8 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public long getPreviousBlockId(byte tableId, long blockId) {
+  public long getPreviousBlockId(byte tableId,
+                                 long blockId) {
     return getLastBlockIdLocal(tableId, 0L, blockId);
   }
 
@@ -473,11 +527,15 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
-  public long getLastBlockId(byte tableId, long begin, long end) {
+  public long getLastBlockId(byte tableId,
+                             long begin,
+                             long end) {
     return getLastBlockIdLocal(tableId, begin, end);
   }
 
-  private long getLastBlockIdLocal(byte tableId, long begin, long end) {
+  private long getLastBlockIdLocal(byte tableId,
+                                   long begin,
+                                   long end) {
     long lastBlockId = 0L;
 
     MetadataKey beginMK = MetadataKey.builder().tableId(tableId).blockId(begin).build();
@@ -496,5 +554,4 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
 
     return lastBlockId;
   }
-
 }

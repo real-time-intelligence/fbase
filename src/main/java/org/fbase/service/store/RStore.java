@@ -14,8 +14,9 @@ import org.fbase.storage.Converter;
 import org.fbase.util.CachedLastLinkedHashMap;
 
 @Getter
-@EqualsAndHashCode(callSuper=true)
+@EqualsAndHashCode(callSuper = true)
 public class RStore extends CommonServiceApi {
+
   private final Converter converter;
 
   private final int initialCapacityInt;
@@ -36,7 +37,9 @@ public class RStore extends CommonServiceApi {
   private final CachedLastLinkedHashMap<Integer, Integer> mappingDouble;
   private final CachedLastLinkedHashMap<Integer, Integer> mappingString;
 
-  public RStore(Converter converter, List<CProfile> cProfiles, Map<Integer, SType> colIdSTypeMap) {
+  public RStore(Converter converter,
+                List<CProfile> cProfiles,
+                Map<Integer, SType> colIdSTypeMap) {
     this.converter = converter;
 
     /* Int */
@@ -75,7 +78,10 @@ public class RStore extends CommonServiceApi {
     fillMappingRaw(cProfiles, mappingString, colIdSTypeMap, isNotTimestamp, isRaw, isString);
   }
 
-  public void add(CType cType, CProfile cProfile, int iR, int key) {
+  public void add(CType cType,
+                  CProfile cProfile,
+                  int iR,
+                  int key) {
     int colId = cProfile.getColId();
 
     if (CType.INT == cType) {
@@ -91,7 +97,9 @@ public class RStore extends CommonServiceApi {
     }
   }
 
-  public void add(CProfile cProfile, int iR, Object currObject) {
+  public void add(CProfile cProfile,
+                  int iR,
+                  Object currObject) {
     CType cType = Mapper.isCType(cProfile);
     int colId = cProfile.getColId();
     if (CType.INT == cType) {

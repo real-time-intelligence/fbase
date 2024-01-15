@@ -26,7 +26,10 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
   private final RawDAO rawDAO;
   private final EnumDAO enumDAO;
 
-  public EnumServiceImpl(MetaModel metaModel, Converter converter, RawDAO rawDAO, EnumDAO enumDAO) {
+  public EnumServiceImpl(MetaModel metaModel,
+                         Converter converter,
+                         RawDAO rawDAO,
+                         EnumDAO enumDAO) {
     this.metaModel = metaModel;
     this.converter = converter;
     this.rawDAO = rawDAO;
@@ -34,7 +37,10 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
   }
 
   @Override
-  public List<StackedColumn> getListStackedColumn(String tableName, CProfile cProfile, long begin, long end)
+  public List<StackedColumn> getListStackedColumn(String tableName,
+                                                  CProfile cProfile,
+                                                  long begin,
+                                                  long end)
       throws SqlColMetadataException {
     byte tableId = getTableId(tableName, metaModel);
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
@@ -62,8 +68,12 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
     return list;
   }
 
-  private void computeNoIndexBeginEnd(String tableName, CProfile cProfile,
-      long blockId, long begin, long end, List<StackedColumn> list) {
+  private void computeNoIndexBeginEnd(String tableName,
+                                      CProfile cProfile,
+                                      long blockId,
+                                      long begin,
+                                      long end,
+                                      List<StackedColumn> list) {
     byte tableId = getTableId(tableName, metaModel);
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
 
@@ -91,9 +101,9 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
 
     if (!map.isEmpty()) {
       list.add(StackedColumn.builder()
-          .key(blockId)
-          .tail(tail)
-          .keyCount(mapKeyCount).build());
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(mapKeyCount).build());
     }
   }
 }

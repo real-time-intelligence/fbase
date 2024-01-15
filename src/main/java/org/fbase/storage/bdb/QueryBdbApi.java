@@ -12,18 +12,18 @@ import org.fbase.storage.bdb.entity.column.RColumn;
 public abstract class QueryBdbApi {
 
   public <K, V> EntityCursor<V> doRangeQuery(EntityIndex<K, V> index,
-      K fromKey,
-      boolean fromInclusive,
-      K toKey,
-      boolean toInclusive)
+                                             K fromKey,
+                                             boolean fromInclusive,
+                                             K toKey,
+                                             boolean toInclusive)
       throws DatabaseException {
 
     assert (index != null);
 
     return index.entities(fromKey,
-        fromInclusive,
-        toKey,
-        toInclusive);
+                          fromInclusive,
+                          toKey,
+                          toInclusive);
   }
 
   public boolean isNotBlockCompressed(RColumn rColumn) {
@@ -54,5 +54,4 @@ public abstract class QueryBdbApi {
     }
     return byteArray;
   }
-
 }

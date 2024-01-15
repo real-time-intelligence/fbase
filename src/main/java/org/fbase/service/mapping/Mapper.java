@@ -2,16 +2,12 @@ package org.fbase.service.mapping;
 
 import static java.lang.String.valueOf;
 import static org.fbase.util.MapArrayUtil.arrayToString;
-import static org.fbase.util.MapArrayUtil.mapToJson;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.sql.Array;
 import java.sql.Clob;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -21,8 +17,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,13 +31,15 @@ import org.fbase.storage.helper.ClickHouseHelper;
 
 @Log4j2
 public class Mapper {
+
   public static int INT_NULL = Integer.MIN_VALUE;
   public static long LONG_NULL = Long.MIN_VALUE;
   public static float FLOAT_NULL = Float.MIN_VALUE;
   public static double DOUBLE_NULL = Double.MIN_VALUE;
   public static String STRING_NULL = "";
 
-  public Mapper() {}
+  public Mapper() {
+  }
 
   public static CType isCType(CProfile cProfile) {
     if (cProfile.getColDbTypeName().contains("FIXEDSTRING")) return CType.STRING;
@@ -56,8 +52,10 @@ public class Mapper {
     if (cProfile.getColDbTypeName().contains("MAP")) return CType.STRING;
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName().toUpperCase())) {
-      case UINT8, UINT16, INT16, INT2, INT4, INT8, INT32, NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT, TIME, TIMETZ, TINYINT -> CType.INT;
-      case OID, DATE, TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME, UINT32, UINT64, INT64, INT128, INT256, SERIAL, SMALLSERIAL, BIGSERIAL -> CType.LONG;
+      case UINT8, UINT16, INT16, INT2, INT4, INT8, INT32, NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT, TIME, TIMETZ, TINYINT ->
+          CType.INT;
+      case OID, DATE, TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME, UINT32, UINT64, INT64, INT128, INT256, SERIAL, SMALLSERIAL, BIGSERIAL ->
+          CType.LONG;
       case FLOAT4, FLOAT32, REAL -> CType.FLOAT;
       case FLOAT64, NUMERIC, FLOAT, FLOAT8, MONEY, SMALLMONEY, DECIMAL -> CType.DOUBLE;
       case BOOL, UUID, BYTEA, BINARY, RAW, VARBINARY, UNIQUEIDENTIFIER -> CType.STRING;
@@ -79,8 +77,11 @@ public class Mapper {
     return DataType.valueOf(cProfile.getColDbTypeName().toUpperCase());
   }
 
-  public static int convertRawToInt(Object obj, CProfile cProfile) {
-    if (obj == null) return INT_NULL;
+  public static int convertRawToInt(Object obj,
+                                    CProfile cProfile) {
+    if (obj == null) {
+      return INT_NULL;
+    }
     switch (cProfile.getCsType().getDType()) {
       case UINT8:
       case UINT16:
@@ -124,8 +125,11 @@ public class Mapper {
     }
   }
 
-  public static long convertRawToLong(Object obj, CProfile cProfile) {
-    if (obj == null) return LONG_NULL;
+  public static long convertRawToLong(Object obj,
+                                      CProfile cProfile) {
+    if (obj == null) {
+      return LONG_NULL;
+    }
 
     switch (cProfile.getCsType().getDType()) {
       case DATE:
@@ -143,7 +147,7 @@ public class Mapper {
         } else if (obj instanceof Date date) {
           return date.getTime();
         } else if (obj instanceof byte[] ba) {
-          java.sql.Timestamp timestamp = new java.sql.Timestamp (
+          java.sql.Timestamp timestamp = new java.sql.Timestamp(
               java.nio.ByteBuffer.wrap(ba).getLong()
           );
           java.util.Date date = new java.util.Date(timestamp.getTime());
@@ -172,8 +176,11 @@ public class Mapper {
     }
   }
 
-  public static float convertRawToFloat(Object obj, CProfile cProfile) {
-    if (obj == null) return FLOAT_NULL;
+  public static float convertRawToFloat(Object obj,
+                                        CProfile cProfile) {
+    if (obj == null) {
+      return FLOAT_NULL;
+    }
     if (cProfile.getCsType().getDType() == DataType.FLOAT32) {
       return (Float) obj;
     } else if (cProfile.getCsType().getDType() == DataType.FLOAT4) {
@@ -184,8 +191,11 @@ public class Mapper {
     return FLOAT_NULL;
   }
 
-  public static double convertRawToDouble(Object obj, CProfile cProfile) {
-    if (obj == null) return DOUBLE_NULL;
+  public static double convertRawToDouble(Object obj,
+                                          CProfile cProfile) {
+    if (obj == null) {
+      return DOUBLE_NULL;
+    }
 
     switch (cProfile.getCsType().getDType()) {
       case FLOAT64:
@@ -206,8 +216,11 @@ public class Mapper {
     }
   }
 
-  public static String convertRawToString(Object obj, CProfile cProfile) {
-    if (obj == null) return STRING_NULL;
+  public static String convertRawToString(Object obj,
+                                          CProfile cProfile) {
+    if (obj == null) {
+      return STRING_NULL;
+    }
 
     switch (cProfile.getCsType().getDType()) {
       case ENUM8:
@@ -290,8 +303,10 @@ public class Mapper {
     }
   }
 
-  public static int getColumnCount(List<CProfile> cProfiles, Map<Integer, SType> colIdSTypeMap,
-      Predicate<CProfile> isNotTimestamp, Predicate<CProfile> isCustom) {
+  public static int getColumnCount(List<CProfile> cProfiles,
+                                   Map<Integer, SType> colIdSTypeMap,
+                                   Predicate<CProfile> isNotTimestamp,
+                                   Predicate<CProfile> isCustom) {
 
     return (int) cProfiles.stream()
         .filter(isNotTimestamp)
@@ -300,7 +315,9 @@ public class Mapper {
         .count();
   }
 
-  public static int getColumnCount(List<CProfile> cProfiles, Predicate<CProfile> isRaw, Predicate<CProfile> isCustom) {
+  public static int getColumnCount(List<CProfile> cProfiles,
+                                   Predicate<CProfile> isRaw,
+                                   Predicate<CProfile> isCustom) {
 
     return (int) cProfiles.stream()
         .filter(isRaw)

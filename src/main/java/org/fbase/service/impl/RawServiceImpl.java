@@ -1,8 +1,10 @@
 package org.fbase.service.impl;
 
 import com.sleepycat.persist.EntityCursor;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
@@ -14,7 +16,6 @@ import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.RawService;
-import org.fbase.service.mapping.Mapper;
 import org.fbase.sql.BatchResultSet;
 import org.fbase.sql.BatchResultSetImpl;
 import org.fbase.storage.Converter;
@@ -35,7 +36,11 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   private final HistogramDAO histogramDAO;
   private final EnumDAO enumDAO;
 
-  public RawServiceImpl(MetaModel metaModel, Converter converter, RawDAO rawDAO, HistogramDAO histogramDAO, EnumDAO enumDAO) {
+  public RawServiceImpl(MetaModel metaModel,
+                        Converter converter,
+                        RawDAO rawDAO,
+                        HistogramDAO histogramDAO,
+                        EnumDAO enumDAO) {
     this.metaModel = metaModel;
     this.converter = converter;
     this.rawDAO = rawDAO;
@@ -44,7 +49,10 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   @Override
-  public List<StackedColumn> getListStackedColumn(String tableName, CProfile cProfile, long begin, long end)
+  public List<StackedColumn> getListStackedColumn(String tableName,
+                                                  CProfile cProfile,
+                                                  long begin,
+                                                  long end)
       throws SqlColMetadataException {
     byte tableId = getTableId(tableName, metaModel);
     CProfile tsProfile = getTimestampProfile(getCProfiles(tableName, metaModel));
@@ -72,28 +80,43 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   @Override
-  public List<List<Object>> getRawDataAll(String tableName, long begin, long end) {
+  public List<List<Object>> getRawDataAll(String tableName,
+                                          long begin,
+                                          long end) {
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
     return getRawData(tableName, cProfiles, begin, end);
   }
 
   @Override
-  public List<List<Object>> getRawDataByColumn(String tableName, CProfile cProfile, long begin, long end) {
+  public List<List<Object>> getRawDataByColumn(String tableName,
+                                               CProfile cProfile,
+                                               long begin,
+                                               long end) {
     CProfile tsProfile = getTsProfile(tableName);
     List<CProfile> cProfiles = List.of(tsProfile, cProfile);
     return getRawData(tableName, cProfiles, begin, end);
   }
 
   @Override
-  public BatchResultSet getBatchResultSet(String tableName, long begin, long end, int fetchSize) {
+  public BatchResultSet getBatchResultSet(String tableName,
+                                          long begin,
+                                          long end,
+                                          int fetchSize) {
     byte tableId = getTableId(tableName, metaModel);
     List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
     return new BatchResultSetImpl(tableName, tableId, fetchSize, begin, end, cProfiles, this);
   }
 
   @Override
-  public Entry<Entry<Long, Integer>, List<Object>> getColumnData(byte tableId, int colId, int tsColId,
-      CProfile cProfile, int fetchSize, boolean isStarted, long maxBlockId, Entry<Long, Integer> pointer, AtomicInteger fetchCounter) {
+  public Entry<Entry<Long, Integer>, List<Object>> getColumnData(byte tableId,
+                                                                 int colId,
+                                                                 int tsColId,
+                                                                 CProfile cProfile,
+                                                                 int fetchSize,
+                                                                 boolean isStarted,
+                                                                 long maxBlockId,
+                                                                 Entry<Long, Integer> pointer,
+                                                                 AtomicInteger fetchCounter) {
 
     List<Object> columnData = new ArrayList<>();
 
@@ -146,7 +169,9 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
             }
           }
 
-          if (isPointerFirst) isPointerFirst = false;
+          if (isPointerFirst) {
+            isPointerFirst = false;
+          }
         } else {
           SType sType = getSType(colId, columnKey);
 
@@ -167,7 +192,9 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
               }
             }
 
-            if (isPointerFirst) isPointerFirst = false;
+            if (isPointerFirst) {
+              isPointerFirst = false;
+            }
           }
 
           if (SType.HISTOGRAM.equals(sType)) { // indexed data
@@ -189,7 +216,9 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
               }
             }
 
-            if (isPointerFirst) isPointerFirst = false;
+            if (isPointerFirst) {
+              isPointerFirst = false;
+            }
           }
 
           if (SType.ENUM.equals(sType)) { // enum data
@@ -211,7 +240,9 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
               }
             }
 
-            if (isPointerFirst) isPointerFirst = false;
+            if (isPointerFirst) {
+              isPointerFirst = false;
+            }
           }
         }
 
@@ -231,13 +262,18 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   @Override
-  public long getLastTimestamp(String tableName, long begin, long end) {
+  public long getLastTimestamp(String tableName,
+                               long begin,
+                               long end) {
     byte tableId = getTableId(tableName, metaModel);
 
     return this.rawDAO.getLastBlockId(tableId, begin, end);
   }
 
-  private List<List<Object>> getRawData(String tableName, List<CProfile> cProfiles, long begin, long end) {
+  private List<List<Object>> getRawData(String tableName,
+                                        List<CProfile> cProfiles,
+                                        long begin,
+                                        long end) {
     byte tableId = getTableId(tableName, metaModel);
     CProfile tsProfile = getTsProfile(tableName);
 
@@ -250,7 +286,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
     this.rawDAO.getListBlockIds(tableId, begin, end)
         .forEach(blockId ->
-            this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, blockId, begin, end, columnDataList));
+                     this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, blockId, begin, end, columnDataList));
 
     return columnDataList;
   }
@@ -262,8 +298,13 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
         .orElseThrow();
   }
 
-  private void computeRawDataBeginEnd(byte tableId, CProfile tsProfile, List<CProfile> cProfiles,
-      long blockId, long begin, long end, List<List<Object>> columnDataListOut) {
+  private void computeRawDataBeginEnd(byte tableId,
+                                      CProfile tsProfile,
+                                      List<CProfile> cProfiles,
+                                      long blockId,
+                                      long begin,
+                                      long end,
+                                      List<List<Object>> columnDataListOut) {
     List<List<Object>> columnDataListLocal = new ArrayList<>();
 
     long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsProfile.getColId());
@@ -335,8 +376,13 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     columnDataListOut.addAll(transpose(columnDataListLocal));
   }
 
-  private void computeNoIndexBeginEnd(byte tableId, CProfile tProfile, CProfile cProfile,
-      long blockId, long begin, long end, List<StackedColumn> list) {
+  private void computeNoIndexBeginEnd(byte tableId,
+                                      CProfile tProfile,
+                                      CProfile cProfile,
+                                      long blockId,
+                                      long begin,
+                                      long end,
+                                      List<StackedColumn> list) {
 
     Map<String, Integer> map = new LinkedHashMap<>();
 
@@ -357,9 +403,9 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
     if (!map.isEmpty()) {
       list.add(StackedColumn.builder()
-          .key(blockId)
-          .tail(tail)
-          .keyCount(map).build());
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(map).build());
     }
   }
 }

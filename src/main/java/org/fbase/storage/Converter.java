@@ -1,7 +1,6 @@
 package org.fbase.storage;
 
 import static org.fbase.service.mapping.Mapper.INT_NULL;
-import static org.fbase.service.mapping.Mapper.STRING_NULL;
 import static org.fbase.util.MapArrayUtil.arrayToString;
 
 import java.math.BigDecimal;
@@ -36,8 +35,11 @@ public class Converter {
     this.dimensionDAO = dimensionDAO;
   }
 
-  public int convertRawToInt(Object obj, CProfile cProfile) {
-    if (obj == null) return INT_NULL;
+  public int convertRawToInt(Object obj,
+                             CProfile cProfile) {
+    if (obj == null) {
+      return INT_NULL;
+    }
 
     switch (cProfile.getCsType().getDType()) {
       case DATE:
@@ -175,7 +177,8 @@ public class Converter {
     }
   }
 
-  public String convertIntToRaw(int objIndex, CProfile cProfile) {
+  public String convertIntToRaw(int objIndex,
+                                CProfile cProfile) {
     if (objIndex == INT_NULL) return "";
 
     if (cProfile.getColDbTypeName().contains("ENUM")) return dimensionDAO.getStringById(objIndex);
@@ -189,19 +192,23 @@ public class Converter {
           dimensionDAO.getStringById(objIndex);
       case IPV4, IPV6 -> getCanonicalHost(dimensionDAO.getStringById(objIndex));
       case TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME -> getDateForLongShorted(objIndex);
-      case FLOAT64, DECIMAL, FLOAT4, REAL, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY, SMALLMONEY -> String.valueOf(dimensionDAO.getDoubleById(objIndex));
+      case FLOAT64, DECIMAL, FLOAT4, REAL, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY, SMALLMONEY ->
+          String.valueOf(dimensionDAO.getDoubleById(objIndex));
       default -> String.valueOf(objIndex);
     };
   }
 
-  public double convertIntToDouble(int objIndex, CProfile cProfile) {
+  public double convertIntToDouble(int objIndex,
+                                   CProfile cProfile) {
     return switch (cProfile.getCsType().getDType()) {
-      case FLOAT64, DECIMAL, FLOAT4, REAL, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY, SMALLMONEY  -> dimensionDAO.getDoubleById(objIndex);
+      case FLOAT64, DECIMAL, FLOAT4, REAL, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY, SMALLMONEY ->
+          dimensionDAO.getDoubleById(objIndex);
       default -> objIndex;
     };
   }
 
-  public long getKeyValue(Object obj, CProfile cProfile) {
+  public long getKeyValue(Object obj,
+                          CProfile cProfile) {
     if (obj == null) {
       return 0L;
     }
@@ -233,7 +240,7 @@ public class Converter {
 
   private String getDateForLongShorted(int longDate) {
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
-    Date dtDate= new Date(((long)longDate)*1000L);
+    Date dtDate = new Date(((long) longDate) * 1000L);
     return simpleDateFormat.format(dtDate);
   }
 

@@ -9,10 +9,10 @@ public class MetaModelHandler {
   public static byte getNextInternalTableId(MetaModel metaModel) {
     return metaModel.getMetadata().entrySet().isEmpty() ? Byte.MIN_VALUE : (byte) (
         metaModel.getMetadata().entrySet().stream()
-                .max((entry1, entry2) ->
-                    entry1.getValue().getTableId() >
-                        entry2.getValue().getTableId() ? 1 : -1)
-                .get()
-                .getValue().getTableId() + 1);
+            .max((entry1, entry2) ->
+                     entry1.getValue().getTableId() >
+                         entry2.getValue().getTableId() ? 1 : -1)
+            .get()
+            .getValue().getTableId() + 1);
   }
 }

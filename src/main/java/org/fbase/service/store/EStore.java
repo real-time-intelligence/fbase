@@ -13,8 +13,9 @@ import org.fbase.storage.helper.EnumHelper;
 import org.fbase.util.CachedLastLinkedHashMap;
 
 @Getter
-@EqualsAndHashCode(callSuper=true)
+@EqualsAndHashCode(callSuper = true)
 public class EStore extends CommonServiceApi {
+
   private final int initialCapacity;
 
   private final List<List<Byte>> rawData;
@@ -22,11 +23,12 @@ public class EStore extends CommonServiceApi {
 
   private final List<CachedLastLinkedHashMap<Integer, Byte>> rawDataEColumn;
 
-  public EStore(List<CProfile> cProfiles, Map<Integer, SType> colIdSTypeMap) {
+  public EStore(List<CProfile> cProfiles,
+                Map<Integer, SType> colIdSTypeMap) {
     this.initialCapacity = Math.toIntExact(cProfiles.stream()
-        .filter(f -> !f.getCsType().isTimeStamp())
-        .filter(f -> SType.ENUM.equals(colIdSTypeMap.get(f.getColId())))
-        .count());
+                                               .filter(f -> !f.getCsType().isTimeStamp())
+                                               .filter(f -> SType.ENUM.equals(colIdSTypeMap.get(f.getColId())))
+                                               .count());
 
     this.rawData = new ArrayList<>(this.initialCapacity);
     this.mapping = new CachedLastLinkedHashMap<>();
@@ -36,7 +38,9 @@ public class EStore extends CommonServiceApi {
     fillAllEnumMappingSType(cProfiles, this.mapping, this.rawDataEColumn, colIdSTypeMap);
   }
 
-  public void add(int iMapping, int iR, int curValue) throws EnumByteExceedException {
+  public void add(int iMapping,
+                  int iR,
+                  int curValue) throws EnumByteExceedException {
     this.rawData.get(iMapping).add(iR, EnumHelper.getByteValue(rawDataEColumn.get(iMapping), curValue));
   }
 }

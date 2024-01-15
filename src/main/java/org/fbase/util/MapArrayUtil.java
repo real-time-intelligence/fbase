@@ -31,15 +31,20 @@ public class MapArrayUtil {
 
   @FunctionalInterface
   public interface KeyParser<K> {
+
     K parse(String input);
   }
 
   @FunctionalInterface
   public interface ValueParser<V> {
+
     V parse(String input);
   }
 
-  public static <K, V> Map<K, V> parseStringToTypedMap(String input, KeyParser<K> keyParser, ValueParser<V> valueParser, String KVDelimiter) {
+  public static <K, V> Map<K, V> parseStringToTypedMap(String input,
+                                                       KeyParser<K> keyParser,
+                                                       ValueParser<V> valueParser,
+                                                       String KVDelimiter) {
     Map<K, V> map = new HashMap<>();
     Pattern p = Pattern.compile("([\\w]+)" + KVDelimiter + "([0-9]+\\.?[0-9]*)");
     Matcher m = p.matcher(input);
@@ -53,7 +58,8 @@ public class MapArrayUtil {
     return map;
   }
 
-  public static String[] parseStringToTypedArray(String input, String d) {
+  public static String[] parseStringToTypedArray(String input,
+                                                 String d) {
     String dsv = input.replace("[", "").replace("]", "");
 
     return dsv.split(d);
