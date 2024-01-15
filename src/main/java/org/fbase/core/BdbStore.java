@@ -397,10 +397,10 @@ public class BdbStore implements FStore {
 
   @Override
   public List<GanttColumn> getGColumnListTwoLevelGroupBy(String tableName,
-      CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
+      CProfile firstGrpBy, CProfile secondGrpBy, long begin, long end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
 
-    if (firstLevelGroupBy.getCsType().isTimeStamp() | secondLevelGroupBy.getCsType().isTimeStamp()) {
+    if (firstGrpBy.getCsType().isTimeStamp() | secondGrpBy.getCsType().isTimeStamp()) {
       throw new SqlColMetadataException("Group by not supported for timestamp column..");
     }
 
@@ -408,10 +408,10 @@ public class BdbStore implements FStore {
       throw new BeginEndWrongOrderException("Begin value must be less the end one..");
     }
 
-    log.info("First column profile: " + firstLevelGroupBy);
-    log.info("Second column profile: " + secondLevelGroupBy);
+    log.info("First column profile: " + firstGrpBy);
+    log.info("Second column profile: " + secondGrpBy);
 
-    return this.groupByService.getListGanttColumn(tableName, firstLevelGroupBy, secondLevelGroupBy, begin, end);
+    return this.groupByService.getListGanttColumn(tableName, firstGrpBy, secondGrpBy, begin, end);
   }
 
   @Override
