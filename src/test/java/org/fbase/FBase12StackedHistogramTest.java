@@ -7,26 +7,25 @@ import java.util.List;
 import java.util.Map;
 import org.fbase.common.AbstractH2Test;
 import org.fbase.exception.BeginEndWrongOrderException;
+import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.cstype.SType;
-import org.fbase.model.profile.table.IType;
-import org.fbase.model.profile.table.TType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
+public class FBase12StackedHistogramTest extends AbstractH2Test {
 
   @BeforeAll
   public void init() {
     Map<String, SType> csTypeMap = new HashMap<>();
     csTypeMap.put("ID", SType.RAW);
-    csTypeMap.put("FIRSTNAME", SType.RAW);
-    csTypeMap.put("LASTNAME", SType.RAW);
+    csTypeMap.put("FIRSTNAME", SType.HISTOGRAM);
+    csTypeMap.put("LASTNAME", SType.HISTOGRAM);
     csTypeMap.put("HOUSE", SType.RAW);
-    csTypeMap.put("CITY", SType.RAW);
+    csTypeMap.put("CITY", SType.ENUM);
 
-    putDataJdbc(csTypeMap, TType.TIME_SERIES, IType.GLOBAL, true);
+    putDataDirect(csTypeMap);
   }
 
   @Test
@@ -75,7 +74,8 @@ public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
   }
 
   @Test
-  public void computeBeginEnd79Test() throws BeginEndWrongOrderException, SqlColMetadataException {
+  public void computeBeginEnd79Test()
+      throws BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
     List<StackedColumn> listIndexed = getDataStackedColumn("LASTNAME", 7, 9);
     List<StackedColumn> listNotIndexed = getDataStackedColumn("FIRSTNAME", 7, 9);
 
@@ -123,7 +123,9 @@ public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
   public void computeBeginEnd10Test() throws BeginEndWrongOrderException, SqlColMetadataException {
     List<StackedColumn> lastName = getDataStackedColumn("LASTNAME", 0, 10);
     List<StackedColumn> firstName = getDataStackedColumn("FIRSTNAME", 0, 10);
-    List<StackedColumn> firstNameFilter = getDataStackedColumnFilter("FIRSTNAME", "LASTNAME", "Petrov", 0, 10);
+    List<StackedColumn> firstNameLastNameFilter = getDataStackedColumnFilter("FIRSTNAME", "LASTNAME", "Petrov", 0, 10);
+    List<StackedColumn> firstNameHouseFilter = getDataStackedColumnFilter("FIRSTNAME", "HOUSE", "2", 0, 10);
+    List<StackedColumn> firstNameCityFilter = getDataStackedColumnFilter("FIRSTNAME", "CITY", "Moscow", 0, 10);
 
     assertEquals(firstListStackedKey(lastName), "Ivanov");
     assertEquals(firstListStackedValue(lastName), 4);
@@ -131,12 +133,18 @@ public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
     assertEquals(firstListStackedKey(firstName), "Alex");
     assertEquals(firstListStackedValue(firstName), 1);
 
-    assertEquals(firstListStackedKey(firstNameFilter), "Oleg");
-    assertEquals(firstListStackedValue(firstNameFilter), 1);
+    assertEquals(firstListStackedKey(firstNameLastNameFilter), "Oleg");
+    assertEquals(firstListStackedValue(firstNameLastNameFilter), 1);
+    assertEquals(firstListStackedKey(firstNameHouseFilter), "Ivan");
+    assertEquals(firstListStackedValue(firstNameHouseFilter), 1);
+    assertEquals(firstListStackedKey(firstNameCityFilter), "Alex");
+    assertEquals(firstListStackedValue(firstNameCityFilter), 1);
 
     assertEquals(lastListStackedKey(lastName), "Пирогов");
     assertEquals(lastListStackedKey(firstName), "Петр");
-    assertEquals(lastListStackedKey(firstNameFilter), "Men");
+    assertEquals(lastListStackedKey(firstNameLastNameFilter), "Men");
+    assertEquals(lastListStackedKey(firstNameHouseFilter), "Lee");
+    assertEquals(lastListStackedKey(firstNameCityFilter), "Петр");
   }
 
   @Test
@@ -165,4 +173,5 @@ public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
     assertEquals(lastListStackedKey(listIndexed), "Ivanov");
     assertEquals(lastListStackedKey(listNotIndexed), "Ivan");
   }
+
 }

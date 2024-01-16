@@ -378,11 +378,32 @@ public abstract class AbstractH2Test implements JdbcSource {
             .getGantt()));
   }
 
-  public List<StackedColumn> getListStackedDataBySqlCol(FStore fStore, TProfile tProfile,
-      List<CProfile> cProfiles, String colName, int begin, int end)
+  public List<StackedColumn> getListStackedDataBySqlCol(FStore fStore,
+                                                        TProfile tProfile,
+                                                        List<CProfile> cProfiles,
+                                                        String colName,
+                                                        int begin,
+                                                        int end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
     return fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfiles.stream()
         .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow(), begin, end);
+  }
+
+  public List<StackedColumn> getListStackedDataBySqlColFilter(FStore fStore,
+                                                              TProfile tProfile,
+                                                              List<CProfile> cProfiles,
+                                                              String colName,
+                                                              String colNameFilter,
+                                                              String filter,
+                                                              int begin,
+                                                              int end)
+      throws BeginEndWrongOrderException, SqlColMetadataException {
+    CProfile cProfile = cProfiles.stream()
+        .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow();
+    CProfile cProfileFilter = cProfiles.stream()
+        .filter(k -> k.getColName().equalsIgnoreCase(colNameFilter)).findAny().orElseThrow();
+    return fStore.getSColumnListByCProfileFilter(tProfile.getTableName(), cProfile, cProfileFilter,
+                                           filter, begin, end);
   }
 
   public Object lastListStackedKey(List<StackedColumn> list) {
@@ -403,6 +424,14 @@ public abstract class AbstractH2Test implements JdbcSource {
   public List<StackedColumn> getDataStackedColumn(String colName, int begin, int end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
     return getListStackedDataBySqlCol(fStore, tProfile, cProfiles, colName, begin, end);
+  }
+
+  public List<StackedColumn> getDataStackedColumnFilter(String colName,
+                                                        String colNameFilter,
+                                                        String filter,
+                                                        int begin, int end)
+      throws BeginEndWrongOrderException, SqlColMetadataException {
+    return getListStackedDataBySqlColFilter(fStore, tProfile, cProfiles, colName, colNameFilter, filter, begin, end);
   }
 
   public List<List<Object>> getRawDataAll(int begin, int end) {

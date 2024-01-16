@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.exception.SqlColMetadataException;
@@ -127,38 +126,7 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
     long tail = timestamps[timestamps.length - 1];
 
     int[][] histograms = histogramDAO.get(tableId, blockId, cProfile.getColId());
-
-    AtomicInteger cntForHist = new AtomicInteger(0);
-
-    int[] histogramsUnPack = new int[timestamps.length];
-
-    AtomicInteger cnt = new AtomicInteger(0);
-    for (int i = 0; i < histograms[0].length; i++) {
-      if (histograms[0].length != 1) {
-        int deltaValue = 0;
-        int currValue = histograms[0][cnt.getAndIncrement()];
-        int currHistogramValue = histograms[1][cnt.get() - 1];
-
-        if (currValue == timestamps.length - 1) {
-          deltaValue = 1;
-        } else { // not
-          if (histograms[0].length == cnt.get()) {// last value abs
-            int nextValue = timestamps.length;
-            deltaValue = nextValue - currValue;
-          } else {
-            int nextValue = histograms[0][cnt.get()];
-            deltaValue = nextValue - currValue;
-          }
-        }
-
-        IntStream iRow = IntStream.range(0, deltaValue);
-        iRow.forEach(iR -> histogramsUnPack[cntForHist.getAndIncrement()] = currHistogramValue);
-      } else {
-        for (int j = 0; j < timestamps.length; j++) {
-          histogramsUnPack[i] = histograms[1][0];
-        }
-      }
-    }
+    int[] histogramsUnPack = getHistogramUnPack(timestamps, histograms);
 
     Map<String, Integer> map = new LinkedHashMap<>();
     IntStream iRow = IntStream.range(0, timestamps.length);

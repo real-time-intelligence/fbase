@@ -424,6 +424,17 @@ public class BdbStore implements FStore {
   }
 
   @Override
+  public List<StackedColumn> getSColumnListByCProfileFilter(String tableName,
+                                                            CProfile cProfile,
+                                                            CProfile cProfileFilter,
+                                                            String filter,
+                                                            long begin,
+                                                            long end)
+      throws SqlColMetadataException, BeginEndWrongOrderException {
+    return this.groupByOneService.getListStackedColumnFilter(tableName, cProfile, cProfileFilter, filter, begin, end);
+  }
+
+  @Override
   public List<GanttColumn> getGColumnListTwoLevelGroupBy(String tableName,
                                                          CProfile firstGrpBy,
                                                          CProfile secondGrpBy,

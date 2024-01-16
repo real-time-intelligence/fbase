@@ -117,17 +117,22 @@ public class FBase01StackedIndexLocalTest extends AbstractH2Test {
 
   @Test
   public void computeBeginEnd10Test() throws BeginEndWrongOrderException, SqlColMetadataException {
-    List<StackedColumn> listIndexed = getDataStackedColumn("LASTNAME", 0, 10);
-    List<StackedColumn> listNotIndexed = getDataStackedColumn("FIRSTNAME", 0, 10);
+    List<StackedColumn> lastName = getDataStackedColumn("LASTNAME", 0, 10);
+    List<StackedColumn> firstName = getDataStackedColumn("FIRSTNAME", 0, 10);
+    List<StackedColumn> firstNameFilter = getDataStackedColumnFilter("FIRSTNAME", "LASTNAME", "Petrov", 0, 10);
 
-    assertEquals(firstListStackedKey(listIndexed), "Ivanov");
-    assertEquals(firstListStackedValue(listIndexed), 4);
+    assertEquals(firstListStackedKey(lastName), "Ivanov");
+    assertEquals(firstListStackedValue(lastName), 4);
 
-    assertEquals(firstListStackedKey(listNotIndexed), "Alex");
-    assertEquals(firstListStackedValue(listNotIndexed), 1);
+    assertEquals(firstListStackedKey(firstName), "Alex");
+    assertEquals(firstListStackedValue(firstName), 1);
 
-    assertEquals(lastListStackedKey(listIndexed), "Пирогов");
-    assertEquals(lastListStackedKey(listNotIndexed), "Петр");
+    assertEquals(firstListStackedKey(firstNameFilter), "Oleg");
+    assertEquals(firstListStackedValue(firstNameFilter), 1);
+
+    assertEquals(lastListStackedKey(lastName), "Пирогов");
+    assertEquals(lastListStackedKey(firstName), "Петр");
+    assertEquals(lastListStackedKey(firstNameFilter), "Men");
   }
 
   @Test

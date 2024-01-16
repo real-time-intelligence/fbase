@@ -83,20 +83,12 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     int firstColId = firstGrpBy.getColId();
     int secondColId = secondGrpBy.getColId();
 
-    MetadataKey beginMKey;
-    MetadataKey endMKey;
-
     long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
-    if (previousBlockId != begin & previousBlockId != 0) {
-      beginMKey = MetadataKey.builder().tableId(tableId).blockId(previousBlockId).build();
-    } else {
-      beginMKey = MetadataKey.builder().tableId(tableId).blockId(begin).build();
-    }
-    endMKey = MetadataKey.builder().tableId(tableId).blockId(end).build();
+    Map.Entry<MetadataKey, MetadataKey> keyEntry = getMetadataKeyPair(tableId, begin, end, previousBlockId);
 
     Map<String, Map<String, Integer>> mapFinal = new HashMap<>();
 
-    try (EntityCursor<Metadata> cursor = rawDAO.getMetadataEntityCursor(beginMKey, endMKey)) {
+    try (EntityCursor<Metadata> cursor = rawDAO.getMetadataEntityCursor(keyEntry.getKey(), keyEntry.getValue())) {
       Metadata columnKey;
 
       while ((columnKey = cursor.next()) != null) {
@@ -770,20 +762,6 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
     Map.Entry<int[], byte[]> listSecond = computeEnumBlock(tableId, secondGrpBy, timestamp, blockId, begin, end);
 
     setMapValueRawEnumBlock(map, listFirst, listSecond, 1);
-  }
-
-  private int getNextIndex(int i,
-                           int[][] histogram,
-                           long[] timestamps) {
-    int nextIndex;
-
-    if (i + 1 < histogram[0].length) {
-      nextIndex = histogram[0][i + 1] - 1;
-    } else {
-      nextIndex = timestamps.length - 1;
-    }
-
-    return nextIndex;
   }
 
   private boolean checkSType(CProfile firstGrpBy,

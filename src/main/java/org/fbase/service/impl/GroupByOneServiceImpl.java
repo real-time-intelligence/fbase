@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.exception.SqlColMetadataException;
@@ -37,10 +36,10 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
   private final EnumDAO enumDAO;
 
   public GroupByOneServiceImpl(MetaModel metaModel,
-                               Converter converter,
-                               HistogramDAO histogramDAO,
-                               RawDAO rawDAO,
-                               EnumDAO enumDAO) {
+                                Converter converter,
+                                HistogramDAO histogramDAO,
+                                RawDAO rawDAO,
+                                EnumDAO enumDAO) {
     this.metaModel = metaModel;
     this.converter = converter;
     this.histogramDAO = histogramDAO;
@@ -63,30 +62,44 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
       throw new SqlColMetadataException("Not supported for timestamp column..");
     }
 
-    return this.getListStackedColumn(tableName, tsProfile, cProfile, begin, end);
+    return this.getListStackedColumn(tableName, tsProfile, cProfile, null, null, begin, end);
   }
 
-  public List<StackedColumn> getListStackedColumn(String tableName,
-                                                  CProfile tsProfile,
-                                                  CProfile cProfile,
-                                                  long begin,
-                                                  long end) {
+  @Override
+  public List<StackedColumn> getListStackedColumnFilter(String tableName,
+                                                        CProfile cProfile,
+                                                        CProfile cProfileFilter,
+                                                        String filter,
+                                                        long begin,
+                                                        long end) throws SqlColMetadataException {
+    CProfile tsProfile = getTimestampProfile(getCProfiles(tableName, metaModel));
+
+    if (!tsProfile.getCsType().isTimeStamp()) {
+      throw new SqlColMetadataException("Timestamp column not defined..");
+    }
+
+    if (cProfile.getCsType().isTimeStamp()) {
+      throw new SqlColMetadataException("Not supported for timestamp column..");
+    }
+
+    return this.getListStackedColumn(tableName, tsProfile, cProfile, cProfileFilter, filter, begin, end);
+  }
+
+  private List<StackedColumn> getListStackedColumn(String tableName,
+                                                   CProfile tsProfile,
+                                                   CProfile cProfile,
+                                                   CProfile cProfileFilter,
+                                                   String filter,
+                                                   long begin,
+                                                   long end) {
     byte tableId = getTableId(tableName, metaModel);
 
     List<StackedColumn> list = new ArrayList<>();
 
-    MetadataKey beginMKey;
-    MetadataKey endMKey;
-
     long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
-    if (previousBlockId != begin & previousBlockId != 0) {
-      beginMKey = MetadataKey.builder().tableId(tableId).blockId(previousBlockId).build();
-    } else {
-      beginMKey = MetadataKey.builder().tableId(tableId).blockId(begin).build();
-    }
-    endMKey = MetadataKey.builder().tableId(tableId).blockId(end).build();
+    Map.Entry<MetadataKey, MetadataKey> keyEntry = getMetadataKeyPair(tableId, begin, end, previousBlockId);
 
-    try (EntityCursor<Metadata> cursor = rawDAO.getMetadataEntityCursor(beginMKey, endMKey)) {
+    try (EntityCursor<Metadata> cursor = rawDAO.getMetadataEntityCursor(keyEntry.getKey(), keyEntry.getValue())) {
       Metadata columnKey;
 
       while ((columnKey = cursor.next()) != null) {
@@ -100,19 +113,23 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
           SType sType = getSType(cProfile.getColId(), columnKey);
 
           if (SType.RAW.equals(sType)) {
-            this.computeRaw(tableId, cProfile, blockId, timestamps, begin, end, list);
+            this.computeRaw(tableId, cProfile, cProfileFilter, filter, blockId, timestamps, begin, end, list);
           }
 
           if (SType.HISTOGRAM.equals(sType)) {
-            if (previousBlockId == blockId) {
-              this.computeHistTailOverFlow(tableId, cProfile, blockId, timestamps, begin, end, list);
+            if (cProfileFilter == null) {
+              computeHist(tableId, blockId, cProfile, timestamps, begin, end, list);
             } else {
-              this.computeHistFull(tableId, cProfile, blockId, timestamps, list);
+              computeHist(tableId, cProfile, cProfileFilter, filter, blockId, timestamps, begin, end, list);
             }
           }
 
           if (SType.ENUM.equals(sType)) {
-            this.computeEnum(tableId, cProfile, blockId, timestamps, begin, end, list);
+            if (cProfileFilter == null) {
+              this.computeEnum(tableId, cProfile, blockId, timestamps, begin, end, list);
+            } else {
+              this.computeEnum(tableId, cProfile, cProfileFilter, filter, blockId, timestamps, begin, end, list);
+            }
           }
         }
       }
@@ -128,123 +145,6 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
     }
 
     return list;
-  }
-
-  private void computeHistFull(byte tableId,
-                               CProfile cProfile,
-                               long blockId,
-                               long[] timestamps,
-                               List<StackedColumn> list) {
-
-    Map<Integer, Integer> map = new LinkedHashMap<>();
-
-    long tail = timestamps[timestamps.length - 1];
-
-    int[][] hData = histogramDAO.get(tableId, blockId, cProfile.getColId());
-
-    IntStream iRow = IntStream.range(0, hData[0].length);
-    iRow.forEach(iR -> {
-      int deltaCountValue;
-
-      if (iR == hData[0].length - 1) { //todo last row
-        deltaCountValue = timestamps.length - hData[0][iR];
-      } else {
-        deltaCountValue = hData[0][iR + 1] - hData[0][iR];
-      }
-
-      map.compute(hData[1][iR], (k, val) -> val == null ? deltaCountValue : val + deltaCountValue);
-    });
-
-    Map<String, Integer> mapKeyCount = new LinkedHashMap<>();
-    map.forEach((keyInt, value) -> mapKeyCount
-        .put(this.converter.convertIntToRaw(keyInt, cProfile), value));
-
-    if (!map.isEmpty()) {
-      list.add(StackedColumn.builder()
-                   .key(blockId)
-                   .tail(tail)
-                   .keyCount(mapKeyCount).build());
-    }
-  }
-
-  private void computeHistTailOverFlow(byte tableId,
-                                       CProfile cProfile,
-                                       long blockId,
-                                       long[] timestamps,
-                                       long begin,
-                                       long end,
-                                       List<StackedColumn> list) {
-
-    long tail = timestamps[timestamps.length - 1];
-
-    int[][] histograms = histogramDAO.get(tableId, blockId, cProfile.getColId());
-
-    AtomicInteger cntForHist = new AtomicInteger(0);
-
-    int[] histogramsUnPack = new int[timestamps.length];
-
-    AtomicInteger cnt = new AtomicInteger(0);
-    for (int i = 0; i < histograms[0].length; i++) {
-      if (histograms[0].length != 1) {
-        int deltaValue = 0;
-        int currValue = histograms[0][cnt.getAndIncrement()];
-        int currHistogramValue = histograms[1][cnt.get() - 1];
-
-        if (currValue == timestamps.length - 1) {
-          deltaValue = 1;
-        } else { // not
-          if (histograms[0].length == cnt.get()) {// last value abs
-            int nextValue = timestamps.length;
-            deltaValue = nextValue - currValue;
-          } else {
-            int nextValue = histograms[0][cnt.get()];
-            deltaValue = nextValue - currValue;
-          }
-        }
-
-        IntStream iRow = IntStream.range(0, deltaValue);
-        iRow.forEach(iR -> histogramsUnPack[cntForHist.getAndIncrement()] = currHistogramValue);
-      } else {
-        for (int j = 0; j < timestamps.length; j++) {
-          histogramsUnPack[i] = histograms[1][0];
-        }
-      }
-    }
-
-    Map<String, Integer> map = new LinkedHashMap<>();
-    IntStream iRow = IntStream.range(0, timestamps.length);
-
-    if (blockId < begin) {
-      iRow.forEach(iR -> {
-        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-          int objectIndex;
-          if (histogramsUnPack[iR] == 0) {
-            objectIndex = histogramsUnPack[0];
-          } else {
-            objectIndex = histogramsUnPack[iR];
-          }
-
-          String keyCompute = this.converter.convertIntToRaw(objectIndex, cProfile);
-          map.compute(keyCompute, (k, val) -> val == null ? 1 : val + 1);
-        }
-      });
-    }
-
-    if (blockId >= begin & tail > end) {
-      iRow.forEach(iR -> {
-        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-          String keyCompute = this.converter.convertIntToRaw(histogramsUnPack[iR], cProfile);
-          map.compute(keyCompute, (k, val) -> val == null ? 1 : val + 1);
-        }
-      });
-    }
-
-    if (!map.isEmpty()) {
-      list.add(StackedColumn.builder()
-                   .key(blockId)
-                   .tail(tail)
-                   .keyCount(map).build());
-    }
   }
 
   private void computeRaw(byte tableId,
@@ -268,6 +168,42 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
           map.compute(column[iR], (k, val) -> val == null ? 1 : val + 1);
         }
       });
+    }
+
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(map).build());
+    }
+  }
+
+  private void computeRaw(byte tableId,
+                          CProfile cProfile,
+                          CProfile cProfileFilter,
+                          String filter,
+                          long blockId,
+                          long[] timestamps,
+                          long begin,
+                          long end,
+                          List<StackedColumn> list) {
+    String[] columnValues = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
+    String[] filterValues = null;
+    if (cProfileFilter != null) {
+      filterValues = getArray(tableId, cProfileFilter, blockId, timestamps);
+    }
+
+    long tail = timestamps[timestamps.length - 1];
+    Map<String, Integer> map = new LinkedHashMap<>();
+
+    for (int i = 0; i < timestamps.length; i++) {
+      if (timestamps[i] >= begin && timestamps[i] <= end) {
+        boolean shouldFilter = filterValues == null || filterValues[i].equals(filter);
+
+        if (shouldFilter) {
+          map.compute(columnValues[i], (k, val) -> val == null ? 1 : val + 1);
+        }
+      }
     }
 
     if (!map.isEmpty()) {
@@ -308,6 +244,179 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
                    .key(blockId)
                    .tail(tail)
                    .keyCount(mapKeyCount).build());
+    }
+  }
+
+  private void computeEnum(byte tableId,
+                           CProfile cProfile,
+                           CProfile cProfileFilter,
+                           String filter,
+                           long blockId,
+                           long[] timestamps,
+                           long begin,
+                           long end,
+                           List<StackedColumn> list) {
+    Map<String, Integer> map = new LinkedHashMap<>();
+
+    EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
+
+    String[] array = getArray(tableId, cProfileFilter, blockId, timestamps);
+
+    long tail = timestamps[timestamps.length - 1];
+
+    IntStream iRow = IntStream.range(0, timestamps.length);
+    iRow.forEach(iR -> {
+      if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+
+        byte keyByte = eColumn.getDataByte()[iR];
+        String valueStr = converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn.getValues(), keyByte), cProfile);
+
+        if (filter.equals(array[iR])) {
+          map.compute(valueStr, (k, val) -> val == null ? 1 : val + 1);
+        }
+      }
+    });
+
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(map).build());
+    }
+  }
+
+  private String[] getArray(byte tableId,
+                            CProfile cProfileFilter,
+                            long blockId,
+                            long[] timestamps) {
+    MetadataKey metadataKey = MetadataKey.builder().tableId(tableId).blockId(blockId).build();
+    SType sType = getSType(cProfileFilter.getColId(), rawDAO.getMetadata(metadataKey));
+
+    if (SType.RAW.equals(sType)) {
+      return getStringArrayValue(rawDAO, tableId, blockId, cProfileFilter);
+    } else if (SType.ENUM.equals(sType)) {
+      return getArrayForEnum(tableId, cProfileFilter, blockId, timestamps);
+    } else if (SType.HISTOGRAM.equals(sType)) {
+      return getArrayForHist(tableId, cProfileFilter, blockId, timestamps);
+    }
+
+    return new String[0];
+  }
+
+  private String[] getArrayForEnum(byte tableId,
+                                   CProfile cProfileFilter,
+                                   long blockId,
+                                   long[] timestamps) {
+    String[] array = new String[timestamps.length];
+
+    EColumn eColumnFilter = enumDAO.getEColumnValues(tableId, blockId, cProfileFilter.getColId());
+
+    IntStream iRow = IntStream.range(0, timestamps.length);
+    iRow.forEach(iR -> {
+      byte filterByte = eColumnFilter.getDataByte()[iR];
+      array[iR] = converter.convertIntToRaw(EnumHelper.getIndexValue(eColumnFilter.getValues(), filterByte), cProfileFilter);
+    });
+
+    return array;
+  }
+
+  private String[] getArrayForHist(byte tableId,
+                                   CProfile cProfileFilter,
+                                   long blockId,
+                                   long[] timestamps) {
+    String[] array = new String[timestamps.length];
+
+    int[][] histograms = histogramDAO.get(tableId, blockId, cProfileFilter.getColId());
+    int[] histogramsUnPack = getHistogramUnPack(timestamps, histograms);
+
+    IntStream iRow = IntStream.range(0, timestamps.length);
+
+    iRow.forEach(iR -> array[iR] = this.converter.convertIntToRaw(histogramsUnPack[iR], cProfileFilter));
+
+    return array;
+  }
+
+  private void computeHist(byte tableId,
+                           long blockId,
+                           CProfile firstGrpBy,
+                           long[] timestamps,
+                           long begin,
+                           long end,
+                           List<StackedColumn> list) {
+    Map<Integer, Integer> map = new LinkedHashMap<>();
+
+    int[][] f = histogramDAO.get(tableId, blockId, firstGrpBy.getColId());
+
+    boolean checkRange = timestamps[f[0][0]] >= begin & timestamps[f[0][f[0].length - 1]] <= end;
+
+    for (int i = 0; i < f[0].length; i++) {
+      int deltaCountValue;
+
+      if (i == f[0].length - 1) { //todo last row
+        if (f[0][i] == 0) {
+           deltaCountValue = 1;
+        } else {
+          deltaCountValue = timestamps.length - f[0][i];
+        }
+      } else {
+        deltaCountValue = f[0][i + 1] - f[0][i];
+      }
+
+      int fNextIndex = getNextIndex(i, f, timestamps);
+
+      if (checkRange) {
+        map.compute(f[1][i], (k, val) -> val == null ? deltaCountValue : val + deltaCountValue);
+      } else {
+        for (int iR = f[0][i]; (f[0][i] == fNextIndex) ? iR < fNextIndex + 1 : iR <= fNextIndex; iR++) {
+          if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+            map.compute(f[1][i], (k, val) -> val == null ? 1 : val + 1);
+          }
+        }
+      }
+    }
+
+    Map<String, Integer> mapKeyCount = new LinkedHashMap<>();
+    map.forEach((keyInt, value) -> mapKeyCount.put(this.converter.convertIntToRaw(keyInt, firstGrpBy), value));
+
+    long tail = timestamps[timestamps.length - 1];
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(mapKeyCount).build());
+    }
+  }
+
+  private void computeHist(byte tableId,
+                           CProfile cProfile,
+                           CProfile cProfileFilter,
+                           String filter,
+                           long blockId,
+                           long[] timestamps,
+                           long begin,
+                           long end,
+                           List<StackedColumn> list) {
+    Map<String, Integer> map = new LinkedHashMap<>();
+
+    String[] array = getArray(tableId, cProfile, blockId, timestamps);
+    String[] arrayFilter = getArray(tableId, cProfileFilter, blockId, timestamps);
+
+    long tail = timestamps[timestamps.length - 1];
+
+    IntStream iRow = IntStream.range(0, timestamps.length);
+    iRow.forEach(iR -> {
+      if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+        if (filter.equals(arrayFilter[iR])) {
+          map.compute(array[iR], (k, val) -> val == null ? 1 : val + 1);
+        }
+      }
+    });
+
+    if (!map.isEmpty()) {
+      list.add(StackedColumn.builder()
+                   .key(blockId)
+                   .tail(tail)
+                   .keyCount(map).build());
     }
   }
 }

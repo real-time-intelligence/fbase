@@ -125,6 +125,27 @@ public interface FStore {
       throws SqlColMetadataException, BeginEndWrongOrderException;
 
   /**
+   * Get list stacked data by column
+   *
+   * @param tableName      - Table name
+   * @param cProfile       - Column profile
+   * @param cProfileFilter - Column profile filter
+   * @param filter         - Filter value for column profile filter
+   * @param begin          - start of range
+   * @param end            - end of range
+   * @return {@literal List<StackedColumn>} - list data in StackedColumn
+   * @throws SqlColMetadataException
+   * @throws BeginEndWrongOrderException
+   */
+  List<StackedColumn> getSColumnListByCProfileFilter(String tableName,
+                                                     CProfile cProfile,
+                                                     CProfile cProfileFilter,
+                                                     String filter,
+                                                     long begin,
+                                                     long end)
+      throws SqlColMetadataException, BeginEndWrongOrderException;
+
+  /**
    * Get list of gantt data
    *
    * @param tableName   - Table name

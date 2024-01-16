@@ -13,6 +13,7 @@ import static org.fbase.util.MapArrayUtil.parseStringToTypedMap;
 import java.nio.FloatBuffer;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -25,7 +26,6 @@ import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import org.fbase.model.MetaModel;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
@@ -38,6 +38,7 @@ import org.fbase.service.mapping.Mapper;
 import org.fbase.service.store.HEntry;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.entity.Metadata;
+import org.fbase.storage.bdb.entity.MetadataKey;
 import org.fbase.util.CachedLastLinkedHashMap;
 
 public abstract class CommonServiceApi {
@@ -564,6 +565,74 @@ public abstract class CommonServiceApi {
         setMapValue(mapFinalOut, kIn, array[finalI], vvIn);
       }
     }));
+  }
+
+  protected int[] getHistogramUnPack(long[] timestamps,
+                                     int[][] histograms) {
+    AtomicInteger cntForHist = new AtomicInteger(0);
+
+    int[] histogramsUnPack = new int[timestamps.length];
+
+    AtomicInteger cnt = new AtomicInteger(0);
+    for (int i = 0; i < histograms[0].length; i++) {
+      if (histograms[0].length != 1) {
+        int deltaValue = 0;
+        int currValue = histograms[0][cnt.getAndIncrement()];
+        int currHistogramValue = histograms[1][cnt.get() - 1];
+
+        if (currValue == timestamps.length - 1) {
+          deltaValue = 1;
+        } else { // not
+          if (histograms[0].length == cnt.get()) {// last value abs
+            int nextValue = timestamps.length;
+            deltaValue = nextValue - currValue;
+          } else {
+            int nextValue = histograms[0][cnt.get()];
+            deltaValue = nextValue - currValue;
+          }
+        }
+
+        IntStream iRow = IntStream.range(0, deltaValue);
+        iRow.forEach(iR -> histogramsUnPack[cntForHist.getAndIncrement()] = currHistogramValue);
+      } else {
+        for (int j = 0; j < timestamps.length; j++) {
+          histogramsUnPack[i] = histograms[1][0];
+        }
+      }
+    }
+
+    return histogramsUnPack;
+  }
+
+  protected Map.Entry<MetadataKey, MetadataKey> getMetadataKeyPair(byte tableId,
+                                                                   long begin,
+                                                                   long end,
+                                                                   long previousBlockId) {
+    MetadataKey beginMKey;
+    MetadataKey endMKey;
+
+    if (previousBlockId != begin & previousBlockId != 0) {
+      beginMKey = MetadataKey.builder().tableId(tableId).blockId(previousBlockId).build();
+    } else {
+      beginMKey = MetadataKey.builder().tableId(tableId).blockId(begin).build();
+    }
+    endMKey = MetadataKey.builder().tableId(tableId).blockId(end).build();
+
+    return new SimpleImmutableEntry<>(beginMKey, endMKey);
+  }
+
+  protected int getNextIndex(int i,
+                           int[][] histogram,
+                           long[] timestamps) {
+    int nextIndex;
+
+    if (i + 1 < histogram[0].length) {
+      nextIndex = histogram[0][i + 1] - 1;
+    } else {
+      nextIndex = timestamps.length - 1;
+    }
+
+    return nextIndex;
   }
 
   private String getDateForLongShorted(int longDate) {
