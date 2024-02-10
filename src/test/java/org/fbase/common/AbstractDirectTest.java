@@ -3,13 +3,17 @@ package org.fbase.common;
 import static org.fbase.config.FileConfig.FILE_SEPARATOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.FBase;
 import org.fbase.backend.BerkleyDB;
@@ -59,6 +63,13 @@ public abstract class AbstractDirectTest {
   protected String[] array1;
   protected int kMap;
 
+  protected long startTime = 1707387748310L;
+  protected long longValue = 17073877482L;
+  protected double doubleValue = 17073877482D;
+  protected String stringValue = "a31bce67-d1ab-485b-9ffa-850385e298ac";
+
+  private ObjectMapper objectMapper;
+
   @BeforeAll
   public void initBackendAndLoad() throws IOException {
     berkleyDB = new BerkleyDB(BERKLEY_DB_DIR, true);
@@ -83,6 +94,8 @@ public abstract class AbstractDirectTest {
     array1 = new String[2];
     array1[0] = "array value 1";
     array1[1] = "array value 2";
+
+    objectMapper = new ObjectMapper();
   }
 
   protected void putDataDirect(SProfile sProfile) {
@@ -105,6 +118,36 @@ public abstract class AbstractDirectTest {
     } catch (SqlColMetadataException | EnumByteExceedException | TableNameEmptyException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  protected void putDataSimpleDirect(SProfile sProfile) {
+    fStore = fBase.getFStore();
+
+    try {
+      tProfile = loadTableMetadata(sProfile);
+
+      String tableName = tProfile.getTableName();
+      cProfiles = tProfile.getCProfiles();
+
+      AtomicInteger atomicInteger = new AtomicInteger(0);
+
+      List<List<Object>> data = new ArrayList<>();
+      data.add(atomicInteger.getAndIncrement(), addValue(startTime));
+      data.add(atomicInteger.getAndIncrement(), addValue(longValue));
+      data.add(atomicInteger.getAndIncrement(), addValue(doubleValue));
+      data.add(atomicInteger.getAndIncrement(), addValue(stringValue));
+
+      fStore.putDataDirect(tableName, data);
+
+    } catch (SqlColMetadataException | EnumByteExceedException | TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private <T> ArrayList<T> addValue(T value) {
+    ArrayList<T> list = new ArrayList<>(1);
+    list.add(value);
+    return list;
   }
 
   private TProfile loadTableMetadata(SProfile sProfile) throws TableNameEmptyException {
@@ -147,7 +190,7 @@ public abstract class AbstractDirectTest {
     return null;
   }
 
-  protected List<GanttColumn> getDataGanttColumn(String firstColName, String secondColName, int begin, int end)
+  protected List<GanttColumn> getDataGanttColumn(String firstColName, String secondColName, long begin, long end)
       throws BeginEndWrongOrderException, GanttColumnNotSupportedException, SqlColMetadataException {
     CProfile firstLevelGroupBy = cProfiles.stream()
         .filter(k -> k.getColName().equalsIgnoreCase(firstColName))
@@ -176,7 +219,7 @@ public abstract class AbstractDirectTest {
   }
 
   public List<StackedColumn> getListStackedDataBySqlCol(FStore fStore, TProfile tProfile,
-      List<CProfile> cProfiles, String colName, int begin, int end)
+      List<CProfile> cProfiles, String colName, long begin, long end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
     return fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfiles.stream()
         .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow(), begin, end);
@@ -204,13 +247,25 @@ public abstract class AbstractDirectTest {
     return null;
   }
 
-  public List<StackedColumn> getDataStackedColumn(String colName, int begin, int end)
+  public List<StackedColumn> getDataStackedColumn(String colName, long begin, long end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
     return getListStackedDataBySqlCol(fStore, tProfile, cProfiles, colName, begin, end);
   }
 
-  public List<List<Object>> getRawDataAll(int begin, int end) {
+  public List<List<Object>> getRawDataAll(long begin, long end) {
     return fStore.getRawDataAll(tProfile.getTableName(), begin, end);
+  }
+
+  protected List<GanttColumn> getGanttDataExpected(String fileName) throws IOException {
+    return objectMapper.readValue(getStringData(fileName), new TypeReference<>() {});
+  }
+
+  protected List<StackedColumn> getStackedDataExpected(String fileName) throws IOException {
+    return objectMapper.readValue(getStringData(fileName), new TypeReference<>() {});
+  }
+
+  private String getStringData(String fileName) throws IOException {
+    return Files.readString(Paths.get("src", "test", "resources", "json", "direct", fileName));
   }
 
   @AfterAll

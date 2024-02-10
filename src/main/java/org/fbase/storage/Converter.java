@@ -66,6 +66,7 @@ public class Converter {
       case SERIAL:
       case SMALLSERIAL:
       case BIGSERIAL:
+      case LONG:
         if (ClickHouseHelper.checkUnsigned(obj.getClass().getName())) {
           return ClickHouseHelper.invokeMethod(obj, "intValue", Integer.class);
         } else {
@@ -113,6 +114,7 @@ public class Converter {
           return b ? 1 : 0;
         }
       case FLOAT64:
+      case DOUBLE:
       case DECIMAL:
       case FLOAT:
       case NUMERIC:
@@ -188,11 +190,11 @@ public class Converter {
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName().toUpperCase())) {
       case DATE, ENUM8, ENUM16, CHAR, NCHAR, NCLOB, CLOB, NAME, TEXT, NTEXT,
-          VARCHAR, NVARCHAR2, VARCHAR2, NVARCHAR, RAW, VARBINARY, BYTEA, BINARY, SYSNAME, NULLABLE ->
+          VARCHAR, NVARCHAR2, VARCHAR2, NVARCHAR, RAW, VARBINARY, BYTEA, BINARY, SYSNAME, NULLABLE, STRING ->
           dimensionDAO.getStringById(objIndex);
       case IPV4, IPV6 -> getCanonicalHost(dimensionDAO.getStringById(objIndex));
       case TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME -> getDateForLongShorted(objIndex);
-      case FLOAT64, DECIMAL, FLOAT4, REAL, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY, SMALLMONEY ->
+      case FLOAT64, DECIMAL, FLOAT4, REAL, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY, SMALLMONEY, DOUBLE ->
           String.valueOf(dimensionDAO.getDoubleById(objIndex));
       default -> String.valueOf(objIndex);
     };
@@ -201,7 +203,7 @@ public class Converter {
   public double convertIntToDouble(int objIndex,
                                    CProfile cProfile) {
     return switch (cProfile.getCsType().getDType()) {
-      case FLOAT64, DECIMAL, FLOAT4, REAL, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY, SMALLMONEY ->
+      case FLOAT64, DECIMAL, FLOAT4, REAL, FLOAT8, FLOAT32, FLOAT, NUMERIC, MONEY, SMALLMONEY, DOUBLE ->
           dimensionDAO.getDoubleById(objIndex);
       default -> objIndex;
     };
@@ -216,7 +218,11 @@ public class Converter {
     switch (cProfile.getCsType().getDType()) {
       case LONG:
       case INTEGER:
-        return ((Integer) obj).longValue();
+        if (obj instanceof Long l) {
+          return l;
+        } else {
+          return ((Integer) obj).longValue();
+        }
       case DATE:
       case TIMESTAMP:
       case TIMESTAMPTZ:

@@ -19,6 +19,7 @@ import org.fbase.config.FBaseConfig;
 import org.fbase.core.FStore;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.handler.MetadataHandler;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
@@ -269,13 +270,10 @@ public class FBase06CsvTest {
       if (eventFetchSize) {
         assertEquals(fetchSize, var.size());
       }
-      log.info("Output by fetchSize: " + var);
       rawDataAll.addAll(var);
     }
 
     String actual = toCsvFile(rawDataAll, tProfile, csvSplitBy);
-
-    log.info(actual);
 
     assertEquals(expected, actual);
   }
@@ -283,13 +281,16 @@ public class FBase06CsvTest {
   private TProfile getTProfile(String fileName, String csvSplitBy, boolean compression) {
     TProfile tProfile;
     try {
-      tProfile = fStore.loadCsvTableMetadata(fileName, csvSplitBy,
-          SProfile.builder()
-              .tableName(tableName)
-              .tableType(TType.REGULAR)
-              .indexType(IType.GLOBAL)
-              .compression(compression)
-              .csTypeMap(new HashMap<>()).build());
+      SProfile sProfile = SProfile.builder()
+          .tableName(tableName)
+          .tableType(TType.REGULAR)
+          .indexType(IType.GLOBAL)
+          .compression(compression)
+          .csTypeMap(new HashMap<>()).build();
+
+      MetadataHandler.loadMetadataFromCsv(fileName, csvSplitBy, sProfile);
+
+      tProfile = fStore.loadCsvTableMetadata(fileName, csvSplitBy, sProfile);
     } catch (TableNameEmptyException e) {
       throw new RuntimeException(e);
     }

@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.log4j.Log4j2;
+import org.fbase.metadata.DataType;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.cstype.CSType;
@@ -32,12 +33,12 @@ public class MetadataHandler {
 
     AtomicInteger counter = new AtomicInteger(0);
 
-    sProfile.getCsTypeMap().forEach((k, csType) ->
+    sProfile.getCsTypeMap().forEach((columName, csType) ->
         cProfileList.add(CProfile.builder()
             .colId(counter.getAndAdd(1))
             .colIdSql(counter.get())
             .colDbTypeName(csType.getCType().name().toUpperCase())
-            .colName(k)
+            .colName(columName)
             .csType(CSType.builder()
                 .isTimeStamp(csType.isTimeStamp())
                 .sType(csType.getSType())
@@ -93,6 +94,7 @@ public class MetadataHandler {
             .csType(CSType.builder()
                 .sType(csType.getSType())
                 .cType(csType.getCType())
+                .dType(csType.getDType())
                 .build())
             .build()));
 
@@ -124,16 +126,19 @@ public class MetadataHandler {
           csTypeMapEntry.put(Map.entry(i, header), CSType.builder()
               .sType(SType.RAW)
               .cType(CType.LONG)
+              .dType(DataType.LONG)
               .build());
         } else if (isParsableAsDouble(colData)) {
           csTypeMapEntry.put(Map.entry(i, header), CSType.builder()
               .sType(SType.RAW)
               .cType(CType.DOUBLE)
+              .dType(DataType.DOUBLE)
               .build());
         } else {
           csTypeMapEntry.put(Map.entry(i, header), CSType.builder()
               .sType(SType.RAW)
               .cType(CType.STRING)
+              .dType(DataType.STRING)
               .build());
         }
       }

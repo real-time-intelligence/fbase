@@ -145,8 +145,7 @@ public class BdbStore implements FStore {
     checkAndInitializeMetaModel();
     return loadTableMetadata(sProfile,
                              () -> fetchMetadataFromCsv(fileName, csvSplitBy, sProfile),
-                             () -> {
-                             });
+                             () -> {});
   }
 
   private void checkAndInitializeMetaModel() {
@@ -165,6 +164,9 @@ public class BdbStore implements FStore {
     TProfile tProfile = new TProfile().setTableName(tableName);
 
     if (metaModelExistsForTable(tableName)) {
+      if (metaModelColumModelNotTheSame(tableName, sProfile)) {
+        fetchMetadata.run();
+      }
       updateTimestampMetadata.run();
       fillTProfileFromMetaModel(tableName, tProfile);
     } else {
@@ -180,6 +182,11 @@ public class BdbStore implements FStore {
   private boolean metaModelExistsForTable(String tableName) {
     TableMetadata tableMetadata = metaModel.getMetadata().get(tableName);
     return tableMetadata != null && tableMetadata.getTableId() != null;
+  }
+
+  private boolean metaModelColumModelNotTheSame(String tableName, SProfile sProfile) {
+    TableMetadata tableMetadata = metaModel.getMetadata().get(tableName);
+    return tableMetadata.getCProfiles().size() != sProfile.getCsTypeMap().size();
   }
 
   private void fetchMetadataDirect(SProfile sProfile) {
@@ -250,7 +257,6 @@ public class BdbStore implements FStore {
       if (sProfile.getCsTypeMap().isEmpty()) {
         MetadataHandler.loadMetadataFromCsv(fileName, csvSplitBy, sProfile);
       }
-
       List<CProfile> cProfileList = MetadataHandler.getCsvCProfileList(sProfile);
 
       metaModel.getMetadata().put(tableName, new TableMetadata()

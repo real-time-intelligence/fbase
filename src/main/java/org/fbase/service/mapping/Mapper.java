@@ -52,13 +52,16 @@ public class Mapper {
     if (cProfile.getColDbTypeName().contains("MAP")) return CType.STRING;
 
     return switch (DataType.valueOf(cProfile.getColDbTypeName().toUpperCase())) {
-      case UINT8, UINT16, INT16, INT2, INT4, INT8, INT32, NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT, TIME, TIMETZ, TINYINT ->
+      case UINT8, UINT16, INT16, INT2, INT4, INT8, INT32,
+          NUMBER, INTEGER, SMALLINT, INT, BIGINT, BIT, TIME, TIMETZ, TINYINT ->
           CType.INT;
-      case OID, DATE, TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME, UINT32, UINT64, INT64, INT128, INT256, SERIAL, SMALLSERIAL, BIGSERIAL ->
+      case OID, DATE, TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME,
+          UINT32, UINT64, INT64, INT128, INT256,
+          SERIAL, SMALLSERIAL, BIGSERIAL, LONG ->
           CType.LONG;
       case FLOAT4, FLOAT32, REAL -> CType.FLOAT;
-      case FLOAT64, NUMERIC, FLOAT, FLOAT8, MONEY, SMALLMONEY, DECIMAL -> CType.DOUBLE;
-      case BOOL, UUID, BYTEA, BINARY, RAW, VARBINARY, UNIQUEIDENTIFIER -> CType.STRING;
+      case FLOAT64, NUMERIC, FLOAT, FLOAT8, MONEY, SMALLMONEY, DECIMAL, DOUBLE -> CType.DOUBLE;
+      case BOOL, UUID, BYTEA, BINARY, RAW, VARBINARY, UNIQUEIDENTIFIER, STRING -> CType.STRING;
       default -> CType.STRING;
     };
   }
@@ -160,6 +163,7 @@ public class Mapper {
       case UINT32:
       case INT64:
       case UINT64:
+      case LONG:
         return (Long) obj;
       case INT128:
       case INT256:
@@ -200,6 +204,7 @@ public class Mapper {
     switch (cProfile.getCsType().getDType()) {
       case FLOAT64:
       case FLOAT8:
+      case DOUBLE:
         return (Double) obj;
       case MONEY:
       case FLOAT:
@@ -264,16 +269,21 @@ public class Mapper {
       case INT4:
       case INT8:
       case TINYINT:
-        Integer int0 = (Integer) obj;
-        return valueOf(int0.intValue());
+        Integer intVal = (Integer) obj;
+        return valueOf(intVal);
       case FLOAT4:
       case REAL:
       case FLOAT8:
+      case FLOAT32:
+        Float f = (Float) obj;
+        return valueOf(f);
+      case FLOAT64:
+      case DOUBLE:
         Double d = (Double) obj;
-        return valueOf(d.intValue());
+        return valueOf(d);
       case NUMBER:
         BigDecimal bgDec = (BigDecimal) obj;
-        return valueOf(bgDec.longValue());
+        return valueOf(bgDec);
       case NCLOB:
       case CLOB:
         Clob clobVal = (Clob) obj;
@@ -287,6 +297,7 @@ public class Mapper {
         if (obj instanceof Boolean b) {
           return b.toString();
         }
+      case STRING:
       case UNIQUEIDENTIFIER:
         return (String) obj;
       case UUID:
