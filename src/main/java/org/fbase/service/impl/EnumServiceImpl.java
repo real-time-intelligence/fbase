@@ -6,13 +6,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
-import org.fbase.storage.Converter;
+import org.fbase.core.metamodel.MetaModelApi;
 import org.fbase.exception.SqlColMetadataException;
-import org.fbase.model.MetaModel;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.EnumService;
+import org.fbase.storage.Converter;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.entity.column.EColumn;
@@ -20,17 +20,16 @@ import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
 public class EnumServiceImpl extends CommonServiceApi implements EnumService {
-
-  private final MetaModel metaModel;
+  private final MetaModelApi metaModelApi;
   private final Converter converter;
   private final RawDAO rawDAO;
   private final EnumDAO enumDAO;
 
-  public EnumServiceImpl(MetaModel metaModel,
+  public EnumServiceImpl(MetaModelApi metaModelApi,
                          Converter converter,
                          RawDAO rawDAO,
                          EnumDAO enumDAO) {
-    this.metaModel = metaModel;
+    this.metaModelApi = metaModelApi;
     this.converter = converter;
     this.rawDAO = rawDAO;
     this.enumDAO = enumDAO;
@@ -42,8 +41,8 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
                                                   long begin,
                                                   long end)
       throws SqlColMetadataException {
-    byte tableId = getTableId(tableName, metaModel);
-    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
+    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
 
     if (!getTimestampProfile(cProfiles).getCsType().isTimeStamp()) {
       throw new SqlColMetadataException("Timestamp column not defined..");
@@ -74,8 +73,8 @@ public class EnumServiceImpl extends CommonServiceApi implements EnumService {
                                       long begin,
                                       long end,
                                       List<StackedColumn> list) {
-    byte tableId = getTableId(tableName, metaModel);
-    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
+    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableId);
 
     CProfile tsProfile = getTimestampProfile(cProfiles);
 

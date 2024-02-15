@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
-import org.fbase.model.MetaModel;
+import org.fbase.core.metamodel.MetaModelApi;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
@@ -30,19 +30,18 @@ import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
 public class GroupByServiceImpl extends CommonServiceApi implements GroupByService {
-
-  private final MetaModel metaModel;
+  private final MetaModelApi metaModelApi;
   private final Converter converter;
   private final HistogramDAO histogramDAO;
   private final RawDAO rawDAO;
   private final EnumDAO enumDAO;
 
-  public GroupByServiceImpl(MetaModel metaModel,
+  public GroupByServiceImpl(MetaModelApi metaModelApi,
                             Converter converter,
                             HistogramDAO histogramDAO,
                             RawDAO rawDAO,
                             EnumDAO enumDAO) {
-    this.metaModel = metaModel;
+    this.metaModelApi = metaModelApi;
     this.converter = converter;
     this.histogramDAO = histogramDAO;
     this.rawDAO = rawDAO;
@@ -55,7 +54,7 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
                                               CProfile secondGrpBy,
                                               long begin,
                                               long end) {
-    TType tableType = getTableType(tableName, metaModel);
+    TType tableType = metaModelApi.getTableType(tableName);
 
     if (IType.GLOBAL.equals(tableType)) {
       return getListGanttColumnIndexGlobal(tableName, firstGrpBy, secondGrpBy, begin, end);
@@ -72,13 +71,9 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
                                                          long begin,
                                                          long end) {
 
-    byte tableId = getTableId(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
 
-    int tsColId = getCProfiles(tableName, metaModel).stream()
-        .filter(k -> k.getCsType().isTimeStamp())
-        .findFirst()
-        .orElseThrow()
-        .getColId();
+    int tsColId = metaModelApi.getTimestampCProfile(tableName).getColId();
 
     int firstColId = firstGrpBy.getColId();
     int secondColId = secondGrpBy.getColId();
@@ -193,13 +188,9 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
                                                           long begin,
                                                           long end) {
 
-    byte tableId = getTableId(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
 
-    int tsColId = getCProfiles(tableName, metaModel).stream()
-        .filter(k -> k.getCsType().isTimeStamp())
-        .findFirst()
-        .orElseThrow()
-        .getColId();
+    int tsColId = metaModelApi.getTimestampCProfile(tableName).getColId();
 
     List<GanttColumn> list = new ArrayList<>();
 

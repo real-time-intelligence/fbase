@@ -9,8 +9,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
+import org.fbase.core.metamodel.MetaModelApi;
 import org.fbase.exception.SqlColMetadataException;
-import org.fbase.model.MetaModel;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
@@ -29,19 +29,18 @@ import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
 public class RawServiceImpl extends CommonServiceApi implements RawService {
-
-  private final MetaModel metaModel;
+  private final MetaModelApi metaModelApi;
   private final Converter converter;
   private final RawDAO rawDAO;
   private final HistogramDAO histogramDAO;
   private final EnumDAO enumDAO;
 
-  public RawServiceImpl(MetaModel metaModel,
+  public RawServiceImpl(MetaModelApi metaModelApi,
                         Converter converter,
                         RawDAO rawDAO,
                         HistogramDAO histogramDAO,
                         EnumDAO enumDAO) {
-    this.metaModel = metaModel;
+    this.metaModelApi = metaModelApi;
     this.converter = converter;
     this.rawDAO = rawDAO;
     this.histogramDAO = histogramDAO;
@@ -54,8 +53,8 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
                                                   long begin,
                                                   long end)
       throws SqlColMetadataException {
-    byte tableId = getTableId(tableName, metaModel);
-    CProfile tsProfile = getTimestampProfile(getCProfiles(tableName, metaModel));
+    byte tableId = metaModelApi.getTableId(tableName);
+    CProfile tsProfile = metaModelApi.getTimestampCProfile(tableName);
 
     if (!tsProfile.getCsType().isTimeStamp()) {
       throw new SqlColMetadataException("Timestamp column not defined..");
@@ -83,7 +82,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   public List<List<Object>> getRawDataAll(String tableName,
                                           long begin,
                                           long end) {
-    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
     return getRawData(tableName, cProfiles, begin, end);
   }
 
@@ -92,7 +91,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
                                                CProfile cProfile,
                                                long begin,
                                                long end) {
-    CProfile tsProfile = getTsProfile(tableName);
+    CProfile tsProfile = metaModelApi.getTimestampCProfile(tableName);
     List<CProfile> cProfiles = List.of(tsProfile, cProfile);
     return getRawData(tableName, cProfiles, begin, end);
   }
@@ -102,8 +101,8 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
                                           long begin,
                                           long end,
                                           int fetchSize) {
-    byte tableId = getTableId(tableName, metaModel);
-    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
+    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
     return new BatchResultSetImpl(tableName, tableId, fetchSize, begin, end, cProfiles, this);
   }
 
@@ -265,7 +264,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   public long getLastTimestamp(String tableName,
                                long begin,
                                long end) {
-    byte tableId = getTableId(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
 
     return this.rawDAO.getLastBlockId(tableId, begin, end);
   }
@@ -274,8 +273,8 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
                                         List<CProfile> cProfiles,
                                         long begin,
                                         long end) {
-    byte tableId = getTableId(tableName, metaModel);
-    CProfile tsProfile = getTsProfile(tableName);
+    byte tableId = metaModelApi.getTableId(tableName);
+    CProfile tsProfile = metaModelApi.getTimestampCProfile(tableName);
 
     List<List<Object>> columnDataList = new ArrayList<>();
 
@@ -289,13 +288,6 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
                      this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, blockId, begin, end, columnDataList));
 
     return columnDataList;
-  }
-
-  private CProfile getTsProfile(String tableName) {
-    return getCProfiles(tableName, metaModel).stream()
-        .filter(k -> k.getCsType().isTimeStamp())
-        .findFirst()
-        .orElseThrow();
   }
 
   private void computeRawDataBeginEnd(byte tableId,

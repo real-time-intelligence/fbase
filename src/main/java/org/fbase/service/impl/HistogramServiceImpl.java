@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
+import org.fbase.core.metamodel.MetaModelApi;
 import org.fbase.exception.SqlColMetadataException;
-import org.fbase.model.MetaModel;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.service.CommonServiceApi;
@@ -18,17 +18,16 @@ import org.fbase.storage.RawDAO;
 
 @Log4j2
 public class HistogramServiceImpl extends CommonServiceApi implements HistogramService {
-
-  private final MetaModel metaModel;
+  private final MetaModelApi metaModelApi;
   private final Converter converter;
   private final HistogramDAO histogramDAO;
   private final RawDAO rawDAO;
 
-  public HistogramServiceImpl(MetaModel metaModel,
+  public HistogramServiceImpl(MetaModelApi metaModelApi,
                               Converter converter,
                               HistogramDAO histogramDAO,
                               RawDAO rawDAO) {
-    this.metaModel = metaModel;
+    this.metaModelApi = metaModelApi;
     this.converter = converter;
     this.histogramDAO = histogramDAO;
     this.rawDAO = rawDAO;
@@ -40,8 +39,8 @@ public class HistogramServiceImpl extends CommonServiceApi implements HistogramS
                                                   long begin,
                                                   long end)
       throws SqlColMetadataException {
-    byte tableId = getTableId(tableName, metaModel);
-    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
+    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
 
     CProfile tsProfile = getTimestampProfile(cProfiles);
 

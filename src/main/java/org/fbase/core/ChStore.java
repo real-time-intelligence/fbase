@@ -33,12 +33,12 @@ public class ChStore extends CommonStore implements FStore {
 
     this.converter = new Converter(dimensionDAO);
 
-    this.histogramsService = new HistogramServiceImpl(metaModel, converter, histogramDAO, rawDAO);
-    this.rawService = new RawServiceImpl(metaModel, converter, rawDAO, histogramDAO, enumDAO);
-    this.enumService = new EnumServiceImpl(metaModel, converter, rawDAO, enumDAO);
-    this.groupByService = new GroupByServiceImpl(metaModel, converter, histogramDAO, rawDAO, enumDAO);
-    this.groupByOneService = new GroupByOneServiceImpl(metaModel, converter, histogramDAO, rawDAO, enumDAO);
+    this.histogramsService = new HistogramServiceImpl(this.metaModelApi, converter, histogramDAO, rawDAO);
+    this.rawService = new RawServiceImpl(this.metaModelApi, converter, rawDAO, histogramDAO, enumDAO);
+    this.enumService = new EnumServiceImpl(this.metaModelApi, converter, rawDAO, enumDAO);
+    this.groupByService = new GroupByServiceImpl(this.metaModelApi, converter, histogramDAO, rawDAO, enumDAO);
+    this.groupByOneService = new GroupByOneServiceImpl(this.metaModelApi, converter, histogramDAO, rawDAO, enumDAO);
 
-    this.storeService = new StoreServiceImpl(metaModel, converter, rawDAO, enumDAO, histogramDAO);
+    this.storeService = new StoreServiceImpl(this.metaModelApi, converter, rawDAO, enumDAO, histogramDAO);
   }
 }

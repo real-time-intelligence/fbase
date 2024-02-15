@@ -23,5 +23,5 @@ public interface MetaModelApi {
 
   List<CProfile> getCProfiles(Byte tableId);
 
-  CProfile getTimestampProfile(String tableName);
+  CProfile getTimestampCProfile(String tableName);
 }

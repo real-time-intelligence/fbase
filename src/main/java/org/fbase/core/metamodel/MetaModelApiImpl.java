@@ -66,7 +66,7 @@ public class MetaModelApiImpl implements MetaModelApi {
   }
 
   @Override
-  public CProfile getTimestampProfile(String tableName) {
+  public CProfile getTimestampCProfile(String tableName) {
     return metaModel.getMetadata().get(tableName).getCProfiles().stream()
         .filter(k -> k.getCsType().isTimeStamp())
         .findAny()

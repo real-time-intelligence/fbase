@@ -18,8 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
+import org.fbase.core.metamodel.MetaModelApi;
 import org.fbase.exception.EnumByteExceedException;
-import org.fbase.model.MetaModel;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.CType;
@@ -40,7 +40,7 @@ import org.fbase.storage.RawDAO;
 @Log4j2
 public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
-  private final MetaModel metaModel;
+  private final MetaModelApi metaModelApi;
 
   private final Converter converter;
 
@@ -50,12 +50,12 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
   private final HistogramDAO histogramDAO;
 
-  public StoreServiceImpl(MetaModel metaModel,
+  public StoreServiceImpl(MetaModelApi metaModelApi,
                           Converter converter,
                           RawDAO rawDAO,
                           EnumDAO enumDAO,
                           HistogramDAO histogramDAO) {
-    this.metaModel = metaModel;
+    this.metaModelApi = metaModelApi;
 
     this.converter = converter;
 
@@ -68,10 +68,10 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   public void putDataDirect(String tableName,
                             List<List<Object>> data) {
     int rowCount = data.get(0).size();
-    byte tableId = getTableId(tableName, metaModel);
-    boolean compression = getTableCompression(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
+    boolean compression = metaModelApi.getTableCompression(tableName);
 
-    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
     int colCount = cProfiles.size();
 
     Map<Integer, SType> colIdSTypeMap = new HashMap<>();
@@ -155,16 +155,16 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   @Override
   public long putDataJdbc(String tableName,
                           ResultSet resultSet) {
-    IType indexType = getIndexType(tableName, metaModel);
+    IType indexType = metaModelApi.getIndexType(tableName);
     if (IType.LOCAL.equals(indexType)) {
       log.info(IType.LOCAL);
       return putDataJdbcLocal(tableName, resultSet);
     }
 
-    byte tableId = getTableId(tableName, metaModel);
-    boolean compression = getTableCompression(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
+    boolean compression = metaModelApi.getTableCompression(tableName);
 
-    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
     int colCount = cProfiles.size();
 
     Map<Integer, SType> colIdSTypeMap = new HashMap<>();
@@ -268,10 +268,10 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
   private long putDataJdbcLocal(String tableName,
                                 ResultSet resultSet) {
-    byte tableId = getTableId(tableName, metaModel);
-    boolean compression = getTableCompression(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
+    boolean compression = metaModelApi.getTableCompression(tableName);
 
-    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
     int colCount = cProfiles.size();
 
     /* Timestamp */
@@ -542,10 +542,10 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
   public void putDataJdbcBatch(String tableName,
                                ResultSet resultSet,
                                Integer fBaseBatchSize) {
-    byte tableId = getTableId(tableName, metaModel);
-    boolean compression = getTableCompression(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
+    boolean compression = metaModelApi.getTableCompression(tableName);
 
-    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
     int colCount = cProfiles.size();
 
     Map<Integer, SType> colIdSTypeMap = new HashMap<>();
@@ -676,9 +676,9 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
                               String fileName,
                               String csvSplitBy,
                               Integer fBaseBatchSize) {
-    byte tableId = getTableId(tableName, metaModel);
-    boolean compression = getTableCompression(tableName, metaModel);
-    List<CProfile> cProfiles = getCProfiles(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
+    boolean compression = metaModelApi.getTableCompression(tableName);
+    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
 
     final AtomicLong counter = new AtomicLong(rawDAO.getLastBlockId(tableId));
 

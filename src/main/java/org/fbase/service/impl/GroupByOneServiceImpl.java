@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
+import org.fbase.core.metamodel.MetaModelApi;
 import org.fbase.exception.SqlColMetadataException;
-import org.fbase.model.MetaModel;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
@@ -29,19 +29,18 @@ import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
 public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOneService {
-
-  private final MetaModel metaModel;
+  private final MetaModelApi metaModelApi;
   private final Converter converter;
   private final HistogramDAO histogramDAO;
   private final RawDAO rawDAO;
   private final EnumDAO enumDAO;
 
-  public GroupByOneServiceImpl(MetaModel metaModel,
-                                Converter converter,
-                                HistogramDAO histogramDAO,
-                                RawDAO rawDAO,
-                                EnumDAO enumDAO) {
-    this.metaModel = metaModel;
+  public GroupByOneServiceImpl(MetaModelApi metaModelApi,
+                               Converter converter,
+                               HistogramDAO histogramDAO,
+                               RawDAO rawDAO,
+                               EnumDAO enumDAO) {
+    this.metaModelApi = metaModelApi;
     this.converter = converter;
     this.histogramDAO = histogramDAO;
     this.rawDAO = rawDAO;
@@ -53,7 +52,7 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
                                                   CProfile cProfile,
                                                   long begin,
                                                   long end) throws SqlColMetadataException {
-    CProfile tsProfile = getTimestampProfile(getCProfiles(tableName, metaModel));
+    CProfile tsProfile = metaModelApi.getTimestampCProfile(tableName);
 
     if (!tsProfile.getCsType().isTimeStamp()) {
       throw new SqlColMetadataException("Timestamp column not defined..");
@@ -73,7 +72,7 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
                                                         String filter,
                                                         long begin,
                                                         long end) throws SqlColMetadataException {
-    CProfile tsProfile = getTimestampProfile(getCProfiles(tableName, metaModel));
+    CProfile tsProfile = metaModelApi.getTimestampCProfile(tableName);
 
     if (!tsProfile.getCsType().isTimeStamp()) {
       throw new SqlColMetadataException("Timestamp column not defined..");
@@ -93,13 +92,13 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
                                                    String filter,
                                                    long begin,
                                                    long end) {
-    BType bType = getBackendType(tableName, metaModel);
+    BType bType = metaModelApi.getBackendType(tableName);
 
     if (!BType.BERKLEYDB.equals(bType)) {
       return rawDAO.getListStackedColumn(tableName, tsProfile, cProfile, cProfileFilter, filter, begin, end);
     }
 
-    byte tableId = getTableId(tableName, metaModel);
+    byte tableId = metaModelApi.getTableId(tableName);
 
     List<StackedColumn> list = new ArrayList<>();
 
