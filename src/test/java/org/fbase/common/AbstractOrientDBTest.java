@@ -15,6 +15,7 @@ import org.fbase.backend.BerkleyDB;
 import org.fbase.config.FBaseConfig;
 import org.fbase.core.FStore;
 import org.fbase.model.profile.SProfile;
+import org.fbase.model.profile.table.BType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.fbase.model.profile.cstype.CSType;
@@ -72,6 +73,7 @@ public abstract class AbstractOrientDBTest implements JdbcSource {
     return new SProfile().setTableName(tableNameRandom)
         .setTableType(TType.TIME_SERIES)
         .setIndexType(IType.GLOBAL)
+        .setBackendType(BType.BERKLEYDB)
         .setCompression(false)
         .setCsTypeMap(csTypeMap);
   }
@@ -92,6 +94,7 @@ public abstract class AbstractOrientDBTest implements JdbcSource {
     return new SProfile().setTableName(tableNameAsh)
         .setTableType(TType.TIME_SERIES)
         .setIndexType(IType.GLOBAL)
+        .setBackendType(BType.BERKLEYDB)
         .setCompression(false)
         .setCsTypeMap(csTypeMap);
   }

@@ -3,6 +3,8 @@ package org.fbase.storage;
 import com.sleepycat.persist.EntityCursor;
 import java.io.IOException;
 import java.util.List;
+import org.fbase.model.output.StackedColumn;
+import org.fbase.model.profile.CProfile;
 import org.fbase.storage.bdb.entity.Metadata;
 import org.fbase.storage.bdb.entity.MetadataKey;
 import org.fbase.util.CachedLastLinkedHashMap;
@@ -123,4 +125,12 @@ public interface RawDAO {
   long getLastBlockId(byte tableId,
                       long begin,
                       long end);
+
+  List<StackedColumn> getListStackedColumn(String tableName,
+                                           CProfile tsCProfile,
+                                           CProfile cProfile,
+                                           CProfile cProfileFilter,
+                                           String filter,
+                                           long begin,
+                                           long end);
 }

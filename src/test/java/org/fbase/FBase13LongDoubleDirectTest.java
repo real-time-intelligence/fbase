@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,6 +21,7 @@ import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.BType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,6 +35,7 @@ public class FBase13LongDoubleDirectTest extends AbstractDirectTest {
     sProfile.setTableName(tableName);
     sProfile.setTableType(TType.TIME_SERIES);
     sProfile.setIndexType(IType.GLOBAL);
+    sProfile.setBackendType(BType.BERKLEYDB);
     sProfile.setCompression(true);
 
     Map<String, CSType> csTypeMap = new LinkedHashMap<>();

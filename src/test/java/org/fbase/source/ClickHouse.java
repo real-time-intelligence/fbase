@@ -12,6 +12,7 @@ import java.util.Map;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.BType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 
@@ -72,6 +73,7 @@ public interface ClickHouse {
     sProfile.setTableName(tableName);
     sProfile.setTableType(tType);
     sProfile.setIndexType(iType);
+    sProfile.setBackendType(BType.BERKLEYDB);
     sProfile.setCompression(compression);
     Map<String, CSType> csTypeMap = new HashMap<>();
 

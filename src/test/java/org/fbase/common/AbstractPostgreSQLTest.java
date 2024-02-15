@@ -1,20 +1,6 @@
 package org.fbase.common;
 
-import lombok.extern.log4j.Log4j2;
-import org.fbase.FBase;
-import org.fbase.backend.BerkleyDB;
-import org.fbase.config.FBaseConfig;
-import org.fbase.core.FStore;
-import org.fbase.model.profile.SProfile;
-import org.fbase.model.profile.cstype.CSType;
-import org.fbase.model.profile.cstype.SType;
-import org.fbase.model.profile.table.IType;
-import org.fbase.model.profile.table.TType;
-import org.fbase.source.JdbcSource;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
+import static org.fbase.config.FileConfig.FILE_SEPARATOR;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -23,8 +9,22 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.fbase.config.FileConfig.FILE_SEPARATOR;
+import lombok.extern.log4j.Log4j2;
+import org.fbase.FBase;
+import org.fbase.backend.BerkleyDB;
+import org.fbase.config.FBaseConfig;
+import org.fbase.core.FStore;
+import org.fbase.model.profile.SProfile;
+import org.fbase.model.profile.cstype.CSType;
+import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.BType;
+import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
+import org.fbase.source.JdbcSource;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
@@ -74,6 +74,7 @@ public abstract class AbstractPostgreSQLTest implements JdbcSource {
     return new SProfile().setTableName(tableNameRandom)
         .setTableType(TType.TIME_SERIES)
         .setIndexType(IType.GLOBAL)
+        .setBackendType(BType.BERKLEYDB)
         .setCompression(false)
         .setCsTypeMap(csTypeMap);
   }
@@ -94,6 +95,7 @@ public abstract class AbstractPostgreSQLTest implements JdbcSource {
     return new SProfile().setTableName(tableNameAsh)
         .setTableType(TType.TIME_SERIES)
         .setIndexType(IType.GLOBAL)
+        .setBackendType(BType.BERKLEYDB)
         .setCompression(false)
         .setCsTypeMap(csTypeMap);
   }
@@ -114,6 +116,7 @@ public abstract class AbstractPostgreSQLTest implements JdbcSource {
     return new SProfile().setTableName(tableNameDataType)
             .setTableType(TType.TIME_SERIES)
             .setIndexType(IType.GLOBAL)
+        .setBackendType(BType.BERKLEYDB)
             .setCompression(false)
             .setCsTypeMap(csTypeMap);
   }

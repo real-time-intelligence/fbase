@@ -17,6 +17,7 @@ import org.fbase.core.FStore;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.BType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.fbase.source.JdbcSource;
@@ -75,6 +76,7 @@ public abstract class AbstractClickhouseSQLTest implements JdbcSource {
     return new SProfile().setTableName(tableNameDataType)
             .setTableType(TType.TIME_SERIES)
             .setIndexType(IType.GLOBAL)
+            .setBackendType(BType.BERKLEYDB)
             .setCompression(false)
             .setCsTypeMap(csTypeMap);
   }

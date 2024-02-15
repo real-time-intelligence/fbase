@@ -18,6 +18,7 @@ import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
+import org.fbase.model.profile.table.BType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.fbase.model.profile.cstype.CSType;
@@ -103,6 +104,7 @@ public class FBaseCsvBenchmarkTest {
     sProfile.setTableName(tableName);
     sProfile.setTableType(TType.TIME_SERIES);
     sProfile.setIndexType(IType.GLOBAL);
+    sProfile.setBackendType(BType.BERKLEYDB);
     sProfile.setCompression(false);
     sProfile.setTableType(TType.REGULAR);
 

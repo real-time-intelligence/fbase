@@ -15,6 +15,7 @@ import org.fbase.model.MetaModel;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.BType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.GroupByOneService;
 import org.fbase.storage.Converter;
@@ -92,6 +93,12 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
                                                    String filter,
                                                    long begin,
                                                    long end) {
+    BType bType = getBackendType(tableName, metaModel);
+
+    if (!BType.BERKLEYDB.equals(bType)) {
+      return rawDAO.getListStackedColumn(tableName, tsProfile, cProfile, cProfileFilter, filter, begin, end);
+    }
+
     byte tableId = getTableId(tableName, metaModel);
 
     List<StackedColumn> list = new ArrayList<>();

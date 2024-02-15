@@ -32,6 +32,7 @@ import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.BType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.fbase.service.mapping.Mapper;
@@ -110,6 +111,11 @@ public abstract class CommonServiceApi {
   public IType getIndexType(String tableName,
                             MetaModel metaModel) {
     return metaModel.getMetadata().get(tableName).getIndexType();
+  }
+
+  public BType getBackendType(String tableName,
+                              MetaModel metaModel) {
+    return metaModel.getMetadata().get(tableName).getBackendType();
   }
 
   public Boolean getTableCompression(String tableName,

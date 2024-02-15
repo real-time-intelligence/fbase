@@ -20,6 +20,7 @@ import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.BType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,6 +34,7 @@ public class FBase11MapArrayTest extends AbstractDirectTest {
     sProfile.setTableName(tableName);
     sProfile.setTableType(TType.TIME_SERIES);
     sProfile.setIndexType(IType.GLOBAL);
+    sProfile.setBackendType(BType.BERKLEYDB);
     sProfile.setCompression(true);
 
     Map<String, CSType> csTypeMap = new HashMap<>();

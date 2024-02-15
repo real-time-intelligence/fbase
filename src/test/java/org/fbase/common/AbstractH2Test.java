@@ -32,6 +32,7 @@ import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.CSType;
 import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.BType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.fbase.service.mapping.Mapper;
@@ -165,6 +166,7 @@ public abstract class AbstractH2Test implements JdbcSource {
       sProfile.setTableName(tableName);
       sProfile.setTableType(TType.TIME_SERIES);
       sProfile.setIndexType(IType.GLOBAL);
+      sProfile.setBackendType(BType.BERKLEYDB);
       sProfile.setCompression(isCompressed);
       sProfile.setCsTypeMap(new HashMap<>());
 
@@ -225,6 +227,7 @@ public abstract class AbstractH2Test implements JdbcSource {
       sProfile.setTableName(tableName);
       sProfile.setTableType(tableType);
       sProfile.setIndexType(indexType);
+      sProfile.setBackendType(BType.BERKLEYDB);
       sProfile.setCompression(compression);
       sProfile.setCsTypeMap(new HashMap<>());
 
@@ -292,6 +295,7 @@ public abstract class AbstractH2Test implements JdbcSource {
       sProfile.setTableName(tableName);
       sProfile.setTableType(TType.TIME_SERIES);
       sProfile.setIndexType(IType.GLOBAL);
+      sProfile.setBackendType(BType.BERKLEYDB);
       sProfile.setCompression(true);
       sProfile.setCsTypeMap(new HashMap<>());
 

@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.CompressType;
+import org.fbase.model.output.StackedColumn;
+import org.fbase.model.profile.CProfile;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.QueryBdbApi;
 import org.fbase.storage.bdb.entity.ColumnKey;
@@ -531,6 +533,17 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
                              long begin,
                              long end) {
     return getLastBlockIdLocal(tableId, begin, end);
+  }
+
+  @Override
+  public List<StackedColumn> getListStackedColumn(String tableName,
+                                                  CProfile tsCProfile,
+                                                  CProfile cProfile,
+                                                  CProfile cProfileFilter,
+                                                  String filter,
+                                                  long begin,
+                                                  long end) {
+    throw new RuntimeException("Not supported");
   }
 
   private long getLastBlockIdLocal(byte tableId,

@@ -60,6 +60,7 @@
     <slf4j.version>2.0.6</slf4j.version>
     <log4j2.version>2.19.0</log4j2.version>
     <snappy-java.version>1.1.10.5</snappy-java.version>
+    <commons-dbcp2-version>2.9.0</commons-dbcp2-version>
 
     <junit-version>5.7.0</junit-version>
     <querydsl.version>4.4.0</querydsl.version>
@@ -98,6 +99,13 @@
       <artifactId>snappy-java</artifactId>
       <version>${snappy-java.version}</version>
       <type>jar</type>
+    </dependency>
+
+    <!--JDBC connection pool library-->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-dbcp2</artifactId>
+      <version>${commons-dbcp2-version}</version>
     </dependency>
 
     <!--Log4j2 logger-->

@@ -26,16 +26,12 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.common.AbstractClickhouseSQLTest;
@@ -59,7 +55,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 @Disabled
 public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
 
-  // TODO MSSql Data Types: https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-types-transact-sql?view=sql-server-ver16
+  // TODO ClickHouse Data Types: https://clickhouse.com/docs/en/sql-reference/data-types
   List<String> includeList = List.of(/*"bit",*/ "dec", /*"decimal", "numeric",*/
       "byte", /*"bool",*/ "boolean", /*"char", "clob",*/ "fixedstring",
       /*"date",*//* "time",*/ "date32",/* "datetime",*/ /*"timestamp",*/

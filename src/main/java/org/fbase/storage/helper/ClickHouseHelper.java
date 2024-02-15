@@ -2,6 +2,11 @@ package org.fbase.storage.helper;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.experimental.UtilityClass;
 import lombok.extern.log4j.Log4j2;
 
@@ -17,6 +22,28 @@ public class ClickHouseHelper {
           "com.clickhouse.data.value.UnsignedShort" -> true;
       default -> false;
     };
+  }
+
+  public static String getDateTime(long unixTimestamp) {
+    return Instant.ofEpochMilli(unixTimestamp).atZone(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+  }
+
+  public static Map<String, Integer> enumParser(String enumDescription) {
+     Map<String, Integer> enumMap = new HashMap<>();
+
+    String cleanEnum = enumDescription.substring(enumDescription.indexOf('(') + 1, enumDescription.length() - 1);
+
+    String[] pairs = cleanEnum.split(", ");
+
+    for (String pair : pairs) {
+      String[] keyValue = pair.split(" = ");
+      String key = keyValue[0].substring(1, keyValue[0].length() - 1);
+      Integer value = Integer.parseInt(keyValue[1]);
+      enumMap.put(key, value);
+    }
+
+     return enumMap;
   }
 
   public static <T> T invokeMethod(Object obj,
