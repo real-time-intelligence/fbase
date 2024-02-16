@@ -1,44 +1,37 @@
 package org.fbase.storage.ch;
 
-import static org.fbase.service.mapping.Mapper.convertRawToLong;
-import static org.fbase.storage.helper.ClickHouseHelper.enumParser;
-import static org.fbase.storage.helper.ClickHouseHelper.getDateTime;
-
 import com.sleepycat.persist.EntityCursor;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.fbase.core.metamodel.MetaModelApi;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
+import org.fbase.storage.dialect.DatabaseDialect;
+import org.fbase.storage.common.QueryJdbcApi;
 import org.fbase.storage.RawDAO;
-import org.fbase.storage.bdb.QueryBdbApi;
 import org.fbase.storage.bdb.entity.Metadata;
 import org.fbase.storage.bdb.entity.MetadataKey;
+import org.fbase.storage.dialect.ClickHouseDialect;
 import org.fbase.util.CachedLastLinkedHashMap;
 
 @Log4j2
-public class RawChImpl extends QueryBdbApi implements RawDAO {
+public class RawChImpl extends QueryJdbcApi implements RawDAO {
 
   private final MetaModelApi metaModelApi;
-
-  private final BasicDataSource basicDataSource;
+  private final DatabaseDialect databaseDialect;
 
   private final Map<Byte, Metadata> primaryIndex;
 
   public RawChImpl(MetaModelApi metaModelApi,
                    BasicDataSource basicDataSource) {
-    this.metaModelApi = metaModelApi;
-    this.basicDataSource = basicDataSource;
+    super(basicDataSource);
 
+    this.metaModelApi = metaModelApi;
+
+    this.databaseDialect = new ClickHouseDialect();
     this.primaryIndex = new HashMap<>();
   }
 
@@ -238,122 +231,15 @@ public class RawChImpl extends QueryBdbApi implements RawDAO {
                                                   String filter,
                                                   long begin,
                                                   long end) {
-    List<StackedColumn> results = new ArrayList<>();
-
-    String beginDateTime = getDateTime(begin);
-    String endDateTime = getDateTime(end);
-
-    String colName = cProfile.getColName().toLowerCase();
-    String tsColName = tsCProfile.getColName().toLowerCase();
-
-    String query =
-        "SELECT " + colName + ", COUNT(" + colName + ") " +
-        "FROM " + tableName + " " +
-        "WHERE " + tsColName + " BETWEEN toDate(?) AND toDate(?) " + getFilterAndString(cProfileFilter, filter) +
-        "GROUP BY " + colName;
-
-    try (Connection conn = basicDataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(query)) {
-      ps.setString(1, beginDateTime);
-      ps.setString(2, endDateTime);
-
-      ResultSet rs = ps.executeQuery();
-
-      StackedColumn column = new StackedColumn();
-      column.setKey(begin);
-      column.setTail(end);
-
-      while (rs.next()) {
-        String key = rs.getString(1);
-        int count = rs.getInt(2);
-
-        column.getKeyCount().put(key, count);
-      }
-
-      results.add(column);
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
-
-    return results;
-  }
-
-  private String getFilterAndString(CProfile cProfileFilter,
-                                    String filter) {
-    if (cProfileFilter != null) {
-      AtomicReference<String> filterAndString = new AtomicReference<>("");
-
-      if (cProfileFilter.getColDbTypeName().startsWith("ENUM")) {
-        Map<String, Integer> stringIntegerMap = enumParser(cProfileFilter.getColDbTypeName());
-        stringIntegerMap.forEach((k, v) -> {
-          if (k.equals(filter)) {
-            filterAndString.set(" AND " + cProfileFilter.getColName().toLowerCase() + " = '" + v + "' ");
-          }
-        });
-      } else {
-        filterAndString.set(" AND " + cProfileFilter.getColName().toLowerCase() + " = '" + filter + "' ");
-      }
-
-      return filterAndString.get();
-    } else {
-      return "";
-    }
+    return getListStackedColumn(tableName, tsCProfile, cProfile, cProfileFilter, filter, begin, end, databaseDialect);
   }
 
   private long getLastBlockIdLocal(byte tableId,
                                    long begin,
                                    long end) {
-    long lastBlockId = 0L;
-
-    String beginDateTime = getDateTime(begin);
-    String endDateTime = getDateTime(end);
-
     String tableName = metaModelApi.getTableName(tableId);
-    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableId);
+    CProfile tsCProfile = metaModelApi.getTimestampCProfile(tableName);
 
-    CProfile tsCProfile = cProfiles.stream()
-        .filter(k -> k.getCsType().isTimeStamp())
-        .findAny()
-        .orElseThrow(() -> new RuntimeException("Not found timestamp column"));
-
-    String query = "";
-
-    String colName = tsCProfile.getColName().toLowerCase();
-    if (Long.MAX_VALUE == end) {
-      query =
-          "SELECT MAX(" + colName + ") " +
-              "FROM " + tableName;
-    } else {
-      query =
-          "SELECT MAX(" + colName + ") " +
-              "FROM " + tableName + " " +
-              "WHERE " + colName + " BETWEEN toDate(?) AND toDate(?) ";
-    }
-
-    try (Connection conn = basicDataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(query)) {
-
-      if (Long.MAX_VALUE == end) {
-
-      } else {
-        ps.setString(1, beginDateTime);
-        ps.setString(2, endDateTime);
-      }
-
-      ResultSet rs = ps.executeQuery();
-
-      StackedColumn column = new StackedColumn();
-      column.setKey(begin);
-      column.setTail(end);
-
-      while (rs.next()) {
-        Object object = rs.getObject(1);
-
-        lastBlockId = convertRawToLong(object, tsCProfile);
-      }
-
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
-
-    return lastBlockId;
+    return getLastBlockIdLocal(tableName, tsCProfile, begin, end, databaseDialect);
   }
 }
