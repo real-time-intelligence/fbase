@@ -6,22 +6,19 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
 import lombok.extern.log4j.Log4j2;
-import org.fbase.common.AbstractClickhouseBackendSQLTest;
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.fbase.common.AbstractBackendSQLTest;
 import org.fbase.exception.BeginEndWrongOrderException;
-import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
-import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
+import org.fbase.model.profile.table.BType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -31,16 +28,25 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 @Disabled
-public class FBaseClickHouseBackendTest extends AbstractClickhouseBackendSQLTest {
+public class FBaseClickHouseBackendTest extends AbstractBackendSQLTest {
 
-  private String select = "select * from " + tableName + " limit 1";
+  private final String dbUrl = "jdbc:clickhouse://localhost:8123";
+  private final String driverClassName = "com.clickhouse.jdbc.ClickHouseDriver";
+  private final String tableName = "datasets.trips_mergetree";
+  private final String tsName = "PICKUP_DATE";
+  private final String select = "select * from " + tableName + " limit 1";
 
   private SProfile sProfile;
   private TProfile tProfile;
 
   @BeforeAll
   public void setUp() throws SQLException, TableNameEmptyException {
-    sProfile = getSProfileForBackend(select);
+    BType bType = BType.CLICKHOUSE;
+    BasicDataSource basicDataSource = getDatasource(bType, driverClassName, dbUrl, null, null);
+
+    initBackend(BType.CLICKHOUSE, basicDataSource);
+
+    sProfile = getSProfileForBackend(tableName, basicDataSource, bType, select, tsName);
     tProfile = fStore.loadJdbcTableMetadata(basicDataSource.getConnection(), select, sProfile);
 
     log.info(tProfile);
@@ -110,76 +116,5 @@ public class FBaseClickHouseBackendTest extends AbstractClickhouseBackendSQLTest
     log.info("Actual: " + actual);
 
     assertStackedListEquals(expected, actual);
-  }
-
-  private long[] getBeginEndTimestamps() {
-    long begin = getUnitTimestamp(LocalDateTime.of(2016, 1, 1, 0, 0, 0, 0));
-    long end = getUnitTimestamp(LocalDateTime.of(2016, 12, 31, 23, 59, 59, 999999999));
-    return new long[]{begin, end};
-  }
-
-  private long getUnitTimestamp(LocalDateTime localDateTime) {
-    ZoneOffset offset = ZoneId.systemDefault().getRules().getOffset(localDateTime);
-    return localDateTime.toInstant(offset).toEpochMilli();
-  }
-
-  private String getGanttKey(List<GanttColumn> ganttColumnList, String filter) {
-    return ganttColumnList.get(0).getGantt()
-        .entrySet()
-        .stream()
-        .filter(f -> f.getKey().trim().equalsIgnoreCase(filter))
-        .findAny()
-        .orElseThrow()
-        .getKey();
-  }
-
-  private String getGanttKeyFloat(List<GanttColumn> ganttColumnList, String filter) {
-    return ganttColumnList.get(0).getGantt()
-        .entrySet()
-        .stream()
-        .filter(f -> {
-              Float val = Float.valueOf(f.getKey());
-              String valStr = String.format("%.2f", val);
-              return valStr.equals(filter);
-        })
-        .findAny()
-        .orElseThrow()
-        .getKey();
-  }
-
-  private List<GanttColumn> getGanttColumn(String tableName, CProfile cProfileFirst, CProfile cProfileSecond)
-      throws BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
-    return fStore.getGColumnListTwoLevelGroupBy(tableName, cProfileFirst, cProfileSecond, 0, Long.MAX_VALUE);
-  }
-
-  private String getStackedColumnKey(String tableName, CProfile cProfile)
-      throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tableName, cProfile, 0, Long.MAX_VALUE)
-        .stream()
-        .findAny()
-        .orElseThrow()
-        .getKeyCount()
-        .entrySet()
-        .stream()
-        .findAny()
-        .orElseThrow()
-        .getKey();
-  }
-
-  private Optional<StackedColumn> getStackedColumn(String tableName, CProfile cProfile)
-      throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tableName, cProfile, 0, Long.MAX_VALUE)
-        .stream()
-        .findAny();
-  }
-
-  private Optional<List<Object>> getRawDataByColumn(String tableName, CProfile cProfile) {
-    return fStore.getRawDataByColumn(tableName, cProfile, Long.MIN_VALUE, Long.MAX_VALUE)
-        .stream()
-        .findAny();
-  }
-
-  private CProfile getCProfile(List<CProfile> cProfiles, String colName) {
-    return cProfiles.stream().filter(f -> f.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow();
   }
 }
