@@ -32,7 +32,7 @@ import java.util.UUID;
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 @Disabled
-public class FBasePostgreSQLTest extends AbstractPostgreSQLTest {
+public class FBasePgSQLTest extends AbstractPostgreSQLTest {
 
   private final String selectAsh = "SELECT current_timestamp as SAMPLE_TIME, "
           + "datid, datname, "

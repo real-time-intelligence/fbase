@@ -7,6 +7,7 @@ import org.fbase.config.FBaseConfig;
 import org.fbase.core.BdbStore;
 import org.fbase.core.ChStore;
 import org.fbase.core.FStore;
+import org.fbase.core.PgSqlStore;
 import org.fbase.model.profile.table.BType;
 
 public class FBase {
@@ -29,6 +30,7 @@ public class FBase {
 
     switch (backendType) {
       case CLICKHOUSE -> this.fStore = new ChStore(this.fBaseConfig, basicDataSource);
+      case POSTGRES -> this.fStore = new PgSqlStore(this.fBaseConfig, basicDataSource);
       default -> throw new RuntimeException("Not supported yet for: " + backendType);
     }
   }

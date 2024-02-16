@@ -54,7 +54,7 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
 
   private ObjectMapper objectMapper;
 
-  public void initBackend(BType bType, BasicDataSource basicDataSource) {
+  public void initMetaDataBackend(BType bType, BasicDataSource basicDataSource) {
     try {
       System.getProperties().setProperty("oracle.jdbc.J2EE13Compliant", "true");
 
@@ -106,6 +106,11 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
 
       basicDataSource.setValidationQueryTimeout(5);
 
+      if (username != null) {
+        basicDataSource.setUsername(username);
+        basicDataSource.setPassword(password);
+      }
+
       if (BType.CLICKHOUSE.equals(bType)) {
         basicDataSource.setValidationQuery("SELECT 1");
         basicDataSource.addConnectionProperty("compress", "0");
@@ -122,14 +127,7 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
     return basicDataSource;
   }
 
-
-  protected long[] getBeginEndTimestamps() {
-    long begin = getUnitTimestamp(LocalDateTime.of(2016, 1, 1, 0, 0, 0, 0));
-    long end = getUnitTimestamp(LocalDateTime.of(2016, 12, 31, 23, 59, 59, 999999999));
-    return new long[]{begin, end};
-  }
-
-  private long getUnitTimestamp(LocalDateTime localDateTime) {
+  protected long getUnitTimestamp(LocalDateTime localDateTime) {
     ZoneOffset offset = ZoneId.systemDefault().getRules().getOffset(localDateTime);
     return localDateTime.toInstant(offset).toEpochMilli();
   }

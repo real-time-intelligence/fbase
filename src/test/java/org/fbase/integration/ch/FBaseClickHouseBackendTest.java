@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import lombok.extern.log4j.Log4j2;
@@ -44,7 +45,7 @@ public class FBaseClickHouseBackendTest extends AbstractBackendSQLTest {
     BType bType = BType.CLICKHOUSE;
     BasicDataSource basicDataSource = getDatasource(bType, driverClassName, dbUrl, null, null);
 
-    initBackend(BType.CLICKHOUSE, basicDataSource);
+    initMetaDataBackend(bType, basicDataSource);
 
     sProfile = getSProfileForBackend(tableName, basicDataSource, bType, select, tsName);
     tProfile = fStore.loadJdbcTableMetadata(basicDataSource.getConnection(), select, sProfile);
@@ -101,6 +102,12 @@ public class FBaseClickHouseBackendTest extends AbstractBackendSQLTest {
 
     assertEquals(1467244800, actual);
     assertEquals(expectedDate, actualDate);
+  }
+
+  protected long[] getBeginEndTimestamps() {
+    long begin = getUnitTimestamp(LocalDateTime.of(2016, 1, 1, 0, 0, 0, 0));
+    long end = getUnitTimestamp(LocalDateTime.of(2016, 12, 31, 23, 59, 59, 999999999));
+    return new long[]{begin, end};
   }
 
   private CProfile getCProfileByName(String colName) {
