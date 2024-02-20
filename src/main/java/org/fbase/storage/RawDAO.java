@@ -3,6 +3,7 @@ package org.fbase.storage;
 import com.sleepycat.persist.EntityCursor;
 import java.io.IOException;
 import java.util.List;
+import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.storage.bdb.entity.Metadata;
@@ -133,4 +134,11 @@ public interface RawDAO {
                                            String filter,
                                            long begin,
                                            long end);
+
+  List<GanttColumn> getListGanttColumn(String tableName,
+                                       CProfile tsCProfile,
+                                       CProfile firstGrpBy,
+                                       CProfile secondGrpBy,
+                                       long begin,
+                                       long end);
 }

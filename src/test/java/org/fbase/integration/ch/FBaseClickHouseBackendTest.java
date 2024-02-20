@@ -13,8 +13,10 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.fbase.common.AbstractBackendSQLTest;
 import org.fbase.exception.BeginEndWrongOrderException;
+import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -54,13 +56,23 @@ public class FBaseClickHouseBackendTest extends AbstractBackendSQLTest {
   }
 
   @Test
-  public void stackedColumnTest() throws IOException, BeginEndWrongOrderException, SqlColMetadataException {
+  public void stackedColumnTripTypeTest() throws IOException, BeginEndWrongOrderException, SqlColMetadataException {
     CProfile cProfile = getCProfileByName("TRIP_TYPE");
 
     long[] timestamps = getBeginEndTimestamps();
     List<StackedColumn> actual = fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, timestamps[0], timestamps[1]);
 
     assertData("trip_type.json", actual);
+  }
+
+  @Test
+  public void stackedColumnTripIdTest() throws IOException, BeginEndWrongOrderException, SqlColMetadataException {
+    CProfile cProfile = getCProfileByName("PASSENGER_COUNT");
+
+    long[] timestamps = getBeginEndTimestamps();
+    List<StackedColumn> actual = fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, timestamps[0], timestamps[1]);
+
+    assertData("passenger_count.json", actual);
   }
 
   @Test
@@ -102,6 +114,25 @@ public class FBaseClickHouseBackendTest extends AbstractBackendSQLTest {
 
     assertEquals(1467244800, actual);
     assertEquals(expectedDate, actualDate);
+  }
+
+  @Test
+  public void ganttColumnPumaBoroCodeTest()
+      throws IOException, BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
+    CProfile firstGrpBy = getCProfileByName("DROPOFF_PUMA");
+    CProfile secondGrpBy = getCProfileByName("DROPOFF_BOROCODE");
+
+    List<GanttColumn> expected = getGanttDataExpected("dropoff_puma__dropoff_borocode.json");
+
+    long[] timestamps = getBeginEndTimestamps();
+    List<GanttColumn> actual =
+        fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), firstGrpBy, secondGrpBy, timestamps[0], timestamps[1]);
+
+    log.info("Expected: " + expected);
+    log.info("Actual: " + actual);
+
+    assertGanttListEquals(expected, actual);
+    assertGanttMapEquals(expected, actual);
   }
 
   protected long[] getBeginEndTimestamps() {

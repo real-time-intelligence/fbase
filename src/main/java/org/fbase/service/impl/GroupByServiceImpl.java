@@ -15,6 +15,7 @@ import org.fbase.core.metamodel.MetaModelApi;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.BType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.fbase.service.CommonServiceApi;
@@ -54,6 +55,13 @@ public class GroupByServiceImpl extends CommonServiceApi implements GroupByServi
                                               CProfile secondGrpBy,
                                               long begin,
                                               long end) {
+    BType bType = metaModelApi.getBackendType(tableName);
+
+    if (!BType.BERKLEYDB.equals(bType)) {
+      CProfile tsProfile = metaModelApi.getTimestampCProfile(tableName);
+      return rawDAO.getListGanttColumn(tableName, tsProfile, firstGrpBy, secondGrpBy, begin, end);
+    }
+
     TType tableType = metaModelApi.getTableType(tableName);
 
     if (IType.GLOBAL.equals(tableType)) {

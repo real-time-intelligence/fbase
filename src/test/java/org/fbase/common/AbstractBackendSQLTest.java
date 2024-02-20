@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vividsolutions.jts.util.Assert;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -197,12 +198,29 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
                  actual.stream().findAny().orElseThrow().getKeyCount());
   }
 
+  protected void assertGanttMapEquals(List<GanttColumn> expected,
+                                      List<GanttColumn> actual) {
+    expected.forEach(exp -> Assert.equals(exp.getGantt(), actual.stream()
+        .filter(f -> f.getKey().equalsIgnoreCase(exp.getKey()))
+        .findFirst()
+        .orElseThrow()
+        .getGantt()));
+  }
+
   public void assertGanttListEquals(List<GanttColumn> expected, List<GanttColumn> actual) {
     assertTrue(expected.size() == actual.size() && expected.containsAll(actual) && actual.containsAll(expected));
   }
 
+  protected List<GanttColumn> getGanttDataExpected(String fileName) throws IOException {
+    return objectMapper.readValue(getGanttTestData(fileName), new TypeReference<>() {});
+  }
+
   protected List<StackedColumn> getStackedDataExpected(String fileName) throws IOException {
     return objectMapper.readValue(getStackedTestData(fileName), new TypeReference<>() {});
+  }
+
+  private String getGanttTestData(String fileName) throws IOException {
+    return Files.readString(Paths.get("src","test", "resources", "json", "gantt", fileName));
   }
 
   private String getStackedTestData(String fileName) throws IOException {

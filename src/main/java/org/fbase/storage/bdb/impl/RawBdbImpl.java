@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.CompressType;
+import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.storage.RawDAO;
@@ -543,6 +544,16 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
                                                   String filter,
                                                   long begin,
                                                   long end) {
+    throw new RuntimeException("Not supported");
+  }
+
+  @Override
+  public List<GanttColumn> getListGanttColumn(String tableName,
+                                              CProfile tsCProfile,
+                                              CProfile firstGrpBy,
+                                              CProfile secondGrpBy,
+                                              long begin,
+                                              long end) {
     throw new RuntimeException("Not supported");
   }
 

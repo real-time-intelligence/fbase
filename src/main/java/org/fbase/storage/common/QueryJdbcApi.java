@@ -7,8 +7,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.storage.dialect.DatabaseDialect;
@@ -21,14 +25,14 @@ public abstract class QueryJdbcApi {
     this.basicDataSource = basicDataSource;
   }
 
-  public List<StackedColumn> getListStackedColumn(String tableName,
-                                                  CProfile tsCProfile,
-                                                  CProfile cProfile,
-                                                  CProfile cProfileFilter,
-                                                  String filter,
-                                                  long begin,
-                                                  long end,
-                                                  DatabaseDialect databaseDialect) {
+  protected List<StackedColumn> getListStackedColumn(String tableName,
+                                                     CProfile tsCProfile,
+                                                     CProfile cProfile,
+                                                     CProfile cProfileFilter,
+                                                     String filter,
+                                                     long begin,
+                                                     long end,
+                                                     DatabaseDialect databaseDialect) {
     List<StackedColumn> results = new ArrayList<>();
 
     String colName = cProfile.getColName().toLowerCase();
@@ -63,6 +67,52 @@ public abstract class QueryJdbcApi {
     }
 
     return results;
+  }
+
+  protected List<GanttColumn> getListGanttColumn(String tableName,
+                                                 CProfile tsCProfile,
+                                                 CProfile firstGrpBy,
+                                                 CProfile secondGrpBy,
+                                                 long begin,
+                                                 long end,
+                                                 DatabaseDialect databaseDialect) {
+    List<GanttColumn> ganttColumns = new ArrayList<>();
+
+    String firstColName = firstGrpBy.getColName().toLowerCase();
+    String secondColName = secondGrpBy.getColName().toLowerCase();
+
+    String query =
+        "SELECT " + firstColName + ", " + secondColName + ", COUNT(" + secondColName + ") " +
+            "FROM " + tableName + " " +
+            databaseDialect.getWhereClass(tsCProfile, null, null) +
+            "GROUP BY " + firstColName + ", " + secondColName;
+
+    Map<String, Map<String, Integer>> map = new LinkedHashMap<>();
+
+    try (Connection conn = basicDataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(query)) {
+
+      databaseDialect.setDateTime(tsCProfile, ps, 1, begin);
+      databaseDialect.setDateTime(tsCProfile, ps, 2, end);
+
+      ResultSet rs = ps.executeQuery();
+
+      while (rs.next()) {
+        String key = rs.getString(1);
+        String keyGantt = rs.getString(2);
+        int countGantt = rs.getInt(3);
+
+        map.computeIfAbsent(key, k -> new HashMap<>()).put(keyGantt, countGantt);
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+
+    for (Map.Entry<String, Map<String, Integer>> entry : map.entrySet()) {
+      GanttColumn column = new GanttColumn(entry.getKey(), new LinkedHashMap<>(entry.getValue()));
+      ganttColumns.add(column);
+    }
+
+    return ganttColumns;
   }
 
   protected long getLastBlockIdLocal(String tableName,
