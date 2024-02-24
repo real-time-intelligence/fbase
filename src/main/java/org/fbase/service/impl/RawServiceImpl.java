@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.core.metamodel.MetaModelApi;
-import org.fbase.exception.SqlColMetadataException;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
@@ -45,37 +44,6 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     this.rawDAO = rawDAO;
     this.histogramDAO = histogramDAO;
     this.enumDAO = enumDAO;
-  }
-
-  @Override
-  public List<StackedColumn> getListStackedColumn(String tableName,
-                                                  CProfile cProfile,
-                                                  long begin,
-                                                  long end)
-      throws SqlColMetadataException {
-    byte tableId = metaModelApi.getTableId(tableName);
-    CProfile tsProfile = metaModelApi.getTimestampCProfile(tableName);
-
-    if (!tsProfile.getCsType().isTimeStamp()) {
-      throw new SqlColMetadataException("Timestamp column not defined..");
-    }
-
-    if (cProfile.getCsType().isTimeStamp()) {
-      throw new SqlColMetadataException("Not supported for timestamp column..");
-    }
-
-    List<StackedColumn> list = new ArrayList<>();
-
-    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
-
-    if (previousBlockId != begin & previousBlockId != 0) {
-      this.computeNoIndexBeginEnd(tableId, tsProfile, cProfile, previousBlockId, begin, end, list);
-    }
-
-    this.rawDAO.getListBlockIds(tableId, begin, end)
-        .forEach(blockId -> this.computeNoIndexBeginEnd(tableId, tsProfile, cProfile, blockId, begin, end, list));
-
-    return list;
   }
 
   @Override
