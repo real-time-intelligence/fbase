@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.metadata.DataType;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.SProfile;
@@ -50,9 +52,9 @@ public class FBase11MapArrayTest extends AbstractDirectTest {
 
   @Test
   public void computeStackedTest() throws BeginEndWrongOrderException, SqlColMetadataException {
-    List<StackedColumn> listMessage = getDataStackedColumn("MESSAGE", Integer.MIN_VALUE, Integer.MAX_VALUE);
-    List<StackedColumn> listMap = getDataStackedColumn("MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
-    List<StackedColumn> listArray = getDataStackedColumn("ARRAY", Integer.MIN_VALUE, Integer.MAX_VALUE);
+    List<StackedColumn> listMessage = getDataStackedColumn("MESSAGE", GroupFunction.COUNT, Integer.MIN_VALUE, Integer.MAX_VALUE);
+    List<StackedColumn> listMap = getDataStackedColumn("MAP", GroupFunction.COUNT, Integer.MIN_VALUE, Integer.MAX_VALUE);
+    List<StackedColumn> listArray = getDataStackedColumn("ARRAY", GroupFunction.COUNT, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     assertEquals(findListStackedKey(listMessage, testMessage1), testMessage1);
     assertEquals(findListStackedValue(listMessage, testMessage1), 2);
@@ -113,9 +115,12 @@ public class FBase11MapArrayTest extends AbstractDirectTest {
   private List<StackedColumn> getTestDataArray() {
     List<StackedColumn> expected = new ArrayList<>();
 
-    expected.add(new StackedColumn(0, 1, createKeyCountMap("array value 1=2", "array value 2=2")));
-    expected.add(new StackedColumn(10, 11, createKeyCountMap("array value 1=2", "array value 2=2")));
-    expected.add(new StackedColumn(20, 21, createKeyCountMap("array value 1=2", "array value 2=2")));
+    expected.add(new StackedColumn(0, 1, createKeyCountMap("array value 1=2", "array value 2=2"),
+                                   Collections.emptyMap(), Collections.emptyMap()));
+    expected.add(new StackedColumn(10, 11, createKeyCountMap("array value 1=2", "array value 2=2"),
+                                   Collections.emptyMap(), Collections.emptyMap()));
+    expected.add(new StackedColumn(20, 21, createKeyCountMap("array value 1=2", "array value 2=2"),
+                                   Collections.emptyMap(), Collections.emptyMap()));
 
     return expected;
   }

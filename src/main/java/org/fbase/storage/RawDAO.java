@@ -3,6 +3,7 @@ package org.fbase.storage;
 import com.sleepycat.persist.EntityCursor;
 import java.io.IOException;
 import java.util.List;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -130,6 +131,7 @@ public interface RawDAO {
   List<StackedColumn> getListStackedColumn(String tableName,
                                            CProfile tsCProfile,
                                            CProfile cProfile,
+                                           GroupFunction groupFunction,
                                            CProfile cProfileFilter,
                                            String filter,
                                            long begin,

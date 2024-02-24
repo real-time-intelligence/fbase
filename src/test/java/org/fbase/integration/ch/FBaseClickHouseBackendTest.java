@@ -16,6 +16,7 @@ import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -60,7 +61,7 @@ public class FBaseClickHouseBackendTest extends AbstractBackendSQLTest {
     CProfile cProfile = getCProfileByName("TRIP_TYPE");
 
     long[] timestamps = getBeginEndTimestamps();
-    List<StackedColumn> actual = fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, timestamps[0], timestamps[1]);
+    List<StackedColumn> actual = fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, GroupFunction.COUNT, timestamps[0], timestamps[1]);
 
     assertData("trip_type.json", actual);
   }
@@ -70,7 +71,7 @@ public class FBaseClickHouseBackendTest extends AbstractBackendSQLTest {
     CProfile cProfile = getCProfileByName("PASSENGER_COUNT");
 
     long[] timestamps = getBeginEndTimestamps();
-    List<StackedColumn> actual = fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, timestamps[0], timestamps[1]);
+    List<StackedColumn> actual = fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, GroupFunction.COUNT, timestamps[0], timestamps[1]);
 
     assertData("passenger_count.json", actual);
   }
@@ -84,7 +85,7 @@ public class FBaseClickHouseBackendTest extends AbstractBackendSQLTest {
 
     long[] timestamps = getBeginEndTimestamps();
     List<StackedColumn> actual =
-        fStore.getSColumnListByCProfileFilter(tProfile.getTableName(), cProfile, cProfileFilter, filter, timestamps[0], timestamps[1]);
+        fStore.getSColumnListByCProfileFilter(tProfile.getTableName(), cProfile, GroupFunction.COUNT, cProfileFilter, filter, timestamps[0], timestamps[1]);
 
     assertData("trip_type_filter_trip_id.json", actual);
   }
@@ -98,7 +99,7 @@ public class FBaseClickHouseBackendTest extends AbstractBackendSQLTest {
 
     long[] timestamps = getBeginEndTimestamps();
     List<StackedColumn> actual =
-        fStore.getSColumnListByCProfileFilter(tProfile.getTableName(), cProfile, cProfileFilter, filter, timestamps[0], timestamps[1]);
+        fStore.getSColumnListByCProfileFilter(tProfile.getTableName(), cProfile, GroupFunction.COUNT, cProfileFilter, filter, timestamps[0], timestamps[1]);
 
     assertData("trip_type_filter_vendor_id.json", actual);
   }

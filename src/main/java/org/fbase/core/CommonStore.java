@@ -22,6 +22,7 @@ import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.handler.MetaModelHandler;
 import org.fbase.handler.MetadataHandler;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.MetaModel;
 import org.fbase.model.MetaModel.TableMetadata;
 import org.fbase.model.output.GanttColumn;
@@ -472,6 +473,7 @@ public abstract class CommonStore implements FStore {
   @Override
   public List<StackedColumn> getSColumnListByCProfile(String tableName,
                                                       CProfile cProfile,
+                                                      GroupFunction groupFunction,
                                                       long begin,
                                                       long end)
       throws SqlColMetadataException, BeginEndWrongOrderException {
@@ -480,18 +482,19 @@ public abstract class CommonStore implements FStore {
       throw new BeginEndWrongOrderException("Begin value must be less the end one..");
     }
 
-    return this.groupByOneService.getListStackedColumn(tableName, cProfile, begin, end);
+    return this.groupByOneService.getListStackedColumn(tableName, cProfile, groupFunction, begin, end);
   }
 
   @Override
   public List<StackedColumn> getSColumnListByCProfileFilter(String tableName,
                                                             CProfile cProfile,
+                                                            GroupFunction groupFunction,
                                                             CProfile cProfileFilter,
                                                             String filter,
                                                             long begin,
                                                             long end)
       throws SqlColMetadataException, BeginEndWrongOrderException {
-    return this.groupByOneService.getListStackedColumnFilter(tableName, cProfile, cProfileFilter, filter, begin, end);
+    return this.groupByOneService.getListStackedColumnFilter(tableName, cProfile, groupFunction, cProfileFilter, filter, begin, end);
   }
 
   @Override

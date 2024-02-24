@@ -15,6 +15,7 @@ import org.fbase.common.AbstractBackendSQLTest;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -106,7 +107,8 @@ public class FBasePgSQLBackendTest extends AbstractBackendSQLTest {
         .build();
 
     long[] timestamps = getBeginEndTimestamps();
-    List<StackedColumn> actualList = fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, timestamps[0], timestamps[1]);
+    List<StackedColumn> actualList =
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, GroupFunction.COUNT, timestamps[0], timestamps[1]);
 
     StackedColumn actual = actualList.stream()
         .filter(f -> f.getKey() == pg_dt_timestamp.getTime())
@@ -129,7 +131,13 @@ public class FBasePgSQLBackendTest extends AbstractBackendSQLTest {
 
     long[] timestamps = getBeginEndTimestamps();
     List<StackedColumn> actualList =
-        fStore.getSColumnListByCProfileFilter(tProfile.getTableName(), cProfile, cProfileFilter, pg_dt_varchar_filter, timestamps[0], timestamps[1]);
+        fStore.getSColumnListByCProfileFilter(tProfile.getTableName(),
+                                              cProfile,
+                                              GroupFunction.COUNT,
+                                              cProfileFilter,
+                                              pg_dt_varchar_filter,
+                                              timestamps[0],
+                                              timestamps[1]);
 
     StackedColumn actual = actualList.stream()
         .filter(f -> f.getKey() == pg_dt_timestamp.getTime())

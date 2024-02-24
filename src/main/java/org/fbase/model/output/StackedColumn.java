@@ -21,4 +21,6 @@ public class StackedColumn {
   private long tail;
 
   private Map<String, Integer> keyCount = new HashMap<>();
+  private Map<String, Double> keySum = new HashMap<>();
+  private Map<String, Double> keyAvg = new HashMap<>();
 }

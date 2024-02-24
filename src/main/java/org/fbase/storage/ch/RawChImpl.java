@@ -7,6 +7,7 @@ import java.util.Map;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.fbase.core.metamodel.MetaModelApi;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -228,11 +229,12 @@ public class RawChImpl extends QueryJdbcApi implements RawDAO {
   public List<StackedColumn> getListStackedColumn(String tableName,
                                                   CProfile tsCProfile,
                                                   CProfile cProfile,
+                                                  GroupFunction groupFunction,
                                                   CProfile cProfileFilter,
                                                   String filter,
                                                   long begin,
                                                   long end) {
-    return getListStackedColumn(tableName, tsCProfile, cProfile, cProfileFilter, filter, begin, end, databaseDialect);
+    return getListStackedColumn(tableName, tsCProfile, cProfile, groupFunction, cProfileFilter, filter, begin, end, databaseDialect);
   }
 
   @Override

@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -28,6 +29,7 @@ public abstract class QueryJdbcApi {
   protected List<StackedColumn> getListStackedColumn(String tableName,
                                                      CProfile tsCProfile,
                                                      CProfile cProfile,
+                                                     GroupFunction groupFunction,
                                                      CProfile cProfileFilter,
                                                      String filter,
                                                      long begin,

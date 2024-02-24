@@ -5,13 +5,16 @@ import static org.fbase.metadata.DataType.MAP;
 
 import com.sleepycat.persist.EntityCursor;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalDouble;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.core.metamodel.MetaModelApi;
 import org.fbase.exception.SqlColMetadataException;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
@@ -29,6 +32,7 @@ import org.fbase.storage.helper.EnumHelper;
 
 @Log4j2
 public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOneService {
+
   private final MetaModelApi metaModelApi;
   private final Converter converter;
   private final HistogramDAO histogramDAO;
@@ -50,6 +54,7 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
   @Override
   public List<StackedColumn> getListStackedColumn(String tableName,
                                                   CProfile cProfile,
+                                                  GroupFunction groupFunction,
                                                   long begin,
                                                   long end) throws SqlColMetadataException {
     CProfile tsProfile = metaModelApi.getTimestampCProfile(tableName);
@@ -62,12 +67,21 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
       throw new SqlColMetadataException("Not supported for timestamp column..");
     }
 
-    return this.getListStackedColumn(tableName, tsProfile, cProfile, null, null, begin, end);
+    if (GroupFunction.COUNT.equals(groupFunction)) {
+      return this.getListStackedColumnCount(tableName, tsProfile, cProfile, null, null, begin, end);
+    } else if (GroupFunction.SUM.equals(groupFunction)) {
+      return this.getListStackedColumnSum(tableName, tsProfile, cProfile, groupFunction, begin, end);
+    } else if (GroupFunction.AVG.equals(groupFunction)) {
+      return this.getListStackedColumnAvg(tableName, tsProfile, cProfile, groupFunction, begin, end);
+    } else {
+      throw new RuntimeException("Group function not supported: " + groupFunction);
+    }
   }
 
   @Override
   public List<StackedColumn> getListStackedColumnFilter(String tableName,
                                                         CProfile cProfile,
+                                                        GroupFunction groupFunction,
                                                         CProfile cProfileFilter,
                                                         String filter,
                                                         long begin,
@@ -82,20 +96,150 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
       throw new SqlColMetadataException("Not supported for timestamp column..");
     }
 
-    return this.getListStackedColumn(tableName, tsProfile, cProfile, cProfileFilter, filter, begin, end);
+    if (GroupFunction.COUNT.equals(groupFunction)) {
+      return this.getListStackedColumnCount(tableName, tsProfile, cProfile, cProfileFilter, filter, begin, end);
+    } else if (GroupFunction.SUM.equals(groupFunction) | GroupFunction.AVG.equals(groupFunction)) {
+      throw new RuntimeException("Not supported for: " + groupFunction);
+    } else {
+      throw new RuntimeException("Group function not supported: " + groupFunction);
+    }
   }
 
-  private List<StackedColumn> getListStackedColumn(String tableName,
-                                                   CProfile tsProfile,
-                                                   CProfile cProfile,
-                                                   CProfile cProfileFilter,
-                                                   String filter,
-                                                   long begin,
-                                                   long end) {
+  private List<StackedColumn> getListStackedColumnSum(String tableName,
+                                                      CProfile tsProfile,
+                                                      CProfile cProfile,
+                                                      GroupFunction groupFunction,
+                                                      long begin,
+                                                      long end) {
     BType bType = metaModelApi.getBackendType(tableName);
 
     if (!BType.BERKLEYDB.equals(bType)) {
-      return rawDAO.getListStackedColumn(tableName, tsProfile, cProfile, cProfileFilter, filter, begin, end);
+      return rawDAO.getListStackedColumn(tableName, tsProfile, cProfile, groupFunction, null, null, begin, end);
+    }
+
+    byte tableId = metaModelApi.getTableId(tableName);
+
+    StackedColumn stackedColumn = StackedColumn.builder().key(begin).tail(end).build();
+    stackedColumn.setKeySum(new HashMap<>());
+
+    List<Object> columnData = getColumnData(tableId, tsProfile, cProfile, begin, end);
+    if (!columnData.isEmpty()) {
+      double sum = columnData.stream()
+          .mapToDouble(item -> Double.parseDouble((String) item))
+          .sum();
+
+      stackedColumn.getKeySum().put(cProfile.getColName(), sum);
+    }
+
+    return List.of(stackedColumn);
+  }
+
+  private List<StackedColumn> getListStackedColumnAvg(String tableName,
+                                                      CProfile tsProfile,
+                                                      CProfile cProfile,
+                                                      GroupFunction groupFunction,
+                                                      long begin,
+                                                      long end) {
+    BType bType = metaModelApi.getBackendType(tableName);
+
+    if (!BType.BERKLEYDB.equals(bType)) {
+      return rawDAO.getListStackedColumn(tableName, tsProfile, cProfile, groupFunction, null, null, begin, end);
+    }
+
+    byte tableId = metaModelApi.getTableId(tableName);
+
+    StackedColumn stackedColumn = StackedColumn.builder().key(begin).tail(end).build();
+    stackedColumn.setKeyAvg(new HashMap<>());
+
+    List<Object> columnData = getColumnData(tableId, tsProfile, cProfile, begin, end);
+
+    OptionalDouble average = columnData.stream()
+        .mapToDouble(item -> Double.parseDouble((String) item))
+        .average();
+
+    if (average.isPresent()) {
+      stackedColumn.getKeyAvg().put(cProfile.getColName(), average.getAsDouble());
+    }
+
+    return List.of(stackedColumn);
+  }
+
+  private List<Object> getColumnData(byte tableId, CProfile tsProfile, CProfile cProfile, long begin, long end) {
+    List<Object> columnData = new ArrayList<>();
+
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    if (previousBlockId != begin & previousBlockId != 0) {
+      this.computeRawDataBeginEnd(tableId, tsProfile, cProfile, previousBlockId, begin, end, columnData);
+    }
+
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId ->
+                     this.computeRawDataBeginEnd(tableId, tsProfile, cProfile, blockId, begin, end, columnData));
+
+    return columnData;
+  }
+
+
+  private void computeRawDataBeginEnd(byte tableId,
+                                      CProfile tsProfile,
+                                      CProfile cProfile,
+                                      long blockId,
+                                      long begin,
+                                      long end,
+                                      List<Object> columnData) {
+    long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsProfile.getColId());
+
+    MetadataKey metadataKey = MetadataKey.builder().tableId(tableId).blockId(blockId).build();
+
+    SType sType = getSType(cProfile.getColId(), rawDAO.getMetadata(metadataKey));
+
+    if (SType.RAW.equals(sType) & !cProfile.getCsType().isTimeStamp()) { // raw data
+      String[] column = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
+
+      if (column.length != 0) {
+        IntStream iRow = IntStream.range(0, timestamps.length);
+        iRow.forEach(iR -> {
+          if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+            columnData.add(column[iR]);
+          }
+        });
+      }
+    }
+
+    if (SType.HISTOGRAM.equals(sType)) { // indexed data
+      int[][] h = histogramDAO.get(tableId, blockId, cProfile.getColId());
+
+      for (int i = 0; i < timestamps.length; i++) {
+        if (timestamps[i] >= begin & timestamps[i] <= end) {
+          columnData.add(this.converter.convertIntToRaw(getHistogramValue(i, h, timestamps), cProfile));
+        }
+      }
+    }
+
+    if (SType.ENUM.equals(sType)) { // enum data
+      EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
+
+      IntStream iRow = IntStream.range(0, timestamps.length);
+
+      iRow.forEach(iR -> {
+        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+          columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn.getValues(), eColumn.getDataByte()[iR]), cProfile));
+        }
+      });
+    }
+  }
+
+  private List<StackedColumn> getListStackedColumnCount(String tableName,
+                                                        CProfile tsProfile,
+                                                        CProfile cProfile,
+                                                        CProfile cProfileFilter,
+                                                        String filter,
+                                                        long begin,
+                                                        long end) {
+    BType bType = metaModelApi.getBackendType(tableName);
+
+    if (!BType.BERKLEYDB.equals(bType)) {
+      return rawDAO.getListStackedColumn(tableName, tsProfile, cProfile, GroupFunction.COUNT, cProfileFilter, filter, begin, end);
     }
 
     byte tableId = metaModelApi.getTableId(tableName);
@@ -360,7 +504,7 @@ public class GroupByOneServiceImpl extends CommonServiceApi implements GroupByOn
 
       if (i == f[0].length - 1) { //todo last row
         if (f[0][i] == 0) {
-           deltaCountValue = 1;
+          deltaCountValue = 1;
         } else {
           deltaCountValue = timestamps.length - f[0][i];
         }

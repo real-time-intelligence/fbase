@@ -9,6 +9,7 @@ import org.fbase.exception.EnumByteExceedException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -110,16 +111,18 @@ public interface FStore {
   /**
    * Get list stacked data by column
    *
-   * @param tableName - Table name
-   * @param cProfile  - Column profile
-   * @param begin     - start of range
-   * @param end       - end of range
+   * @param tableName     - Table name
+   * @param cProfile      - Column profile
+   * @param groupFunction - COUNT, SUM or AVG
+   * @param begin         - start of range
+   * @param end           - end of range
    * @return {@literal List<StackedColumn>} - list data in StackedColumn
    * @throws SqlColMetadataException
    * @throws BeginEndWrongOrderException
    */
   List<StackedColumn> getSColumnListByCProfile(String tableName,
                                                CProfile cProfile,
+                                               GroupFunction groupFunction,
                                                long begin,
                                                long end)
       throws SqlColMetadataException, BeginEndWrongOrderException;
@@ -129,6 +132,7 @@ public interface FStore {
    *
    * @param tableName      - Table name
    * @param cProfile       - Column profile
+   * @param groupFunction  - COUNT, SUM or AVG
    * @param cProfileFilter - Column profile filter
    * @param filter         - Filter value for column profile filter
    * @param begin          - start of range
@@ -139,6 +143,7 @@ public interface FStore {
    */
   List<StackedColumn> getSColumnListByCProfileFilter(String tableName,
                                                      CProfile cProfile,
+                                                     GroupFunction groupFunction,
                                                      CProfile cProfileFilter,
                                                      String filter,
                                                      long begin,

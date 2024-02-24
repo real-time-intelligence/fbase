@@ -25,6 +25,7 @@ import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.metadata.DataType;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -144,6 +145,38 @@ public abstract class AbstractDirectTest {
     }
   }
 
+  protected void putDataGroupFunctionsDirect(SProfile sProfile) {
+    fStore = fBase.getFStore();
+
+    try {
+      tProfile = loadTableMetadata(sProfile);
+
+      String tableName = tProfile.getTableName();
+      cProfiles = tProfile.getCProfiles();
+
+      AtomicInteger atomicInteger1 = new AtomicInteger(0);
+
+      List<List<Object>> data1 = new ArrayList<>();
+      data1.add(atomicInteger1.getAndIncrement(), addValue(startTime));
+      data1.add(atomicInteger1.getAndIncrement(), addValue(longValue));
+      data1.add(atomicInteger1.getAndIncrement(), addValue(doubleValue - 1));
+      data1.add(atomicInteger1.getAndIncrement(), addValue(stringValue));
+
+      AtomicInteger atomicInteger2 = new AtomicInteger(0);
+      List<List<Object>> data2 = new ArrayList<>();
+      data2.add(atomicInteger2.getAndIncrement(), addValue(startTime + 1));
+      data2.add(atomicInteger2.getAndIncrement(), addValue(longValue));
+      data2.add(atomicInteger2.getAndIncrement(), addValue(doubleValue + 1));
+      data2.add(atomicInteger2.getAndIncrement(), addValue(stringValue));
+
+      fStore.putDataDirect(tableName, data1);
+      fStore.putDataDirect(tableName, data2);
+
+    } catch (SqlColMetadataException | EnumByteExceedException | TableNameEmptyException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private <T> ArrayList<T> addValue(T value) {
     ArrayList<T> list = new ArrayList<>(1);
     list.add(value);
@@ -219,10 +252,10 @@ public abstract class AbstractDirectTest {
   }
 
   public List<StackedColumn> getListStackedDataBySqlCol(FStore fStore, TProfile tProfile,
-      List<CProfile> cProfiles, String colName, long begin, long end)
+      List<CProfile> cProfiles, String colName, GroupFunction groupFunction, long begin, long end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
     return fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfiles.stream()
-        .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow(), begin, end);
+        .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow(), groupFunction, begin, end);
   }
 
   public Object findListStackedKey(List<StackedColumn> list, String filter) {
@@ -247,9 +280,9 @@ public abstract class AbstractDirectTest {
     return null;
   }
 
-  public List<StackedColumn> getDataStackedColumn(String colName, long begin, long end)
+  public List<StackedColumn> getDataStackedColumn(String colName, GroupFunction groupFunction, long begin, long end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return getListStackedDataBySqlCol(fStore, tProfile, cProfiles, colName, begin, end);
+    return getListStackedDataBySqlCol(fStore, tProfile, cProfiles, colName, groupFunction, begin, end);
   }
 
   public List<List<Object>> getRawDataAll(long begin, long end) {

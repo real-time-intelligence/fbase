@@ -9,6 +9,7 @@ import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -92,11 +93,11 @@ public class FBasePgSQLTest extends AbstractPostgreSQLTest {
     CProfile cProfileRaw = cProfiles.stream().filter(f -> f.getColName().equals("VALUE_RAW")).findAny().get();
 
     List<StackedColumn> stackedColumnsHistogram =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileHistogram, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileHistogram, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsEnum =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileEnum, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileEnum, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsRaw =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileRaw, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileRaw, GroupFunction.COUNT, 0, Long.MAX_VALUE);
 
     System.out.println(stackedColumnsHistogram);
     System.out.println(stackedColumnsEnum);
@@ -123,11 +124,11 @@ public class FBasePgSQLTest extends AbstractPostgreSQLTest {
     CProfile cProfileEvent = cProfiles.stream().filter(f -> f.getColName().equals("EVENT")).findAny().get();
 
     List<StackedColumn> stackedColumnsBySampleTime =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileSampleTime, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileSampleTime, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsBySqlId =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileSqlId, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileSqlId, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsByEvent =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileEvent, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileEvent, GroupFunction.COUNT, 0, Long.MAX_VALUE);
 
     System.out.println(stackedColumnsBySampleTime);
     System.out.println(stackedColumnsBySqlId);
@@ -509,12 +510,12 @@ public class FBasePgSQLTest extends AbstractPostgreSQLTest {
 
   private List<StackedColumn> getStackedColumn(String tableName, CProfile cProfile)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tableName, cProfile, 0, Long.MAX_VALUE);
+    return fStore.getSColumnListByCProfile(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE);
   }
 
   private String getStackedColumnKey(String tableName, CProfile cProfile)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tableName, cProfile, 0, Long.MAX_VALUE)
+    return fStore.getSColumnListByCProfile(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
         .stream()
         .findAny()
         .orElseThrow()

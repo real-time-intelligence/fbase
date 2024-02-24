@@ -28,6 +28,7 @@ import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -115,11 +116,11 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     CProfile cProfileRaw = cProfiles.stream().filter(f -> f.getColName().equals("VALUE_RAW")).findAny().get();
 
     List<StackedColumn> stackedColumnsHistogram =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileHistogram, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileHistogram, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsEnum =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileEnum, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileEnum, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsRaw =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileRaw, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileRaw, GroupFunction.COUNT, 0, Long.MAX_VALUE);
 
     System.out.println(stackedColumnsHistogram);
     System.out.println(stackedColumnsEnum);
@@ -147,13 +148,13 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     CProfile cProfileIsUserProcess = cProfiles.stream().filter(f -> f.getColName().equals("IS_USER_PROCESS")).findAny().get();
 
     List<StackedColumn> stackedColumnsBySampleTime =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileLoginName, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileLoginName, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsBySqlId =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileSessId, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileSessId, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsByEvent =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileProgramName, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileProgramName, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsByIsUserProcess =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileIsUserProcess, 0, Long.MAX_VALUE);
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileIsUserProcess, GroupFunction.COUNT, 0, Long.MAX_VALUE);
 
     List<List<Object>> rawData = fStore.getRawDataAll(tProfile.getTableName(), 0, Long.MAX_VALUE);
 
@@ -569,7 +570,7 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
 
   private String getStackedColumnKey(String tableName, CProfile cProfile)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tableName, cProfile, 0, Long.MAX_VALUE)
+    return fStore.getSColumnListByCProfile(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
         .stream()
         .findAny()
         .orElseThrow()

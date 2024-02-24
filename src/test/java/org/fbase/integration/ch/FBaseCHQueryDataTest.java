@@ -27,6 +27,7 @@ import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -375,7 +376,7 @@ public class FBaseCHQueryDataTest implements ClickHouse {
 
   private List<StackedColumn> getListStackedColumn(FStore fStore,
       CProfile cProfile, long begin, long end) throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, begin, end);
+    return fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, GroupFunction.COUNT, begin, end);
   }
 
   private String getGanttTestData(String fileName) throws IOException {

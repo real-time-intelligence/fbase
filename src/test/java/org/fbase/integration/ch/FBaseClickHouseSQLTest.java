@@ -39,6 +39,7 @@ import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -817,7 +818,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
 
   private String getStackedColumnKey(String tableName, CProfile cProfile)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tableName, cProfile, 0, Long.MAX_VALUE)
+    return fStore.getSColumnListByCProfile(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
         .stream()
         .findAny()
         .orElseThrow()
@@ -831,7 +832,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
 
   private Optional<StackedColumn> getStackedColumn(String tableName, CProfile cProfile)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tableName, cProfile, 0, Long.MAX_VALUE)
+    return fStore.getSColumnListByCProfile(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
         .stream()
         .findAny();
   }

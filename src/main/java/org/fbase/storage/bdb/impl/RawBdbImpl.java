@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.CompressType;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -540,6 +541,7 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   public List<StackedColumn> getListStackedColumn(String tableName,
                                                   CProfile tsCProfile,
                                                   CProfile cProfile,
+                                                  GroupFunction groupFunction,
                                                   CProfile cProfileFilter,
                                                   String filter,
                                                   long begin,

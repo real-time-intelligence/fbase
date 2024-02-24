@@ -15,6 +15,7 @@ import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.metadata.DataType;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.SProfile;
@@ -51,9 +52,9 @@ public class FBase13LongDoubleDirectTest extends AbstractDirectTest {
 
   @Test
   public void computeStackedTest() throws BeginEndWrongOrderException, SqlColMetadataException, IOException {
-    List<StackedColumn> longField = getDataStackedColumn("LONG_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
-    List<StackedColumn> doubleField = getDataStackedColumn("DOUBLE_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
-    List<StackedColumn> stringField = getDataStackedColumn("STRING_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
+    List<StackedColumn> longField = getDataStackedColumn("LONG_FIELD", GroupFunction.COUNT, Long.MIN_VALUE, Long.MAX_VALUE);
+    List<StackedColumn> doubleField = getDataStackedColumn("DOUBLE_FIELD", GroupFunction.COUNT, Long.MIN_VALUE, Long.MAX_VALUE);
+    List<StackedColumn> stringField = getDataStackedColumn("STRING_FIELD", GroupFunction.COUNT, Long.MIN_VALUE, Long.MAX_VALUE);
 
     List<StackedColumn> expected = getStackedDataExpected("long_double_string_stacked.json");
     List<StackedColumn> actual = Stream.of(longField.stream(),

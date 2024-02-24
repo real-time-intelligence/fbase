@@ -23,6 +23,7 @@ import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.metadata.DataType;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.Person;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
@@ -390,7 +391,7 @@ public abstract class AbstractH2Test implements JdbcSource {
                                                         int end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
     return fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfiles.stream()
-        .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow(), begin, end);
+        .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow(), GroupFunction.COUNT, begin, end);
   }
 
   public List<StackedColumn> getListStackedDataBySqlColFilter(FStore fStore,
@@ -406,7 +407,7 @@ public abstract class AbstractH2Test implements JdbcSource {
         .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow();
     CProfile cProfileFilter = cProfiles.stream()
         .filter(k -> k.getColName().equalsIgnoreCase(colNameFilter)).findAny().orElseThrow();
-    return fStore.getSColumnListByCProfileFilter(tProfile.getTableName(), cProfile, cProfileFilter,
+    return fStore.getSColumnListByCProfileFilter(tProfile.getTableName(), cProfile, GroupFunction.COUNT, cProfileFilter,
                                            filter, begin, end);
   }
 
