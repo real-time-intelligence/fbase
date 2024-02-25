@@ -105,6 +105,22 @@ public class FBaseClickHouseBackendTest extends AbstractBackendSQLTest {
   }
 
   @Test
+  public void stackedColumnVendorIdTest() throws BeginEndWrongOrderException, SqlColMetadataException {
+    CProfile cProfile = getCProfileByName("TRIP_ID");
+
+    long[] timestamps = getBeginEndTimestamps();
+    List<StackedColumn> actualSum =
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, GroupFunction.SUM, timestamps[0], timestamps[1]);
+    List<StackedColumn> actualAvg =
+        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfile, GroupFunction.AVG, timestamps[0], timestamps[1]);
+
+    assertEquals(85054314756844435D,
+                 actualSum.stream().findAny().orElseThrow().getKeySum().get(cProfile.getColName().toLowerCase()));
+    assertEquals(1084536854.2993798D,
+                 actualAvg.stream().findAny().orElseThrow().getKeyAvg().get(cProfile.getColName().toLowerCase()));
+  }
+
+  @Test
   public void getLastTimestampTest() {
     long[] timestamps = getBeginEndTimestamps();
 

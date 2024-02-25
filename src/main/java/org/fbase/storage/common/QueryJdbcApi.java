@@ -39,11 +39,8 @@ public abstract class QueryJdbcApi {
 
     String colName = cProfile.getColName().toLowerCase();
 
-    String query =
-            "SELECT " + colName + ", COUNT(" + colName + ") " +
-            "FROM " + tableName + " " +
-              databaseDialect.getWhereClass(tsCProfile, cProfileFilter, filter) +
-            "GROUP BY " + colName;
+    String query = getQuery(tableName, colName, groupFunction,
+                            databaseDialect.getWhereClass(tsCProfile, cProfileFilter, filter));
 
     try (Connection conn = basicDataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(query)) {
 
@@ -57,10 +54,7 @@ public abstract class QueryJdbcApi {
       column.setTail(end);
 
       while (rs.next()) {
-        String key = rs.getString(1);
-        int count = rs.getInt(2);
-
-        column.getKeyCount().put(key, count);
+        fillKeyData(rs, groupFunction, column);
       }
 
       results.add(column);
@@ -69,6 +63,44 @@ public abstract class QueryJdbcApi {
     }
 
     return results;
+  }
+
+  protected String getQuery(String tableName,
+                            String colName,
+                            GroupFunction groupFunction,
+                            String whereClass) {
+    if (GroupFunction.COUNT.equals(groupFunction)) {
+      return "SELECT " + colName + ", COUNT(" + colName + ") " +
+          "FROM " + tableName + " " +
+          whereClass +
+          "GROUP BY " + colName;
+    } else if (GroupFunction.SUM.equals(groupFunction)) {
+      return "SELECT '" + colName + "', SUM(" + colName + ") " +
+          "FROM " + tableName + " " +
+          whereClass;
+    } else if (GroupFunction.AVG.equals(groupFunction)) {
+      return "SELECT '" + colName + "', AVG(" + colName + ") " +
+          "FROM " + tableName + " " +
+          whereClass;
+    } else {
+      throw new RuntimeException("Not supported");
+    }
+  }
+
+  private void fillKeyData(ResultSet rs, GroupFunction groupFunction, StackedColumn column) throws SQLException {
+    String key = rs.getString(1);
+    if (GroupFunction.COUNT.equals(groupFunction)) {
+      int count = rs.getInt(2);
+      column.getKeyCount().put(key, count);
+    } else if (GroupFunction.SUM.equals(groupFunction)) {
+      double sum = rs.getDouble(2);
+      column.getKeySum().put(key, sum);
+    } else if (GroupFunction.AVG.equals(groupFunction)) {
+      double avg = rs.getDouble(2);
+      column.getKeyAvg().put(key, avg);
+    } else {
+      throw new RuntimeException("Not supported");
+    }
   }
 
   protected List<GanttColumn> getListGanttColumn(String tableName,
