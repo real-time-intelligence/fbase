@@ -4,6 +4,7 @@ import static org.fbase.storage.helper.ClickHouseHelper.enumParser;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.fbase.metadata.DataType;
@@ -15,12 +16,16 @@ public class ClickHouseDialect implements DatabaseDialect {
   public String getWhereClass(CProfile tsCProfile,
                               CProfile cProfileFilter,
                               String filter) {
-    if (DataType.DATE.equals(tsCProfile.getCsType().getDType())) {
-      return "WHERE " + tsCProfile.getColName().toLowerCase() + " BETWEEN ? AND ? " +
-          getFilterAndString(cProfileFilter, filter);
-    } else if (DataType.DATETIME.equals(tsCProfile.getCsType().getDType())) {
-        return "WHERE " + tsCProfile.getColName().toLowerCase() + " BETWEEN ? AND ? " +
-            getFilterAndString(cProfileFilter, filter);
+    DataType dataType = tsCProfile.getCsType().getDType();
+
+    if (DataType.DATE.equals(dataType) ||
+        DataType.DATETIME.equals(dataType) ||
+        DataType.TIMESTAMP.equals(dataType) ||
+        DataType.TIMESTAMPTZ.equals(dataType) ||
+        DataType.DATETIME2.equals(dataType) ||
+        DataType.SMALLDATETIME.equals(dataType)) {
+      return "WHERE " + tsCProfile.getColName().toLowerCase()
+          + " BETWEEN ? AND ? " + getFilterAndString(cProfileFilter, filter);
     } else {
       throw new RuntimeException("Not supported datatype for time-series column: " + tsCProfile.getColName());
     }
@@ -30,12 +35,16 @@ public class ClickHouseDialect implements DatabaseDialect {
   public void setDateTime(CProfile tsCProfile,
                           PreparedStatement ps,
                           int parameterIndex,
-                          long dateTime) throws SQLException {
+                          long unixTimestamp) throws SQLException {
+    DataType dataType = tsCProfile.getCsType().getDType();
 
-    if (DataType.DATE.equals(tsCProfile.getCsType().getDType())) {
-      ps.setDate(parameterIndex, new java.sql.Date(dateTime));
-    } else if (DataType.DATETIME.equals(tsCProfile.getCsType().getDType())) {
-        ps.setDate(parameterIndex, new java.sql.Date(dateTime));
+    if (DataType.DATE.equals(dataType)) {
+      ps.setDate(parameterIndex, new java.sql.Date(unixTimestamp));
+    } else if (DataType.DATETIME.equals(dataType)) {
+      ps.setDate(parameterIndex, new java.sql.Date(unixTimestamp));
+    } else if (DataType.TIMESTAMP.equals(dataType)
+        || DataType.TIMESTAMPTZ.equals(dataType)) {
+      ps.setTimestamp(parameterIndex, new Timestamp(unixTimestamp));
     } else {
       throw new RuntimeException("Not supported datatype for time-series column: " + tsCProfile.getColName());
     }
