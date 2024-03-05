@@ -31,7 +31,7 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
   private final boolean isTimestamp;
 
   /**
-   * Constructor
+   * A ResultSet object maintains a cursor pointing to rows of data by fetchSize (local Berkley DB)
    *
    * @param tableName  table name
    * @param tableId    table id

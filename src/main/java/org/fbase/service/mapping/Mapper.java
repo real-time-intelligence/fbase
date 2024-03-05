@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.DataType;
@@ -156,7 +157,8 @@ public class Mapper {
           java.util.Date date = new java.util.Date(timestamp.getTime());
           return date.getTime();
         } else if (obj instanceof OffsetDateTime offsetDateTime) {
-          return offsetDateTime.toInstant().toEpochMilli();
+          int totalSeconds = offsetDateTime.getOffset().getTotalSeconds();
+          return (offsetDateTime.toLocalDateTime().toEpochSecond(offsetDateTime.getOffset()) + totalSeconds) * 1000;
         }
       case OID:
       case BIGSERIAL:

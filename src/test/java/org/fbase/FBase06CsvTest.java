@@ -23,6 +23,7 @@ import org.fbase.handler.MetadataHandler;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
+import org.fbase.model.profile.table.BType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.fbase.sql.BatchResultSet;
@@ -285,6 +286,7 @@ public class FBase06CsvTest {
           .tableName(tableName)
           .tableType(TType.REGULAR)
           .indexType(IType.GLOBAL)
+          .backendType(BType.BERKLEYDB)
           .compression(compression)
           .csTypeMap(new HashMap<>()).build();
 

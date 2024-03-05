@@ -15,5 +15,4 @@ public interface EnumDAO {
   EColumn getEColumnValues(byte tableId,
                            long blockId,
                            int colId);
-
 }

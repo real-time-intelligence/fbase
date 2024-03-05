@@ -11,6 +11,7 @@ import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
+import org.fbase.sql.BatchResultSet;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.entity.Metadata;
 import org.fbase.storage.bdb.entity.MetadataKey;
@@ -245,6 +246,15 @@ public class RawPgSqlImpl extends QueryJdbcApi implements RawDAO {
                                               long begin,
                                               long end) {
     return getListGanttColumn(tableName, tsCProfile, firstGrpBy, secondGrpBy, begin, end, databaseDialect);
+  }
+
+  @Override
+  public BatchResultSet getBatchResultSet(String tableName,
+                                          long begin,
+                                          long end,
+                                          int fetchSize,
+                                          List<CProfile> cProfiles) {
+    return getBatchResultSetCommon(tableName, begin, end, fetchSize, cProfiles, databaseDialect);
   }
 
   private long getLastBlockIdLocal(byte tableId,

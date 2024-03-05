@@ -14,6 +14,7 @@ import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
+import org.fbase.sql.BatchResultSet;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.QueryBdbApi;
 import org.fbase.storage.bdb.entity.ColumnKey;
@@ -556,6 +557,15 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
                                               CProfile secondGrpBy,
                                               long begin,
                                               long end) {
+    throw new RuntimeException("Not supported");
+  }
+
+  @Override
+  public BatchResultSet getBatchResultSet(String tableName,
+                                          long begin,
+                                          long end,
+                                          int fetchSize,
+                                          List<CProfile> cProfiles) {
     throw new RuntimeException("Not supported");
   }
 

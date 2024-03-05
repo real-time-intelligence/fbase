@@ -11,11 +11,14 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
+import org.fbase.sql.BatchResultSet;
+import org.fbase.sql.BatchResultSetSqlImpl;
 import org.fbase.storage.dialect.DatabaseDialect;
 
 public abstract class QueryJdbcApi {
@@ -87,7 +90,9 @@ public abstract class QueryJdbcApi {
     }
   }
 
-  private void fillKeyData(ResultSet rs, GroupFunction groupFunction, StackedColumn column) throws SQLException {
+  private void fillKeyData(ResultSet rs,
+                           GroupFunction groupFunction,
+                           StackedColumn column) throws SQLException {
     String key = rs.getString(1);
     if (GroupFunction.COUNT.equals(groupFunction)) {
       int count = rs.getInt(2);
@@ -147,6 +152,21 @@ public abstract class QueryJdbcApi {
     }
 
     return ganttColumns;
+  }
+
+  protected BatchResultSet getBatchResultSetCommon(String tableName,
+                                                   long begin,
+                                                   long end,
+                                                   int fetchSize,
+                                                   List<CProfile> cProfiles,
+                                                   DatabaseDialect databaseDialect) {
+    CProfile tsCProfile = cProfiles.stream()
+        .filter(k -> k.getCsType().isTimeStamp())
+        .findAny()
+        .orElseThrow(() -> new RuntimeException("API working only for time-series tables"));
+
+    long maxBlockId = getLastBlockIdLocal(tableName, tsCProfile, begin, end, databaseDialect);
+    return new BatchResultSetSqlImpl(tableName, fetchSize, begin, end, maxBlockId, cProfiles, basicDataSource, databaseDialect);
   }
 
   protected long getLastBlockIdLocal(String tableName,

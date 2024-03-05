@@ -5,6 +5,7 @@ import static org.fbase.storage.helper.ClickHouseHelper.enumParser;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.fbase.metadata.DataType;
@@ -19,16 +20,23 @@ public class ClickHouseDialect implements DatabaseDialect {
     DataType dataType = tsCProfile.getCsType().getDType();
 
     if (DataType.DATE.equals(dataType) ||
-        DataType.DATETIME.equals(dataType) ||
         DataType.TIMESTAMP.equals(dataType) ||
         DataType.TIMESTAMPTZ.equals(dataType) ||
         DataType.DATETIME2.equals(dataType) ||
         DataType.SMALLDATETIME.equals(dataType)) {
       return "WHERE " + tsCProfile.getColName().toLowerCase()
           + " BETWEEN ? AND ? " + getFilterAndString(cProfileFilter, filter);
+    } else if (DataType.DATETIME.equals(dataType)) {
+        return "WHERE " + tsCProfile.getColName().toLowerCase()
+            + " BETWEEN toDateTime(?) AND toDateTime(?) " + getFilterAndString(cProfileFilter, filter);
     } else {
       throw new RuntimeException("Not supported datatype for time-series column: " + tsCProfile.getColName());
     }
+  }
+
+  @Override
+  public String getOrderByClass(CProfile tsCProfile) {
+    return " ORDER BY " + tsCProfile.getColName().toLowerCase();
   }
 
   @Override
@@ -41,7 +49,7 @@ public class ClickHouseDialect implements DatabaseDialect {
     if (DataType.DATE.equals(dataType)) {
       ps.setDate(parameterIndex, new java.sql.Date(unixTimestamp));
     } else if (DataType.DATETIME.equals(dataType)) {
-      ps.setDate(parameterIndex, new java.sql.Date(unixTimestamp));
+      ps.setLong(parameterIndex, unixTimestamp / 1000);
     } else if (DataType.TIMESTAMP.equals(dataType)
         || DataType.TIMESTAMPTZ.equals(dataType)) {
       ps.setTimestamp(parameterIndex, new Timestamp(unixTimestamp));

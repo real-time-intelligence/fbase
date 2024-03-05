@@ -19,5 +19,4 @@ public interface StoreService {
                        String fileName,
                        String csvSplitBy,
                        Integer fBaseBatchSize);
-
 }

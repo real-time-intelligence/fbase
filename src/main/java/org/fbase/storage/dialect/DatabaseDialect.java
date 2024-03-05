@@ -10,6 +10,8 @@ public interface DatabaseDialect {
                        CProfile cProfileFilter,
                        String filter);
 
+  String getOrderByClass(CProfile tsCProfile);
+
   void setDateTime(CProfile tsCProfile,
                    PreparedStatement ps,
                    int parameterIndex,

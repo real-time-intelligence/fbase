@@ -7,6 +7,7 @@ import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
+import org.fbase.sql.BatchResultSet;
 import org.fbase.storage.bdb.entity.Metadata;
 import org.fbase.storage.bdb.entity.MetadataKey;
 import org.fbase.util.CachedLastLinkedHashMap;
@@ -143,4 +144,10 @@ public interface RawDAO {
                                        CProfile secondGrpBy,
                                        long begin,
                                        long end);
+
+  BatchResultSet getBatchResultSet(String tableName,
+                                   long begin,
+                                   long end,
+                                   int fetchSize,
+                                   List<CProfile> cProfiles);
 }

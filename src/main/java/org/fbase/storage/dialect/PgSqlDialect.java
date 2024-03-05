@@ -29,6 +29,11 @@ public class PgSqlDialect implements DatabaseDialect {
   }
 
   @Override
+  public String getOrderByClass(CProfile tsCProfile) {
+    return " ORDER BY " + tsCProfile.getColName();
+  }
+
+  @Override
   public void setDateTime(CProfile tsCProfile,
                           PreparedStatement ps,
                           int parameterIndex,

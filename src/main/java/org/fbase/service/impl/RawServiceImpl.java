@@ -13,10 +13,12 @@ import org.fbase.core.metamodel.MetaModelApi;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.BType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.service.RawService;
 import org.fbase.sql.BatchResultSet;
 import org.fbase.sql.BatchResultSetImpl;
+import org.fbase.sql.BatchResultSetSqlImpl;
 import org.fbase.storage.Converter;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
@@ -70,8 +72,14 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
                                           long end,
                                           int fetchSize) {
     byte tableId = metaModelApi.getTableId(tableName);
+    BType bType = metaModelApi.getBackendType(tableName);
     List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
-    return new BatchResultSetImpl(tableName, tableId, fetchSize, begin, end, cProfiles, this);
+
+    if (BType.BERKLEYDB.equals(bType)) {
+      return new BatchResultSetImpl(tableName, tableId, fetchSize, begin, end, cProfiles, this);
+    } else {
+      return rawDAO.getBatchResultSet(tableName, begin, end, fetchSize, cProfiles);
+    }
   }
 
   @Override
