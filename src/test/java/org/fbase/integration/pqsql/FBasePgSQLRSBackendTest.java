@@ -1,4 +1,4 @@
-package org.fbase.integration.ch;
+package org.fbase.integration.pqsql;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -26,36 +26,36 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 @Disabled
-public class FBaseClickHouseRSBackendTest extends AbstractBackendSQLTest {
+public class FBasePgSQLRSBackendTest extends AbstractBackendSQLTest {
 
-  private final String dbUrl = "jdbc:clickhouse://localhost:8123";
-  private final String driverClassName = "com.clickhouse.jdbc.ClickHouseDriver";
-  private final String tableName = "default.ch_data_rs";
-  private final String tsName = "CH_DT_TIMESTAMP";
+  private final String dbUrl = "jdbc:postgresql://localhost:5432/postgres";
+  private final String driverClassName = "org.postgresql.Driver";
+  private final String tableName = "pg_data_rs";
+  private final String tsName = "PG_DT_TIMESTAMP";
   private final String select = "select * from " + tableName + " limit 1";
 
   String createTableRs = """
-           CREATE TABLE default.ch_data_rs (
-                  ch_dt_dec Decimal(10, 2),
-                  ch_dt_int Int32,
-                  ch_dt_byte Int8,
-                  ch_dt_bool Boolean,
-                  ch_dt_char FixedString(1),
-                  ch_dt_clob String,
-                  ch_dt_date Date,
-                  ch_dt_timestamp DateTime('Europe/Moscow')
-                ) ENGINE = MergeTree() ORDER BY (ch_dt_int)
+           CREATE TABLE pg_data_rs (
+                  pg_dt_dec float8,
+                  pg_dt_int int8,
+                  pg_dt_byte int8,
+                  pg_dt_bool bool,
+                  pg_dt_char varchar,
+                  pg_dt_clob varchar,
+                  pg_dt_date date,
+                  pg_dt_timestamp timestamp
+                )
       """;
 
   private SProfile sProfile;
   private TProfile tProfile;
 
-  LocalDateTime ch_dt_timestamp = LocalDateTime.of(2023, 10, 13, 16, 5, 20);
+  LocalDateTime pg_dt_timestamp = LocalDateTime.of(2023, 10, 13, 16, 5, 20);
 
   @BeforeAll
   public void setUp() throws SQLException, TableNameEmptyException {
     BType bType = BType.CLICKHOUSE;
-    BasicDataSource basicDataSource = getDatasource(bType, driverClassName, dbUrl, null, null);
+    BasicDataSource basicDataSource = getDatasource(bType, driverClassName, dbUrl, "postgres", "postgres");
 
     // Prepare remote backend
     dropTable(basicDataSource.getConnection(), tableName);
@@ -64,34 +64,35 @@ public class FBaseClickHouseRSBackendTest extends AbstractBackendSQLTest {
       createTableStmt.executeUpdate(createTableRs);
     }
 
-    BigDecimal ch_dt_dec = new BigDecimal("1234.56");
-    int ch_dt_int = 6789;
-    byte ch_dt_byte = 12;
-    boolean ch_dt_bool = true;
-    String ch_dt_char = "A";
-    String ch_dt_clob = "Lorem ipsum dolor sit amet";
-    LocalDate ch_dt_date = LocalDate.of(2023, 10, 13);
+    BigDecimal pg_dt_dec = new BigDecimal("1234.56");
+    int pg_dt_int = 6789;
+    byte pg_dt_byte = 12;
+    boolean pg_dt_bool = true;
+    String pg_dt_char = "A";
+    String pg_dt_clob = "Lorem ipsum dolor sit amet";
+    LocalDate pg_dt_date = LocalDate.of(2023, 10, 13);
 
     String insertQuery = """
-        INSERT INTO default.ch_data_rs
+        INSERT INTO pg_data_rs
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
     LocalDateTime[] timestamps = new LocalDateTime[]{
-        ch_dt_timestamp,
-        ch_dt_timestamp.plusDays(1),
-        ch_dt_timestamp.plusDays(2)
+        pg_dt_timestamp,
+        pg_dt_timestamp.plusDays(1),
+        pg_dt_timestamp.plusDays(2),
+        pg_dt_timestamp.plusDays(3)
     };
 
     try (PreparedStatement ps = basicDataSource.getConnection().prepareStatement(insertQuery)) {
       for (LocalDateTime timestamp : timestamps) {
-        ps.setBigDecimal(1, ch_dt_dec);
-        ps.setInt(2, ch_dt_int);
-        ps.setByte(3, ch_dt_byte);
-        ps.setBoolean(4, ch_dt_bool);
-        ps.setString(5, ch_dt_char);
-        ps.setString(6, ch_dt_clob);
-        ps.setDate(7, java.sql.Date.valueOf(ch_dt_date));
+        ps.setBigDecimal(1, pg_dt_dec);
+        ps.setInt(2, pg_dt_int);
+        ps.setByte(3, pg_dt_byte);
+        ps.setBoolean(4, pg_dt_bool);
+        ps.setString(5, pg_dt_char);
+        ps.setString(6, pg_dt_clob);
+        ps.setDate(7, java.sql.Date.valueOf(pg_dt_date));
         ps.setTimestamp(8, java.sql.Timestamp.valueOf(timestamp));
 
         ps.executeUpdate();
@@ -138,10 +139,15 @@ public class FBaseClickHouseRSBackendTest extends AbstractBackendSQLTest {
 
   @Test
   public void batchResultSingleTest() {
-    BatchResultSet batchResultSet = fStore.getBatchResultSet(tableName, 0L, 4394908640000L, 10);
+    BatchResultSet batchResultSet = fStore.getBatchResultSet(tableName, 0L, 4394908640000L, 2);
 
+    int count = 0;
     while (batchResultSet.next()) {
       log.info(batchResultSet.getObject());
+
+      count++;
     }
+
+    assertEquals(2, count);
   }
 }

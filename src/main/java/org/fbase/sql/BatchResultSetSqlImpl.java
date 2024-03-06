@@ -6,12 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -22,7 +17,6 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.fbase.model.profile.CProfile;
 import org.fbase.service.CommonServiceApi;
-import org.fbase.service.RawService;
 import org.fbase.storage.dialect.DatabaseDialect;
 
 @Log4j2
@@ -133,7 +127,12 @@ public class BatchResultSetSqlImpl extends CommonServiceApi implements BatchResu
       log.catching(e);
     }
 
-    pointer = pointerLocal.get();
+    if (fetchCounter.get() >= fetchSize) {
+      fetchCounter.set(0);
+      pointer = Map.entry(pointerLocal.get().getKey(), 0);
+    } else {
+      pointer = pointerLocal.get();
+    }
 
     isStarted = false;
 

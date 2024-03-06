@@ -10,7 +10,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -132,6 +134,16 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
   protected long getUnitTimestamp(LocalDateTime localDateTime) {
     ZoneOffset offset = ZoneId.systemDefault().getRules().getOffset(localDateTime);
     return localDateTime.toInstant(offset).toEpochMilli();
+  }
+
+  protected static void dropTable(Connection connection,
+                                String tableName) throws SQLException {
+    String sql = "DROP TABLE IF EXISTS " + tableName;
+
+    try (Statement statement = connection.createStatement()) {
+      statement.executeUpdate(sql);
+      log.info("Table dropped successfully!");
+    }
   }
 
   private String getGanttKey(List<GanttColumn> ganttColumnList, String filter) {
