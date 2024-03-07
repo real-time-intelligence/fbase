@@ -5,9 +5,25 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.concurrent.atomic.AtomicReference;
 import org.fbase.metadata.DataType;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.profile.CProfile;
 
 public class PgSqlDialect implements DatabaseDialect {
+
+  @Override
+  public String getSelectClass(GroupFunction groupFunction, CProfile tsCProfile) {
+    String colName = tsCProfile.getColName();
+
+    if (GroupFunction.COUNT.equals(groupFunction)) {
+      return "SELECT " + colName + ", COUNT(" + colName + ") ";
+    } else if (GroupFunction.SUM.equals(groupFunction)) {
+      return "SELECT '" + colName + "', SUM(" + colName + ") ";
+    } else if (GroupFunction.AVG.equals(groupFunction)) {
+      return "SELECT '" + colName + "', AVG(" + colName + ") ";
+    } else {
+      throw new RuntimeException("Not supported");
+    }
+  }
 
   @Override
   public String getWhereClass(CProfile tsCProfile,

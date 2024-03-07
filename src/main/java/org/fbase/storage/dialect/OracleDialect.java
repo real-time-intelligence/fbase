@@ -5,9 +5,27 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.concurrent.atomic.AtomicReference;
 import org.fbase.metadata.DataType;
+import org.fbase.model.GroupFunction;
 import org.fbase.model.profile.CProfile;
 
 public class OracleDialect implements DatabaseDialect {
+
+  @Override
+  public String getSelectClass(GroupFunction groupFunction, CProfile cProfile) {
+    String colName = cProfile.getColName();
+
+    if (GroupFunction.COUNT.equals(groupFunction)) {
+      return
+          "SELECT " + colName + ", " +
+              " SUM(CASE WHEN " + colName + " IS NULL OR " + colName + " = '' THEN 1 ELSE 1 END) AS value ";
+    } else if (GroupFunction.SUM.equals(groupFunction)) {
+      return "SELECT '" + colName + "', SUM(" + colName + ") ";
+    } else if (GroupFunction.AVG.equals(groupFunction)) {
+      return "SELECT '" + colName + "', AVG(" + colName + ") ";
+    } else {
+      throw new RuntimeException("Not supported");
+    }
+  }
 
   @Override
   public String getWhereClass(CProfile tsCProfile,

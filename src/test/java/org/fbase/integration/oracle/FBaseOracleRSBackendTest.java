@@ -1,13 +1,10 @@
-package org.fbase.integration.pqsql;
+package org.fbase.integration.oracle;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -31,80 +28,80 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 @Disabled
-public class FBasePgSQLRSBackendTest extends AbstractBackendSQLTest {
+public class FBaseOracleRSBackendTest extends AbstractBackendSQLTest {
 
-  private final String dbUrl = "jdbc:postgresql://localhost:5432/postgres";
-  private final String driverClassName = "org.postgresql.Driver";
-  private final String tableName = "pg_data_rs";
-  private final String tsName = "PG_DT_TIMESTAMP";
-  private final String select = "select * from " + tableName + " limit 1";
+  protected final String dbUrl = "jdbc:oracle:thin:@localhost:1523:orcl";
+  private final String driverClassName = "oracle.jdbc.driver.OracleDriver";
+  private final String tableName = "ORACLE_DATA_RS";
+  private final String tsName = "ORACLE_DT_TIMESTAMP";
+  private final String select = "select * from " + tableName + " where rownum < 2";
 
   String createTableRs = """
-           CREATE TABLE pg_data_rs (
-                  pg_dt_dec float8,
-                  pg_dt_int int8,
-                  pg_dt_byte int8,
-                  pg_dt_bool bool,
-                  pg_dt_char varchar,
-                  pg_dt_char_empty varchar,
-                  pg_dt_clob varchar,
-                  pg_dt_date date,
-                  pg_dt_timestamp timestamp
+           CREATE TABLE oracle_data_rs (
+                  oracle_dt_dec FLOAT,
+                  oracle_dt_int NUMBER,
+                  oracle_dt_char VARCHAR2(32),
+                  oracle_dt_char_empty VARCHAR2(32),
+                  oracle_dt_clob CLOB,
+                  oracle_dt_date DATE,
+                  oracle_dt_timestamp TIMESTAMP(6)
                 )
       """;
 
   private SProfile sProfile;
   private TProfile tProfile;
 
-  // TODO investigate by days
-  LocalDateTime pg_dt_timestamp0 = LocalDateTime.of(2023, 1, 10, 16, 5, 20);
-  LocalDateTime pg_dt_timestamp1 = LocalDateTime.of(2023, 2, 12, 16, 5, 20);
-  LocalDateTime pg_dt_timestamp2 = LocalDateTime.of(2023, 3, 14, 16, 5, 20);
-  LocalDateTime pg_dt_timestamp3 = LocalDateTime.of(2023, 4, 16, 16, 5, 20);
-
   @BeforeAll
   public void setUp() throws SQLException, TableNameEmptyException {
-    BType bType = BType.POSTGRES;
-    BasicDataSource basicDataSource = getDatasource(bType, driverClassName, dbUrl, "postgres", "postgres");
+    BType bType = BType.ORACLE;
+    BasicDataSource basicDataSource = getDatasource(bType, driverClassName, dbUrl, "system", "sys");
 
     // Prepare remote backend
-    dropTable(basicDataSource.getConnection(), tableName);
+    if (tableExists(basicDataSource.getConnection(), tableName)) {
+      dropTableOracle(basicDataSource.getConnection(), tableName);
+    } else {
+      log.info("Skip drop operation, table not exist in DB..");
+    }
 
     try (Statement createTableStmt = basicDataSource.getConnection().createStatement()) {
       createTableStmt.executeUpdate(createTableRs);
     }
 
-    BigDecimal pg_dt_dec = new BigDecimal("1234.56");
-    int pg_dt_int = 6789;
-    byte pg_dt_byte = 12;
-    boolean pg_dt_bool = true;
-    String pg_dt_char = "A";
-    String pg_dt_clob = "Lorem ipsum dolor sit amet";
-    LocalDate pg_dt_date = LocalDate.of(2023, 10, 13);
+    java.sql.Date date = java.sql.Date.valueOf("2023-10-10");
+    float floatVal = 123.45f;
+    String clob = "B";
+    int number = 12345;
+    String varchar2 = "Sample VARCHAR2";
+    java.sql.Timestamp ts0 = java.sql.Timestamp.valueOf("2023-10-10 12:00:00");
+    java.sql.Timestamp ts1 = java.sql.Timestamp.valueOf("2023-10-11 12:00:00");
+    java.sql.Timestamp ts2 = java.sql.Timestamp.valueOf("2023-10-12 12:00:00");
+    java.sql.Timestamp ts3 = java.sql.Timestamp.valueOf("2023-10-13 12:00:00");
 
     String insertQuery = """
-        INSERT INTO pg_data_rs
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO oracle_data_rs
+        VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
 
-    LocalDateTime[] timestamps = new LocalDateTime[]{
-        pg_dt_timestamp0,
-        pg_dt_timestamp1,
-        pg_dt_timestamp2,
-        pg_dt_timestamp3
+    java.sql.Timestamp[] timestamps = new java.sql.Timestamp[]{
+        ts0,
+        ts1,
+        ts2,
+        ts3,
     };
 
     try (PreparedStatement ps = basicDataSource.getConnection().prepareStatement(insertQuery)) {
-      for (LocalDateTime timestamp : timestamps) {
-        ps.setBigDecimal(1, pg_dt_dec);
-        ps.setInt(2, pg_dt_int);
-        ps.setByte(3, pg_dt_byte);
-        ps.setBoolean(4, pg_dt_bool);
-        ps.setString(5, pg_dt_char);
-        ps.setString(6, "");
-        ps.setString(7, pg_dt_clob);
-        ps.setDate(8, java.sql.Date.valueOf(pg_dt_date));
-        ps.setTimestamp(9, java.sql.Timestamp.valueOf(timestamp));
+      for (java.sql.Timestamp timestamp : timestamps) {
+        ps.setFloat(1, floatVal);
+        ps.setInt(2, number);
+        ps.setString(3, varchar2);
+        if (ts3.equals(timestamp)) {
+          ps.setString(4, "Test");
+        } else {
+          ps.setString(4, "");
+        }
+        ps.setString(5, clob);
+        ps.setDate(6, date);
+        ps.setTimestamp(7, timestamp);
 
         ps.executeUpdate();
       }
@@ -166,14 +163,15 @@ public class FBasePgSQLRSBackendTest extends AbstractBackendSQLTest {
   public void bugEmptyValueTest() throws BeginEndWrongOrderException, SqlColMetadataException {
     CProfile cProfile = tProfile.getCProfiles()
         .stream()
-        .filter(f -> f.getColName().equals("PG_DT_CHAR_EMPTY"))
+        .filter(f -> f.getColName().equals("ORACLE_DT_CHAR_EMPTY"))
         .findAny()
         .orElseThrow();
 
     List<StackedColumn> stackedColumns =
         fStore.getSColumnListByCProfileFilter(tableName, cProfile, GroupFunction.COUNT, null, null,
-                                              0, 4394908640000L);
+                                                                               0, 4394908640000L);
 
-    assertEquals(4, stackedColumns.get(0).getKeyCount().get(""));
+    assertEquals(3, stackedColumns.get(0).getKeyCount().get(""));
+    assertEquals(1, stackedColumns.get(0).getKeyCount().get("Test"));
   }
 }

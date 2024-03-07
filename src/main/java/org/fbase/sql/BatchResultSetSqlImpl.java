@@ -1,6 +1,7 @@
 package org.fbase.sql;
 
 import static org.fbase.service.mapping.Mapper.convertRawToLong;
+import static org.fbase.service.mapping.Mapper.convertRawToString;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.fbase.model.profile.CProfile;
+import org.fbase.model.profile.cstype.CType;
 import org.fbase.service.CommonServiceApi;
 import org.fbase.storage.dialect.DatabaseDialect;
 
@@ -109,9 +111,14 @@ public class BatchResultSetSqlImpl extends CommonServiceApi implements BatchResu
 
       while (rs.next()) {
         for (int i = 0; i < cProfiles.size(); i++) {
-          Object cellValue = rs.getObject(cProfiles.get(i).getColName());
+          CProfile cProfile = cProfiles.get(i);
+          Object cellValue = rs.getObject(cProfile.getColName());
 
-          tableColFormatData.get(i).add(cellValue);
+          if (cProfile.getCsType().getCType().equals(CType.STRING)) {
+            tableColFormatData.get(i).add(convertRawToString(cellValue, cProfile));
+          } else {
+            tableColFormatData.get(i).add(cellValue);
+          }
 
           if (cProfiles.get(i).getColName().equals(tsCProfile.get().getColName())) {
             long value = convertRawToLong(cellValue, tsCProfile.get());

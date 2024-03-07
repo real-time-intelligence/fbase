@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.fbase.model.GroupFunction;
 import org.fbase.model.output.GanttColumn;
@@ -43,6 +43,7 @@ public abstract class QueryJdbcApi {
     String colName = cProfile.getColName().toLowerCase();
 
     String query = getQuery(tableName, colName, groupFunction,
+                            databaseDialect.getSelectClass(groupFunction, cProfile),
                             databaseDialect.getWhereClass(tsCProfile, cProfileFilter, filter));
 
     try (Connection conn = basicDataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(query)) {
@@ -71,18 +72,19 @@ public abstract class QueryJdbcApi {
   protected String getQuery(String tableName,
                             String colName,
                             GroupFunction groupFunction,
+                            String selectClass,
                             String whereClass) {
     if (GroupFunction.COUNT.equals(groupFunction)) {
-      return "SELECT " + colName + ", COUNT(" + colName + ") " +
+      return selectClass +
           "FROM " + tableName + " " +
           whereClass +
           "GROUP BY " + colName;
     } else if (GroupFunction.SUM.equals(groupFunction)) {
-      return "SELECT '" + colName + "', SUM(" + colName + ") " +
+      return selectClass +
           "FROM " + tableName + " " +
           whereClass;
     } else if (GroupFunction.AVG.equals(groupFunction)) {
-      return "SELECT '" + colName + "', AVG(" + colName + ") " +
+      return selectClass +
           "FROM " + tableName + " " +
           whereClass;
     } else {
@@ -94,6 +96,9 @@ public abstract class QueryJdbcApi {
                            GroupFunction groupFunction,
                            StackedColumn column) throws SQLException {
     String key = rs.getString(1);
+
+    if (Objects.isNull(key)) key = "";
+
     if (GroupFunction.COUNT.equals(groupFunction)) {
       int count = rs.getInt(2);
       column.getKeyCount().put(key, count);
@@ -166,6 +171,7 @@ public abstract class QueryJdbcApi {
         .orElseThrow(() -> new RuntimeException("API working only for time-series tables"));
 
     long maxBlockId = getLastBlockIdLocal(tableName, tsCProfile, begin, end, databaseDialect);
+
     return new BatchResultSetSqlImpl(tableName, fetchSize, begin, end, maxBlockId, cProfiles, basicDataSource, databaseDialect);
   }
 

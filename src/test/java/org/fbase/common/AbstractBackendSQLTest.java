@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
@@ -58,7 +59,8 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
 
   private ObjectMapper objectMapper;
 
-  public void initMetaDataBackend(BType bType, BasicDataSource basicDataSource) {
+  public void initMetaDataBackend(BType bType,
+                                  BasicDataSource basicDataSource) {
     try {
       System.getProperties().setProperty("oracle.jdbc.J2EE13Compliant", "true");
 
@@ -137,8 +139,18 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
   }
 
   protected static void dropTable(Connection connection,
-                                String tableName) throws SQLException {
+                                  String tableName) throws SQLException {
     String sql = "DROP TABLE IF EXISTS " + tableName;
+
+    try (Statement statement = connection.createStatement()) {
+      System.out.println(sql);
+      statement.executeUpdate(sql);
+      log.info("Table dropped successfully!");
+    }
+  }
+
+  protected static void dropTableOracle(Connection connection, String tableName) throws SQLException {
+    String sql = "DROP TABLE " + tableName;
 
     try (Statement statement = connection.createStatement()) {
       statement.executeUpdate(sql);
@@ -146,7 +158,16 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
     }
   }
 
-  private String getGanttKey(List<GanttColumn> ganttColumnList, String filter) {
+  protected static boolean tableExists(Connection connection, String tableName) throws SQLException {
+    DatabaseMetaData metaData = connection.getMetaData();
+
+    try (var resultSet = metaData.getTables(null, null, tableName, null)) {
+      return resultSet.next();
+    }
+  }
+
+  private String getGanttKey(List<GanttColumn> ganttColumnList,
+                             String filter) {
     return ganttColumnList.get(0).getGantt()
         .entrySet()
         .stream()
@@ -156,7 +177,8 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
         .getKey();
   }
 
-  private String getGanttKeyFloat(List<GanttColumn> ganttColumnList, String filter) {
+  private String getGanttKeyFloat(List<GanttColumn> ganttColumnList,
+                                  String filter) {
     return ganttColumnList.get(0).getGantt()
         .entrySet()
         .stream()
@@ -170,12 +192,15 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
         .getKey();
   }
 
-  private List<GanttColumn> getGanttColumn(String tableName, CProfile cProfileFirst, CProfile cProfileSecond)
+  private List<GanttColumn> getGanttColumn(String tableName,
+                                           CProfile cProfileFirst,
+                                           CProfile cProfileSecond)
       throws BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
     return fStore.getGColumnListTwoLevelGroupBy(tableName, cProfileFirst, cProfileSecond, 0, Long.MAX_VALUE);
   }
 
-  private String getStackedColumnKey(String tableName, CProfile cProfile)
+  private String getStackedColumnKey(String tableName,
+                                     CProfile cProfile)
       throws BeginEndWrongOrderException, SqlColMetadataException {
     return fStore.getSColumnListByCProfile(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
         .stream()
@@ -189,24 +214,28 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
         .getKey();
   }
 
-  private Optional<StackedColumn> getStackedColumn(String tableName, CProfile cProfile)
+  private Optional<StackedColumn> getStackedColumn(String tableName,
+                                                   CProfile cProfile)
       throws BeginEndWrongOrderException, SqlColMetadataException {
     return fStore.getSColumnListByCProfile(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
         .stream()
         .findAny();
   }
 
-  private Optional<List<Object>> getRawDataByColumn(String tableName, CProfile cProfile) {
+  private Optional<List<Object>> getRawDataByColumn(String tableName,
+                                                    CProfile cProfile) {
     return fStore.getRawDataByColumn(tableName, cProfile, Long.MIN_VALUE, Long.MAX_VALUE)
         .stream()
         .findAny();
   }
 
-  private CProfile getCProfile(List<CProfile> cProfiles, String colName) {
+  private CProfile getCProfile(List<CProfile> cProfiles,
+                               String colName) {
     return cProfiles.stream().filter(f -> f.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow();
   }
 
-  public void assertStackedListEquals(List<StackedColumn> expected, List<StackedColumn> actual) {
+  public void assertStackedListEquals(List<StackedColumn> expected,
+                                      List<StackedColumn> actual) {
     assertEquals(expected.stream().findAny().orElseThrow().getKeyCount(),
                  actual.stream().findAny().orElseThrow().getKeyCount());
   }
@@ -220,20 +249,23 @@ public abstract class AbstractBackendSQLTest implements JdbcSource {
         .getGantt()));
   }
 
-  public void assertGanttListEquals(List<GanttColumn> expected, List<GanttColumn> actual) {
+  public void assertGanttListEquals(List<GanttColumn> expected,
+                                    List<GanttColumn> actual) {
     assertTrue(expected.size() == actual.size() && expected.containsAll(actual) && actual.containsAll(expected));
   }
 
   protected List<GanttColumn> getGanttDataExpected(String fileName) throws IOException {
-    return objectMapper.readValue(getGanttTestData(fileName), new TypeReference<>() {});
+    return objectMapper.readValue(getGanttTestData(fileName), new TypeReference<>() {
+    });
   }
 
   protected List<StackedColumn> getStackedDataExpected(String fileName) throws IOException {
-    return objectMapper.readValue(getStackedTestData(fileName), new TypeReference<>() {});
+    return objectMapper.readValue(getStackedTestData(fileName), new TypeReference<>() {
+    });
   }
 
   private String getGanttTestData(String fileName) throws IOException {
-    return Files.readString(Paths.get("src","test", "resources", "json", "gantt", fileName));
+    return Files.readString(Paths.get("src", "test", "resources", "json", "gantt", fileName));
   }
 
   private String getStackedTestData(String fileName) throws IOException {
