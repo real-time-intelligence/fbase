@@ -11,7 +11,17 @@ import org.fbase.model.profile.CProfile;
 public class OracleDialect implements DatabaseDialect {
 
   @Override
-  public String getSelectClass(GroupFunction groupFunction, CProfile cProfile) {
+  public String getSelectClassGantt(CProfile firstCProfile,
+                                    CProfile secondCProfile) {
+    String firstColName = firstCProfile.getColName().toLowerCase();
+    String secondColName = secondCProfile.getColName().toLowerCase();
+
+    return "SELECT " + firstColName + ", " + secondColName + ", " +
+            " SUM(CASE WHEN " + secondColName + " IS NULL OR " + secondColName + " = '' THEN 1 ELSE 1 END) AS value ";
+  }
+
+  @Override
+  public String getSelectClassStacked(GroupFunction groupFunction, CProfile cProfile) {
     String colName = cProfile.getColName();
 
     if (GroupFunction.COUNT.equals(groupFunction)) {

@@ -14,8 +14,17 @@ import org.fbase.model.profile.CProfile;
 public class ClickHouseDialect implements DatabaseDialect {
 
   @Override
-  public String getSelectClass(GroupFunction groupFunction, CProfile tsCProfile) {
-    String colName = tsCProfile.getColName();
+  public String getSelectClassGantt(CProfile firstCProfile,
+                                    CProfile secondCProfile) {
+    String firstColName = firstCProfile.getColName().toLowerCase();
+    String secondColName = secondCProfile.getColName().toLowerCase();
+
+    return "SELECT " + firstColName + ", " + secondColName + ", COUNT(" + secondColName + ") ";
+  }
+
+  @Override
+  public String getSelectClassStacked(GroupFunction groupFunction, CProfile tsCProfile) {
+    String colName = tsCProfile.getColName().toLowerCase();
 
     if (GroupFunction.COUNT.equals(groupFunction)) {
       return "SELECT " + colName + ", COUNT(" + colName + ") ";

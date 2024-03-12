@@ -42,9 +42,9 @@ public abstract class QueryJdbcApi {
 
     String colName = cProfile.getColName().toLowerCase();
 
-    String query = getQuery(tableName, colName, groupFunction,
-                            databaseDialect.getSelectClass(groupFunction, cProfile),
-                            databaseDialect.getWhereClass(tsCProfile, cProfileFilter, filter));
+    String query = getQueryStacked(tableName, colName, groupFunction,
+                                   databaseDialect.getSelectClassStacked(groupFunction, cProfile),
+                                   databaseDialect.getWhereClass(tsCProfile, cProfileFilter, filter));
 
     try (Connection conn = basicDataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(query)) {
 
@@ -69,11 +69,11 @@ public abstract class QueryJdbcApi {
     return results;
   }
 
-  protected String getQuery(String tableName,
-                            String colName,
-                            GroupFunction groupFunction,
-                            String selectClass,
-                            String whereClass) {
+  protected String getQueryStacked(String tableName,
+                                   String colName,
+                                   GroupFunction groupFunction,
+                                   String selectClass,
+                                   String whereClass) {
     if (GroupFunction.COUNT.equals(groupFunction)) {
       return selectClass +
           "FROM " + tableName + " " +
@@ -126,7 +126,7 @@ public abstract class QueryJdbcApi {
     String secondColName = secondGrpBy.getColName().toLowerCase();
 
     String query =
-        "SELECT " + firstColName + ", " + secondColName + ", COUNT(" + secondColName + ") " +
+            databaseDialect.getSelectClassGantt(firstGrpBy, secondGrpBy) +
             "FROM " + tableName + " " +
             databaseDialect.getWhereClass(tsCProfile, null, null) +
             "GROUP BY " + firstColName + ", " + secondColName;
@@ -144,6 +144,9 @@ public abstract class QueryJdbcApi {
         String key = rs.getString(1);
         String keyGantt = rs.getString(2);
         int countGantt = rs.getInt(3);
+
+        if (Objects.isNull(key)) key = "";
+        if (Objects.isNull(keyGantt)) keyGantt = "";
 
         map.computeIfAbsent(key, k -> new HashMap<>()).put(keyGantt, countGantt);
       }

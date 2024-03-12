@@ -7,7 +7,9 @@ import org.fbase.model.profile.CProfile;
 
 public interface DatabaseDialect {
 
-  String getSelectClass(GroupFunction groupFunction, CProfile tsCProfile);
+  String getSelectClassGantt(CProfile firstCProfile, CProfile secondCProfile);
+
+  String getSelectClassStacked(GroupFunction groupFunction, CProfile cProfile);
 
   String getWhereClass(CProfile tsCProfile,
                        CProfile cProfileFilter,

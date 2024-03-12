@@ -11,7 +11,16 @@ import org.fbase.model.profile.CProfile;
 public class PgSqlDialect implements DatabaseDialect {
 
   @Override
-  public String getSelectClass(GroupFunction groupFunction, CProfile tsCProfile) {
+  public String getSelectClassGantt(CProfile firstCProfile,
+                                    CProfile secondCProfile) {
+    String firstColName = firstCProfile.getColName().toLowerCase();
+    String secondColName = secondCProfile.getColName().toLowerCase();
+
+    return "SELECT " + firstColName + ", " + secondColName + ", COUNT(" + secondColName + ") ";
+  }
+
+  @Override
+  public String getSelectClassStacked(GroupFunction groupFunction, CProfile tsCProfile) {
     String colName = tsCProfile.getColName();
 
     if (GroupFunction.COUNT.equals(groupFunction)) {
