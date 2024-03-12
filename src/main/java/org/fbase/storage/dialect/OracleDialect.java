@@ -62,6 +62,15 @@ public class OracleDialect implements DatabaseDialect {
   }
 
   @Override
+  public String getLimitClass(Integer fetchSize) {
+    if (fetchSize != null) {
+      return " FETCH FIRST " + fetchSize + " ROWS ONLY ";
+    }
+
+    return "";
+  }
+
+  @Override
   public void setDateTime(CProfile tsCProfile,
                           PreparedStatement ps,
                           int parameterIndex,

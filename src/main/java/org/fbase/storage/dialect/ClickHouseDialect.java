@@ -64,6 +64,15 @@ public class ClickHouseDialect implements DatabaseDialect {
   }
 
   @Override
+  public String getLimitClass(Integer fetchSize) {
+    if (fetchSize != null) {
+      return " limit " + fetchSize + " ";
+    }
+
+    return "";
+  }
+
+  @Override
   public void setDateTime(CProfile tsCProfile,
                           PreparedStatement ps,
                           int parameterIndex,

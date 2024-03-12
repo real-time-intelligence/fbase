@@ -17,6 +17,8 @@ public interface DatabaseDialect {
 
   String getOrderByClass(CProfile tsCProfile);
 
+  String getLimitClass(Integer fetchSize);
+
   void setDateTime(CProfile tsCProfile,
                    PreparedStatement ps,
                    int parameterIndex,

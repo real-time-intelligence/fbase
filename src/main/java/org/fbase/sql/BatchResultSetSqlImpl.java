@@ -92,7 +92,8 @@ public class BatchResultSetSqlImpl extends CommonServiceApi implements BatchResu
 
     String query = "SELECT * FROM " + tableName + " "
         + databaseDialect.getWhereClass(tsCProfile.get(), null, null)
-        + databaseDialect.getOrderByClass(tsCProfile.get());
+        + databaseDialect.getOrderByClass(tsCProfile.get())
+        + databaseDialect.getLimitClass(fetchSize);
 
     AtomicInteger fetchCounter = new AtomicInteger(pointer.getValue());
 
