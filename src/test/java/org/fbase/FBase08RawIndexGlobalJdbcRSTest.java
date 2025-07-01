@@ -1,5 +1,6 @@
 package org.fbase;
 
+import java.util.LinkedHashMap;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.common.AbstractH2Test;
 import org.fbase.model.profile.CProfile;
@@ -28,7 +29,7 @@ public class FBase08RawIndexGlobalJdbcRSTest extends AbstractH2Test {
   public void init() {
     loadExpected(expected);
 
-    Map<String, SType> csTypeMap = new HashMap<>();
+    Map<String, SType> csTypeMap = new LinkedHashMap<>();
     csTypeMap.put("ID", SType.RAW);
     csTypeMap.put("FIRSTNAME", SType.RAW);
     csTypeMap.put("LASTNAME", SType.RAW);

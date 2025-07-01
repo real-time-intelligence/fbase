@@ -7,13 +7,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.CompressType;
+import org.fbase.model.CompareFunction;
 import org.fbase.model.GroupFunction;
-import org.fbase.model.output.GanttColumn;
+import org.fbase.model.OrderBy;
+import org.fbase.model.output.GanttColumnCount;
+import org.fbase.model.output.GanttColumnSum;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
+import org.fbase.model.profile.cstype.CType;
 import org.fbase.sql.BatchResultSet;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.QueryBdbApi;
@@ -315,6 +321,102 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
+  public void putCompressed(byte tableId,
+                            long blockId,
+                            CachedLastLinkedHashMap<Integer, Integer> rawDataTimeStampMapping,
+                            List<List<Long>> rawDataTimestamp) {
+    rawDataTimeStampMapping.forEach((colId, i) -> {
+      try {
+        this.primaryIndexDataColumn.putNoOverwrite(
+            RColumn.builder().columnKey(
+                    ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                .compressionType(CompressType.LONG)
+                .dataByte(Snappy.compress(rawDataTimestamp.get(i).stream().mapToLong(j -> j).toArray())).build());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
+  }
+
+  @Override
+  public void putCompressed(byte tableId,
+                            long blockId,
+                            Map<CType, Map<Integer, List<Object>>> rawDataByType) {
+    for (Map.Entry<CType, Map<Integer, List<Object>>> typeEntry : rawDataByType.entrySet()) {
+      CType cType = typeEntry.getKey();
+      for (Map.Entry<Integer, List<Object>> colEntry : typeEntry.getValue().entrySet()) {
+        int colId = colEntry.getKey();
+        List<Object> dataList = colEntry.getValue();
+
+        try {
+          switch (cType) {
+            case INT -> {
+              int[] intArray = dataList.stream().mapToInt(o -> (Integer) o).toArray();
+              byte[] compressedInts = Snappy.compress(intArray);
+              primaryIndexDataColumn.putNoOverwrite(
+                  RColumn.builder()
+                      .columnKey(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                      .compressionType(CompressType.INT)
+                      .dataByte(compressedInts)
+                      .build());
+            }
+            case LONG -> {
+              long[] longArray = dataList.stream().mapToLong(o -> (Long) o).toArray();
+              byte[] compressedLongs = Snappy.compress(longArray);
+              primaryIndexDataColumn.putNoOverwrite(
+                  RColumn.builder()
+                      .columnKey(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                      .compressionType(CompressType.LONG)
+                      .dataByte(compressedLongs)
+                      .build());
+            }
+            case FLOAT -> {
+              double[] doubleArrayForFloats = new double[dataList.size()];
+              for (int i = 0; i < dataList.size(); i++) {
+                doubleArrayForFloats[i] = (Float) dataList.get(i);
+              }
+              byte[] compressedFloats = Snappy.compress(doubleArrayForFloats);
+              primaryIndexDataColumn.putNoOverwrite(
+                  RColumn.builder()
+                      .columnKey(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                      .compressionType(CompressType.FLOAT)
+                      .dataByte(compressedFloats)
+                      .build());
+            }
+            case DOUBLE -> {
+              double[] doubleArray = dataList.stream().mapToDouble(o -> (Double) o).toArray();
+              byte[] compressedDoubles = Snappy.compress(doubleArray);
+              primaryIndexDataColumn.putNoOverwrite(
+                  RColumn.builder()
+                      .columnKey(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                      .compressionType(CompressType.DOUBLE)
+                      .dataByte(compressedDoubles)
+                      .build());
+            }
+            case STRING -> {
+              List<String> stringList = (List<String>) (List<?>) dataList;
+              int[] lengthArray = stringList.stream()
+                  .mapToInt(s -> (int) s.codePoints().count())
+                  .toArray();
+              String concatenated = String.join("", stringList);
+              byte[] compressedString = Snappy.compress(concatenated);
+              primaryIndexDataColumn.putNoOverwrite(
+                  RColumn.builder()
+                      .columnKey(ColumnKey.builder().tableId(tableId).blockId(blockId).colId(colId).build())
+                      .compressionType(CompressType.STRING)
+                      .dataInt(lengthArray)
+                      .dataByte(compressedString)
+                      .build());
+            }
+          }
+        } catch (IOException e) {
+          throw new RuntimeException("Compression error for column " + colId, e);
+        }
+      }
+    }
+  }
+
+  @Override
   public byte[] getRawByte(byte tableId,
                            long blockId,
                            int colId) {
@@ -527,36 +629,94 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
   }
 
   @Override
+  public long getFirstBlockId(byte tableId,
+                              int tsColId,
+                              long begin,
+                              long end) {
+    return getFirstBlockIdLocal(tableId, tsColId, begin, end);
+  }
+
+  @Override
   public long getLastBlockId(byte tableId) {
     return getLastBlockIdLocal(tableId, 0L, Long.MAX_VALUE);
   }
 
   @Override
   public long getLastBlockId(byte tableId,
+                             int tsColId,
                              long begin,
                              long end) {
-    return getLastBlockIdLocal(tableId, begin, end);
+    return getLastBlockIdLocal(tableId, tsColId, begin, end);
   }
 
   @Override
-  public List<StackedColumn> getListStackedColumn(String tableName,
-                                                  CProfile tsCProfile,
-                                                  CProfile cProfile,
-                                                  GroupFunction groupFunction,
-                                                  CProfile cProfileFilter,
-                                                  String filter,
-                                                  long begin,
-                                                  long end) {
+  public List<StackedColumn> getStacked(String tableName,
+                                        CProfile tsCProfile,
+                                        CProfile cProfile,
+                                        GroupFunction groupFunction,
+                                        CProfile cProfileFilter,
+                                        String[] filterData,
+                                        CompareFunction compareFunction,
+                                        long begin,
+                                        long end) {
     throw new RuntimeException("Not supported");
   }
 
   @Override
-  public List<GanttColumn> getListGanttColumn(String tableName,
-                                              CProfile tsCProfile,
-                                              CProfile firstGrpBy,
-                                              CProfile secondGrpBy,
-                                              long begin,
-                                              long end) {
+  public List<GanttColumnCount> getGantt(String tableName,
+                                         CProfile tsCProfile,
+                                         CProfile firstGrpBy,
+                                         CProfile secondGrpBy,
+                                         long begin,
+                                         long end) {
+    throw new RuntimeException("Not supported");
+  }
+
+  @Override
+  public List<GanttColumnCount> getGantt(String tableName,
+                                         CProfile tsCProfile,
+                                         CProfile firstGrpBy,
+                                         CProfile secondGrpBy,
+                                         CProfile cProfileFilter,
+                                         String[] filterData,
+                                         CompareFunction compareFunction,
+                                         long begin,
+                                         long end) {
+    throw new RuntimeException("Not supported");
+  }
+
+  @Override
+  public List<GanttColumnSum> getGanttSum(String tableName,
+                                          CProfile tsCProfile,
+                                          CProfile firstGrpBy,
+                                          CProfile secondGrpBy,
+                                          long begin,
+                                          long end) {
+    throw new RuntimeException("Not supported");
+  }
+
+  @Override
+  public List<String> getDistinct(String tableName,
+                                  CProfile tsCProfile,
+                                  CProfile cProfile,
+                                  OrderBy orderBy,
+                                  int limit,
+                                  long begin,
+                                  long end) {
+    throw new RuntimeException("Not supported");
+  }
+
+  @Override
+  public List<String> getDistinct(String tableName,
+                                  CProfile tsCProfile,
+                                  CProfile cProfile,
+                                  OrderBy orderBy,
+                                  int limit,
+                                  long begin,
+                                  long end,
+                                  CProfile cProfileFilter,
+                                  String[] filterData,
+                                  CompareFunction compareFunction) {
     throw new RuntimeException("Not supported");
   }
 
@@ -567,6 +727,66 @@ public class RawBdbImpl extends QueryBdbApi implements RawDAO {
                                           int fetchSize,
                                           List<CProfile> cProfiles) {
     throw new RuntimeException("Not supported");
+  }
+
+  private long getFirstBlockIdLocal(byte tableId,
+                                    int tsColId,
+                                    long begin,
+                                    long end) {
+    AtomicLong blockId = new AtomicLong(Long.MAX_VALUE);
+
+    MetadataKey beginMK = MetadataKey.builder().tableId(tableId).blockId(begin).build();
+    MetadataKey endMK = MetadataKey.builder().tableId(tableId).blockId(end).build();
+
+    EntityCursor<MetadataKey> cursor = this.primaryIndex.keys(beginMK, true, endMK, true);
+
+    try (cursor) {
+      for (MetadataKey metadataKey : cursor) {
+        blockId.set(Math.min(blockId.get(), metadataKey.getBlockId()));
+      }
+    } catch (Exception e) {
+      log.error(e.getMessage());
+    }
+
+    return blockId.get();
+  }
+
+  private long getLastBlockIdLocal(byte tableId,
+                                   int tsColId,
+                                   long begin,
+                                   long end) {
+    AtomicLong blockId = new AtomicLong(Long.MIN_VALUE);
+
+    MetadataKey beginMK = MetadataKey.builder().tableId(tableId).blockId(begin).build();
+    MetadataKey endMK = MetadataKey.builder().tableId(tableId).blockId(end).build();
+
+    EntityCursor<MetadataKey> cursor = this.primaryIndex.keys(beginMK, true, endMK, true);
+
+    try (cursor) {
+      for (MetadataKey metadataKey : cursor) {
+        blockId.set(Math.max(blockId.get(), metadataKey.getBlockId()));
+      }
+    } catch (Exception e) {
+      log.error(e.getMessage());
+    }
+
+    long[] timestamps = getRawLong(tableId, blockId.get(), tsColId);
+
+    if (timestamps.length != 0) {
+      IntStream iRow = IntStream.range(0, timestamps.length);
+      iRow.forEach(iR -> {
+        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+          blockId.set(Math.max(blockId.get(), timestamps[iR]));
+        }
+      });
+
+    }
+
+    if (blockId.get() == Long.MIN_VALUE) {
+      blockId.set(0L);
+    }
+
+    return blockId.get();
   }
 
   private long getLastBlockIdLocal(byte tableId,

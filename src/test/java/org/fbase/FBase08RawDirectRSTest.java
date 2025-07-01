@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -25,12 +26,13 @@ public class FBase08RawDirectRSTest extends AbstractH2Test {
   public void init() {
     loadExpected(expected);
 
-    Map<String, SType> csTypeMap = new HashMap<>();
+    Map<String, SType> csTypeMap = new LinkedHashMap<>();
     csTypeMap.put("ID", SType.RAW);
     csTypeMap.put("FIRSTNAME", SType.RAW);
     csTypeMap.put("LASTNAME", SType.RAW);
     csTypeMap.put("HOUSE", SType.HISTOGRAM);
     csTypeMap.put("CITY", SType.ENUM);
+    csTypeMap.put("BIRTHDAY", SType.RAW);
 
     putDataDirect(csTypeMap, false);
   }

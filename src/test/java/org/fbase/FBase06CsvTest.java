@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.log4j.Log4j2;
@@ -49,7 +50,7 @@ public class FBase06CsvTest {
     String dbDir = databaseDir.getAbsolutePath() + FILE_SEPARATOR + "csv";
     this.berkleyDB = new BerkleyDB(dbDir, true);
 
-    FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(dbDir).setBlockSize(16);
+    FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(dbDir);
 
     try {
       FBase fBase = new FBase(fBaseConfig, berkleyDB.getStore());
@@ -288,7 +289,7 @@ public class FBase06CsvTest {
           .indexType(IType.GLOBAL)
           .backendType(BType.BERKLEYDB)
           .compression(compression)
-          .csTypeMap(new HashMap<>()).build();
+          .csTypeMap(new LinkedHashMap<>()).build();
 
       MetadataHandler.loadMetadataFromCsv(fileName, csvSplitBy, sProfile);
 

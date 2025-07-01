@@ -19,7 +19,7 @@ import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.GroupFunction;
-import org.fbase.model.output.GanttColumn;
+import org.fbase.model.output.GanttColumnCount;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -86,11 +86,11 @@ public class FBaseOracleSQLTest extends AbstractOracleSQLTest {
     CProfile cProfileRaw = cProfiles.stream().filter(f -> f.getColName().equals("VALUE_RAW")).findAny().get();
 
     List<StackedColumn> stackedColumnsHistogram =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileHistogram, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileHistogram, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsEnum =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileEnum, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileEnum, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsRaw =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileRaw, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileRaw, GroupFunction.COUNT, 0, Long.MAX_VALUE);
 
     System.out.println(stackedColumnsHistogram);
     System.out.println(stackedColumnsEnum);
@@ -117,11 +117,11 @@ public class FBaseOracleSQLTest extends AbstractOracleSQLTest {
     CProfile cProfileEvent = cProfiles.stream().filter(f -> f.getColName().equals("EVENT")).findAny().get();
 
     List<StackedColumn> stackedColumnsBySampleTime =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileSampleTime, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileSampleTime, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsBySqlId =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileSqlId, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileSqlId, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsByEvent =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileEvent, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileEvent, GroupFunction.COUNT, 0, Long.MAX_VALUE);
 
     System.out.println(stackedColumnsBySampleTime);
     System.out.println(stackedColumnsBySqlId);
@@ -266,39 +266,39 @@ public class FBaseOracleSQLTest extends AbstractOracleSQLTest {
     //assertEquals(timestamp, getStackedColumnKey(tableName, oracleDtTimestamp)); //Not supported for timestamp column..
 
     /* Test GanttColumn API */
-    List<GanttColumn> oracleDtRawChar = getGanttColumn(tableName, oracleDtRaw, oracleDtChar);
+    List<GanttColumnCount> oracleDtRawChar = getGanttColumn(tableName, oracleDtRaw, oracleDtChar);
     assertEquals(new String(raw, StandardCharsets.UTF_8), oracleDtRawChar.get(0).getKey());
     assertEquals(charVal, getGanttKey(oracleDtRawChar, charVal));
 
-    List<GanttColumn> oracleDtCharClob = getGanttColumn(tableName, oracleDtChar, oracleDtClob);
+    List<GanttColumnCount> oracleDtCharClob = getGanttColumn(tableName, oracleDtChar, oracleDtClob);
     assertEquals(charVal, oracleDtCharClob.get(0).getKey());
     assertEquals(clob, getGanttKey(oracleDtCharClob, clob));
 
-    List<GanttColumn> oracleDtClobDate = getGanttColumn(tableName, oracleDtClob, oracleDtDate);
+    List<GanttColumnCount> oracleDtClobDate = getGanttColumn(tableName, oracleDtClob, oracleDtDate);
     assertEquals(clob, oracleDtClobDate.get(0).getKey());
     assertEquals(dateLong, Long.parseLong(getGanttKey(oracleDtClobDate, String.valueOf(dateLong))));
 
-    List<GanttColumn> oracleDtDateFloat = getGanttColumn(tableName, oracleDtDate, oracleDtFloat);
+    List<GanttColumnCount> oracleDtDateFloat = getGanttColumn(tableName, oracleDtDate, oracleDtFloat);
     assertEquals(dateLong, Long.parseLong(oracleDtDateFloat.get(0).getKey()));
     assertEquals(floatVal, Float.valueOf(getGanttKey(oracleDtDateFloat, Float.toString(floatVal))));
 
-    List<GanttColumn> oracleDtFloatNChar = getGanttColumn(tableName, oracleDtFloat, oracleDtNchar);
+    List<GanttColumnCount> oracleDtFloatNChar = getGanttColumn(tableName, oracleDtFloat, oracleDtNchar);
     assertEquals(floatVal, Float.valueOf(oracleDtFloatNChar.get(0).getKey()));
     assertEquals(nchar, getGanttKey(oracleDtFloatNChar, nchar));
 
-    List<GanttColumn> oracleDtNCharNClob = getGanttColumn(tableName, oracleDtNchar, oracleDtNclob);
+    List<GanttColumnCount> oracleDtNCharNClob = getGanttColumn(tableName, oracleDtNchar, oracleDtNclob);
     assertEquals(nchar, oracleDtNCharNClob.get(0).getKey());
     assertEquals(nclob, getGanttKey(oracleDtNCharNClob, nclob));
 
-    List<GanttColumn> oracleDtNClobNumber = getGanttColumn(tableName, oracleDtNclob, oracleDtNumber);
+    List<GanttColumnCount> oracleDtNClobNumber = getGanttColumn(tableName, oracleDtNclob, oracleDtNumber);
     assertEquals(nclob, oracleDtNClobNumber.get(0).getKey());
     assertEquals(number, Integer.valueOf(getGanttKey(oracleDtNClobNumber, Integer.toString(number))));
 
-    List<GanttColumn> oracleDtNumberVarchar2 = getGanttColumn(tableName, oracleDtNumber, oracleDtVarchar2);
+    List<GanttColumnCount> oracleDtNumberVarchar2 = getGanttColumn(tableName, oracleDtNumber, oracleDtVarchar2);
     assertEquals(number, Integer.valueOf(oracleDtNumberVarchar2.get(0).getKey()));
     assertEquals(varchar2, getGanttKey(oracleDtNumberVarchar2, varchar2));
 
-    List<GanttColumn> oracleDtVarchar2NVarchar2 = getGanttColumn(tableName, oracleDtVarchar2, oracleDtNvarchar2);
+    List<GanttColumnCount> oracleDtVarchar2NVarchar2 = getGanttColumn(tableName, oracleDtVarchar2, oracleDtNvarchar2);
     assertEquals(varchar2, oracleDtVarchar2NVarchar2.get(0).getKey());
     assertEquals(nvarchar2, getGanttKey(oracleDtVarchar2NVarchar2, nvarchar2));
 
@@ -369,7 +369,7 @@ public class FBaseOracleSQLTest extends AbstractOracleSQLTest {
 
   private String getStackedColumnKey(String tableName, CProfile cProfile)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
+    return fStore.getStacked(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
         .stream()
         .findAny()
         .orElseThrow()
@@ -381,8 +381,8 @@ public class FBaseOracleSQLTest extends AbstractOracleSQLTest {
         .getKey();
   }
 
-  private String getGanttKey(List<GanttColumn> ganttColumnList, String filter) {
-    return ganttColumnList.get(0).getGantt()
+  private String getGanttKey(List<GanttColumnCount> ganttColumnCountList, String filter) {
+    return ganttColumnCountList.get(0).getGantt()
         .entrySet()
         .stream()
         .filter(f -> f.getKey().equalsIgnoreCase(filter))
@@ -391,8 +391,8 @@ public class FBaseOracleSQLTest extends AbstractOracleSQLTest {
         .getKey();
   }
 
-  private List<GanttColumn> getGanttColumn(String tableName, CProfile cProfileFirst, CProfile cProfileSecond)
+  private List<GanttColumnCount> getGanttColumn(String tableName, CProfile cProfileFirst, CProfile cProfileSecond)
       throws BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
-    return fStore.getGColumnListTwoLevelGroupBy(tableName, cProfileFirst, cProfileSecond, 0, Long.MAX_VALUE);
+    return fStore.getGantt(tableName, cProfileFirst, cProfileSecond, 0, Long.MAX_VALUE);
   }
 }

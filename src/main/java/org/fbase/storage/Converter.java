@@ -24,6 +24,7 @@ import java.util.Map;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.metadata.DataType;
 import org.fbase.model.profile.CProfile;
+import org.fbase.service.mapping.Mapper;
 import org.fbase.storage.helper.ClickHouseHelper;
 
 @Log4j2
@@ -170,6 +171,8 @@ public class Converter {
         Inet6Address inet6Address = (Inet6Address) obj;
         return dimensionDAO.getOrLoad(inet6Address.getHostAddress());
       case BYTEA:
+      case JSONB:
+      case POINT:
       case BINARY:
       case RAW:
       case VARBINARY:
@@ -188,9 +191,9 @@ public class Converter {
     if (cProfile.getColDbTypeName().contains("ARRAY")) return dimensionDAO.getStringById(objIndex);
     if (cProfile.getColDbTypeName().contains("MAP")) return dimensionDAO.getStringById(objIndex);
 
-    return switch (DataType.valueOf(cProfile.getColDbTypeName().toUpperCase())) {
+    return switch (Mapper.isDBType(cProfile)) {
       case DATE, ENUM8, ENUM16, CHAR, NCHAR, NCLOB, CLOB, NAME, TEXT, NTEXT,
-          VARCHAR, NVARCHAR2, VARCHAR2, NVARCHAR, RAW, VARBINARY, BYTEA, BINARY, SYSNAME, NULLABLE, STRING ->
+          VARCHAR, NVARCHAR2, VARCHAR2, NVARCHAR, RAW, VARBINARY, BYTEA, JSONB, POINT, INTERVAL, BINARY, SYSNAME, NULLABLE, STRING ->
           dimensionDAO.getStringById(objIndex);
       case IPV4, IPV6 -> getCanonicalHost(dimensionDAO.getStringById(objIndex));
       case TIMESTAMP, TIMESTAMPTZ, DATETIME, DATETIME2, SMALLDATETIME -> getDateForLongShorted(objIndex);

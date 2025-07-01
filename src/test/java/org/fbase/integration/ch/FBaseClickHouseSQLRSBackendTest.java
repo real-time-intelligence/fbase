@@ -8,11 +8,16 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.fbase.common.AbstractBackendSQLTest;
+import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.CompareFunction;
+import org.fbase.model.OrderBy;
+import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.table.BType;
@@ -26,9 +31,9 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 @Disabled
-public class FBaseClickHouseRSBackendTest extends AbstractBackendSQLTest {
+public class FBaseClickHouseSQLRSBackendTest extends AbstractBackendSQLTest {
 
-  private final String dbUrl = "jdbc:clickhouse://localhost:8123";
+  private final String dbUrl = "jdbc:clickhouse://localhost:8124";
   private final String driverClassName = "com.clickhouse.jdbc.ClickHouseDriver";
   private final String tableName = "default.ch_data_rs";
   private final String tsName = "CH_DT_TIMESTAMP";
@@ -55,7 +60,7 @@ public class FBaseClickHouseRSBackendTest extends AbstractBackendSQLTest {
   @BeforeAll
   public void setUp() throws SQLException, TableNameEmptyException {
     BType bType = BType.CLICKHOUSE;
-    BasicDataSource basicDataSource = getDatasource(bType, driverClassName, dbUrl, null, null);
+    BasicDataSource basicDataSource = getDatasource(bType, driverClassName, dbUrl, "admin", "admin");
 
     // Prepare remote backend
     dropTable(basicDataSource.getConnection(), tableName);
@@ -97,16 +102,68 @@ public class FBaseClickHouseRSBackendTest extends AbstractBackendSQLTest {
         ps.executeUpdate();
       }
     } catch (SQLException e) {
-      log.info(e);
+      log.error(e);
+      throw new RuntimeException(e);
     }
 
-    // Init FBase backend
     initMetaDataBackend(bType, basicDataSource);
 
     sProfile = getSProfileForBackend(tableName, basicDataSource, bType, select, tsName);
     tProfile = fStore.loadJdbcTableMetadata(basicDataSource.getConnection(), select, sProfile);
 
     log.info(tProfile);
+  }
+
+  @Test
+  public void getDistinctTest() throws BeginEndWrongOrderException {
+    CProfile cProfile = getCProfileByName(tProfile, "CH_DT_CHAR");
+
+    List<String> listActual = fStore.getDistinct(tableName, cProfile, OrderBy.DESC, 100, 0L, 4394908640000L);
+
+    assertEquals(List.of("A"), listActual);
+  }
+
+  @Test
+  public void getDistinctTestWithFilter() throws BeginEndWrongOrderException {
+    CProfile intProfile = getCProfileByName(tProfile, "CH_DT_INT");
+    CProfile charProfile = getCProfileByName(tProfile, "CH_DT_CHAR");
+    CProfile clobProfile = getCProfileByName(tProfile, "CH_DT_CLOB");
+    CProfile boolProfile = getCProfileByName(tProfile, "CH_DT_BOOL");
+
+    String[] filterValues = {"A"};
+    String[] clobFilter = {"Lorem"};
+    String[] nonExistingFilter = {"NonExisting"};
+
+    assertDistinctResults(intProfile, charProfile, filterValues, CompareFunction.EQUAL, List.of("6789"));
+
+    assertDistinctResults(charProfile, intProfile, new String[]{"6789"}, CompareFunction.EQUAL, List.of("A"));
+
+    assertDistinctResults(charProfile, charProfile, filterValues, CompareFunction.EQUAL, List.of("A"));
+
+    assertDistinctResults(clobProfile, clobProfile, clobFilter, CompareFunction.CONTAIN, List.of("Lorem ipsum dolor sit amet"));
+
+    assertDistinctResults(charProfile, charProfile, nonExistingFilter, CompareFunction.EQUAL, List.of());
+
+    assertDistinctResults(charProfile, charProfile, null, CompareFunction.EQUAL, List.of("A"));
+
+    assertDistinctResults(boolProfile, charProfile, filterValues, CompareFunction.EQUAL, List.of("true"));
+  }
+
+  private void assertDistinctResults(CProfile targetProfile, CProfile filterProfile,
+                                     String[] filterValues, CompareFunction compareFunction,
+                                     List<String> expectedResults) throws BeginEndWrongOrderException {
+    List<String> actualResults = fStore.getDistinct(
+        tableName,
+        targetProfile,
+        OrderBy.ASC,
+        100,
+        0L,
+        4394908640000L,
+        filterProfile,
+        filterValues,
+        compareFunction
+    );
+    assertEquals(expectedResults, actualResults);
   }
 
   @Test
@@ -143,5 +200,19 @@ public class FBaseClickHouseRSBackendTest extends AbstractBackendSQLTest {
     while (batchResultSet.next()) {
       log.info(batchResultSet.getObject());
     }
+  }
+
+  @Test
+  public void batchResultSingleEmptyDataTest() {
+    BatchResultSet batchResultSet = fStore.getBatchResultSet(tableName, 4394908640000L, Long.MAX_VALUE, 10);
+
+    int count = 0;
+    while (batchResultSet.next()) {
+      log.info(batchResultSet.getObject());
+
+      count++;
+    }
+
+    assertEquals(0, count);
   }
 }

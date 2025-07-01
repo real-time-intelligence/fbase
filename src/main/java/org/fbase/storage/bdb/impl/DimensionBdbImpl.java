@@ -1,5 +1,6 @@
 package org.fbase.storage.bdb.impl;
 
+import com.sleepycat.je.UniqueConstraintException;
 import com.sleepycat.persist.EntityStore;
 import com.sleepycat.persist.PrimaryIndex;
 import com.sleepycat.persist.SecondaryIndex;
@@ -27,7 +28,12 @@ public class DimensionBdbImpl implements DimensionDAO {
   @Override
   public int getOrLoad(double value) {
     if (!secondaryIndexDouble.contains(value)) {
-      this.primaryIndexDouble.putNoReturn(new DIntDouble(0, value));
+      try {
+        this.primaryIndexDouble.putNoReturn(new DIntDouble(0, value));
+      } catch (UniqueConstraintException e) {
+        log.info("Value: {} already exists", value);
+        return this.secondaryIndexDouble.get(value).getParam();
+      }
     }
     return this.secondaryIndexDouble.get(value).getParam();
   }
@@ -35,7 +41,12 @@ public class DimensionBdbImpl implements DimensionDAO {
   @Override
   public int getOrLoad(String value) {
     if (!secondaryIndexString.contains(value)) {
-      this.primaryIndexString.putNoReturn(new DIntString(0, value));
+      try {
+        this.primaryIndexString.putNoReturn(new DIntString(0, value));
+      } catch (UniqueConstraintException e) {
+        log.info("Value: {} already exists", value);
+        return this.secondaryIndexString.get(value).getParam();
+      }
     }
     return this.secondaryIndexString.get(value).getParam();
   }

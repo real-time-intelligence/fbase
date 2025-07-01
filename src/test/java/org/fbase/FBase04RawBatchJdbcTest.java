@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -22,7 +23,7 @@ public class FBase04RawBatchJdbcTest extends AbstractH2Test {
   public void init() {
     loadExpected(expected);
 
-    Map<String, SType> csTypeMap = new HashMap<>();
+    Map<String, SType> csTypeMap = new LinkedHashMap<>();
     csTypeMap.put("ID", SType.RAW);
     csTypeMap.put("FIRSTNAME", SType.ENUM);
     csTypeMap.put("LASTNAME", SType.RAW);

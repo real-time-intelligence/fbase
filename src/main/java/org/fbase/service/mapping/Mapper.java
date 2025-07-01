@@ -62,7 +62,7 @@ public class Mapper {
           CType.LONG;
       case FLOAT4, FLOAT32, REAL -> CType.FLOAT;
       case FLOAT64, NUMERIC, FLOAT, FLOAT8, MONEY, SMALLMONEY, DECIMAL, DOUBLE -> CType.DOUBLE;
-      case BOOL, UUID, BYTEA, BINARY, RAW, VARBINARY, UNIQUEIDENTIFIER, STRING -> CType.STRING;
+      case BOOL, UUID, BYTEA, JSONB, POINT, INTERVAL, BINARY, RAW, VARBINARY, UNIQUEIDENTIFIER, STRING -> CType.STRING;
       default -> CType.STRING;
     };
   }
@@ -73,7 +73,11 @@ public class Mapper {
     if (cProfile.getColDbTypeName().contains("ENUM8")) return DataType.ENUM8;
     if (cProfile.getColDbTypeName().contains("ENUM16")) return DataType.ENUM16;
     if (cProfile.getColDbTypeName().contains("ENUM")) return DataType.ENUM;
+
+    if (cProfile.getColDbTypeName().equals("DATETIME")) return DataType.DATETIME;
+    if (cProfile.getColDbTypeName().equals("DATETIME2")) return DataType.DATETIME2;
     if (cProfile.getColDbTypeName().contains("DATETIME")) return DataType.DATETIME;
+
     if (cProfile.getColDbTypeName().contains("NULLABLE")) return DataType.NULLABLE;
     if (cProfile.getColDbTypeName().contains("ARRAY")) return DataType.ARRAY;
     if (cProfile.getColDbTypeName().contains("MAP")) return DataType.MAP;
@@ -147,7 +151,7 @@ public class Mapper {
         } else if (obj instanceof LocalDateTime localDateTime) {
           return localDateTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
         } else if (obj instanceof LocalDate localDate) {
-          return localDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond();
+          return localDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond() * 1000;
         } else if (obj instanceof Date date) {
           return date.getTime();
         } else if (obj instanceof byte[] ba) {
@@ -311,6 +315,8 @@ public class Mapper {
       case BINARY:
       case VARBINARY:
         return new String((byte[]) obj, StandardCharsets.UTF_8);
+      case JSONB, POINT, INTERVAL:
+        return obj.toString();
       default:
         return STRING_NULL;
     }

@@ -16,7 +16,7 @@ import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.metadata.DataType;
 import org.fbase.model.GroupFunction;
-import org.fbase.model.output.GanttColumn;
+import org.fbase.model.output.GanttColumnCount;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.cstype.CSType;
@@ -71,16 +71,16 @@ public class FBase11MapArrayTest extends AbstractDirectTest {
 
   @Test
   public void computeGanttTest() throws BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
-    List<GanttColumn> actualMapMessage = getDataGanttColumn("MAP", "MESSAGE", Integer.MIN_VALUE, Integer.MAX_VALUE);
-    List<GanttColumn> actualArrayMessage = getDataGanttColumn("ARRAY", "MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
+    List<GanttColumnCount> actualMapMessage = getDataGanttColumn("MAP", "MESSAGE", Integer.MIN_VALUE, Integer.MAX_VALUE);
+    List<GanttColumnCount> actualArrayMessage = getDataGanttColumn("ARRAY", "MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
     assertEquals(getTestDataMapMessage(), actualMapMessage);
     assertEquals(getTestArrayMessage(), actualArrayMessage);
 
-    List<GanttColumn> actualMessageMap = getDataGanttColumn("MESSAGE", "MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
-    List<GanttColumn> actualMapMap = getDataGanttColumn("MAP", "MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
-    List<GanttColumn> actualArrayMap = getDataGanttColumn("ARRAY", "MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
-    List<GanttColumn> actualMapArray = getDataGanttColumn("MAP", "ARRAY", Integer.MIN_VALUE, Integer.MAX_VALUE);
-    List<GanttColumn> actualArrayArray = getDataGanttColumn("ARRAY", "ARRAY", Integer.MIN_VALUE, Integer.MAX_VALUE);
+    List<GanttColumnCount> actualMessageMap = getDataGanttColumn("MESSAGE", "MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
+    List<GanttColumnCount> actualMapMap = getDataGanttColumn("MAP", "MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
+    List<GanttColumnCount> actualArrayMap = getDataGanttColumn("ARRAY", "MAP", Integer.MIN_VALUE, Integer.MAX_VALUE);
+    List<GanttColumnCount> actualMapArray = getDataGanttColumn("MAP", "ARRAY", Integer.MIN_VALUE, Integer.MAX_VALUE);
+    List<GanttColumnCount> actualArrayArray = getDataGanttColumn("ARRAY", "ARRAY", Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     System.out.println(actualMessageMap);
     System.out.println(actualMapMap);
@@ -125,46 +125,46 @@ public class FBase11MapArrayTest extends AbstractDirectTest {
     return expected;
   }
 
-  private List<GanttColumn> getTestDataMapMessage() {
-    List<GanttColumn> expected = new ArrayList<>();
+  private List<GanttColumnCount> getTestDataMapMessage() {
+    List<GanttColumnCount> expected = new ArrayList<>();
     Map<String, Integer> ganttData;
 
     ganttData = new HashMap<>();
     ganttData.put("Test message 3", 2);
-    expected.add(new GanttColumn("", ganttData));
+    expected.add(new GanttColumnCount("", ganttData));
 
     ganttData = new HashMap<>();
     ganttData.put("Test message 2", 12);
-    expected.add(new GanttColumn("val6", ganttData));
+    expected.add(new GanttColumnCount("val6", ganttData));
 
     ganttData = new HashMap<>();
     ganttData.put("Test message 2", 10);
-    expected.add(new GanttColumn("val5", ganttData));
+    expected.add(new GanttColumnCount("val5", ganttData));
 
     ganttData = new HashMap<>();
     ganttData.put("Test message 2", 8);
-    expected.add(new GanttColumn("val4", ganttData));
+    expected.add(new GanttColumnCount("val4", ganttData));
 
     ganttData = new HashMap<>();
     ganttData.put("Test message 1", 6);
-    expected.add(new GanttColumn("val3", ganttData));
+    expected.add(new GanttColumnCount("val3", ganttData));
 
     ganttData = new HashMap<>();
     ganttData.put("Test message 1", 4);
-    expected.add(new GanttColumn("val2", ganttData));
+    expected.add(new GanttColumnCount("val2", ganttData));
 
     ganttData = new HashMap<>();
     ganttData.put("Test message 1", 2);
-    expected.add(new GanttColumn("val1", ganttData));
+    expected.add(new GanttColumnCount("val1", ganttData));
 
     return expected;
   }
 
-  private List<GanttColumn> getTestArrayMessage() {
-    List<GanttColumn> expected = new ArrayList<>();
+  private List<GanttColumnCount> getTestArrayMessage() {
+    List<GanttColumnCount> expected = new ArrayList<>();
 
-    expected.add(new GanttColumn("array value 1", createGanttMap("=2", "val6=12", "val5=10", "val4=8", "val3=6" , "val2=4", "val1=2")));
-    expected.add(new GanttColumn("array value 2", createGanttMap("=2", "val6=12", "val5=10", "val4=8", "val3=6" , "val2=4", "val1=2")));
+    expected.add(new GanttColumnCount("array value 1", createGanttMap("=2", "val6=12", "val5=10", "val4=8", "val3=6" , "val2=4", "val1=2")));
+    expected.add(new GanttColumnCount("array value 2", createGanttMap("=2", "val6=12", "val5=10", "val4=8", "val3=6" , "val2=4", "val1=2")));
 
     return expected;
   }

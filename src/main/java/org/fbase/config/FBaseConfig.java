@@ -15,5 +15,4 @@ public class FBaseConfig {
 
   private String configDirectory;
   private String configFileName = "metamodel.obj";
-  private int blockSize;
 }

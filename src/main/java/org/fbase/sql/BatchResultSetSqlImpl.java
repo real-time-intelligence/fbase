@@ -90,10 +90,7 @@ public class BatchResultSetSqlImpl extends CommonServiceApi implements BatchResu
       throw new RuntimeException("API working only for time-series tables");
     }
 
-    String query = "SELECT * FROM " + tableName + " "
-        + databaseDialect.getWhereClass(tsCProfile.get(), null, null)
-        + databaseDialect.getOrderByClass(tsCProfile.get())
-        + databaseDialect.getLimitClass(fetchSize);
+    String query = getSqlQuery(tsCProfile);
 
     AtomicInteger fetchCounter = new AtomicInteger(pointer.getValue());
 
@@ -151,8 +148,45 @@ public class BatchResultSetSqlImpl extends CommonServiceApi implements BatchResu
     return transpose(tableColFormatData);
   }
 
+  private String getSqlQuery(Optional<CProfile> tsCProfile) {
+    return "SELECT * FROM " + tableName + " "
+        + databaseDialect.getWhereClass(tsCProfile.get(), null, null, null)
+        + databaseDialect.getOrderByClass(tsCProfile.get())
+        + databaseDialect.getLimitClass(fetchSize);
+  }
+
   @Override
   public boolean next() {
+    // Check if data exist in first call
+    Optional<CProfile> tsCProfile = cProfiles.stream()
+        .filter(k -> k.getCsType().isTimeStamp())
+        .findAny();
+
+    if (isStarted) {
+      String query = getSqlQuery(tsCProfile);
+
+      try (Connection connection = basicDataSource.getConnection();
+          PreparedStatement ps = connection.prepareStatement(query)) {
+
+        long dateTime = pointer.getKey();
+        databaseDialect.setDateTime(tsCProfile.orElseThrow(), ps, 1, dateTime);
+        databaseDialect.setDateTime(tsCProfile.orElseThrow(), ps, 2, maxBlockId);
+
+        try(ResultSet rs = ps.executeQuery()) {
+          if (!rs.next()) {
+            log.info("Empty result set");
+            isNext = false;
+          } else {
+            log.info("Not empty result set");
+          }
+        }
+      } catch (SQLException e) {
+        log.catching(e);
+      }
+
+      isStarted = true; // Return it back
+    }
+
     return isNext;
   }
 }

@@ -3,6 +3,7 @@ package org.fbase.service;
 import java.util.List;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.SqlColMetadataException;
+import org.fbase.model.CompareFunction;
 import org.fbase.model.GroupFunction;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
@@ -20,7 +21,8 @@ public interface GroupByOneService {
                                                  CProfile cProfile,
                                                  GroupFunction groupFunction,
                                                  CProfile cProfileFilter,
-                                                 String filter,
+                                                 String[] filterData,
+                                                 CompareFunction compareFunction,
                                                  long begin,
                                                  long end)
       throws SqlColMetadataException, BeginEndWrongOrderException;

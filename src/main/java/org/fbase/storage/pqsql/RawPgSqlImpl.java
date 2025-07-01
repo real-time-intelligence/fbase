@@ -7,10 +7,14 @@ import java.util.Map;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.fbase.core.metamodel.MetaModelApi;
+import org.fbase.model.CompareFunction;
 import org.fbase.model.GroupFunction;
-import org.fbase.model.output.GanttColumn;
+import org.fbase.model.OrderBy;
+import org.fbase.model.output.GanttColumnCount;
+import org.fbase.model.output.GanttColumnSum;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
+import org.fbase.model.profile.cstype.CType;
 import org.fbase.sql.BatchResultSet;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.entity.Metadata;
@@ -142,6 +146,21 @@ public class RawPgSqlImpl extends QueryJdbcApi implements RawDAO {
   }
 
   @Override
+  public void putCompressed(byte tableId,
+                            long blockId,
+                            CachedLastLinkedHashMap<Integer, Integer> rawDataTimeStampMapping,
+                            List<List<Long>> rawDataTimestamp) {
+    throw new RuntimeException("Not supported");
+  }
+
+  @Override
+  public void putCompressed(byte tableId,
+                            long blockId,
+                            Map<CType, Map<Integer, List<Object>>> rawDataByType) {
+    throw new RuntimeException("Not supported");
+  }
+
+  @Override
   public byte[] getRawByte(byte tableId,
                            long blockId,
                            int colId) {
@@ -215,37 +234,96 @@ public class RawPgSqlImpl extends QueryJdbcApi implements RawDAO {
   }
 
   @Override
+  public long getFirstBlockId(byte tableId,
+                              int tsColId,
+                              long begin,
+                              long end) {
+    return getFirstBlockIdLocal(tableId, begin, end);
+  }
+
+  @Override
   public long getLastBlockId(byte tableId) {
     return getLastBlockIdLocal(tableId, 0L, Long.MAX_VALUE);
   }
 
   @Override
   public long getLastBlockId(byte tableId,
+                             int tsColId,
                              long begin,
                              long end) {
     return getLastBlockIdLocal(tableId, begin, end);
   }
 
   @Override
-  public List<StackedColumn> getListStackedColumn(String tableName,
-                                                  CProfile tsCProfile,
-                                                  CProfile cProfile,
-                                                  GroupFunction groupFunction,
-                                                  CProfile cProfileFilter,
-                                                  String filter,
-                                                  long begin,
-                                                  long end) {
-    return getListStackedColumn(tableName, tsCProfile, cProfile, groupFunction, cProfileFilter, filter, begin, end, databaseDialect);
+  public List<StackedColumn> getStacked(String tableName,
+                                        CProfile tsCProfile,
+                                        CProfile cProfile,
+                                        GroupFunction groupFunction,
+                                        CProfile cProfileFilter,
+                                        String[] filterData,
+                                        CompareFunction compareFunction,
+                                        long begin,
+                                        long end) {
+    return getStackedCommon(tableName, tsCProfile, cProfile, groupFunction, cProfileFilter, filterData, compareFunction, begin, end, databaseDialect);
   }
 
   @Override
-  public List<GanttColumn> getListGanttColumn(String tableName,
-                                              CProfile tsCProfile,
-                                              CProfile firstGrpBy,
-                                              CProfile secondGrpBy,
-                                              long begin,
-                                              long end) {
-    return getListGanttColumn(tableName, tsCProfile, firstGrpBy, secondGrpBy, begin, end, databaseDialect);
+  public List<GanttColumnCount> getGantt(String tableName,
+                                         CProfile tsCProfile,
+                                         CProfile firstGrpBy,
+                                         CProfile secondGrpBy,
+                                         long begin,
+                                         long end) {
+    return getGantt(tableName, tsCProfile, firstGrpBy, secondGrpBy, null, null, null, begin, end, databaseDialect);
+  }
+
+  @Override
+  public List<GanttColumnCount> getGantt(String tableName,
+                                         CProfile tsCProfile,
+                                         CProfile firstGrpBy,
+                                         CProfile secondGrpBy,
+                                         CProfile cProfileFilter,
+                                         String[] filterData,
+                                         CompareFunction compareFunction,
+                                         long begin,
+                                         long end) {
+    return getGantt(tableName, tsCProfile, firstGrpBy, secondGrpBy, cProfileFilter, filterData, compareFunction, begin, end, databaseDialect);
+  }
+
+  @Override
+  public List<GanttColumnSum> getGanttSum(String tableName,
+                                          CProfile tsCProfile,
+                                          CProfile firstGrpBy,
+                                          CProfile secondGrpBy,
+                                          long begin,
+                                          long end) {
+    throw new RuntimeException("Not supported");
+  }
+
+  @Override
+  public List<String> getDistinct(String tableName,
+                                  CProfile tsCProfile,
+                                  CProfile cProfile,
+                                  OrderBy orderBy,
+                                  int limit,
+                                  long begin,
+                                  long end) {
+    return getDistinctCommon(tableName, tsCProfile, cProfile, orderBy, limit, begin, end, databaseDialect);
+  }
+
+  @Override
+  public List<String> getDistinct(String tableName,
+                                  CProfile tsCProfile,
+                                  CProfile cProfile,
+                                  OrderBy orderBy,
+                                  int limit,
+                                  long begin,
+                                  long end,
+                                  CProfile cProfileFilter,
+                                  String[] filterData,
+                                  CompareFunction compareFunction) {
+    return getDistinctWithFilterCommon(tableName, tsCProfile, cProfile, orderBy, limit, begin, end,
+                                       cProfileFilter, filterData, compareFunction, databaseDialect);
   }
 
   @Override
@@ -255,6 +333,15 @@ public class RawPgSqlImpl extends QueryJdbcApi implements RawDAO {
                                           int fetchSize,
                                           List<CProfile> cProfiles) {
     return getBatchResultSetCommon(tableName, begin, end, fetchSize, cProfiles, databaseDialect);
+  }
+
+  private long getFirstBlockIdLocal(byte tableId,
+                                    long begin,
+                                    long end) {
+    String tableName = metaModelApi.getTableName(tableId);
+    CProfile tsCProfile = metaModelApi.getTimestampCProfile(tableName);
+
+    return getFirstBlockIdLocal(tableName, tsCProfile, begin, end, databaseDialect);
   }
 
   private long getLastBlockIdLocal(byte tableId,

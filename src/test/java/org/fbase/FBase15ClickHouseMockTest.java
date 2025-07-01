@@ -1,4 +1,4 @@
-package org.fbase.integration.mocked;
+package org.fbase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import lombok.extern.log4j.Log4j2;
-import org.fbase.FBase;
 import org.fbase.backend.BerkleyDB;
 import org.fbase.config.FBaseConfig;
 import org.fbase.core.FStore;
@@ -21,6 +20,7 @@ import org.fbase.source.ClickHouse;
 import org.fbase.source.ClickHouseMock;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
-public class FBase05ClickHouseMockTest implements ClickHouse {
+public class FBase15ClickHouseMockTest implements ClickHouse {
   private FStore fStore;
   private TProfile tProfile;
   private List<CProfile> cProfiles;
@@ -51,7 +51,7 @@ public class FBase05ClickHouseMockTest implements ClickHouse {
     String absPath = resourceDirectory.toFile().getAbsolutePath();
 
 
-    FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(absPath).setBlockSize(16);
+    FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(absPath);
     FBase fBase = new FBase(fBaseConfig, berkleyDB.getStore());
     fStore = fBase.getFStore();
 

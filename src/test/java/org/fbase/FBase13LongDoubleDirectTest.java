@@ -16,7 +16,7 @@ import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.metadata.DataType;
 import org.fbase.model.GroupFunction;
-import org.fbase.model.output.GanttColumn;
+import org.fbase.model.output.GanttColumnCount;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.cstype.CSType;
@@ -69,20 +69,20 @@ public class FBase13LongDoubleDirectTest extends AbstractDirectTest {
   @Test
   public void computeGanttTest()
       throws BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException, IOException {
-    List<GanttColumn> longDouble = getDataGanttColumn("LONG_FIELD", "DOUBLE_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
-    List<GanttColumn> doubleLong = getDataGanttColumn("DOUBLE_FIELD", "LONG_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
-    List<GanttColumn> doubleString = getDataGanttColumn("DOUBLE_FIELD", "STRING_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
-    List<GanttColumn> longString = getDataGanttColumn("LONG_FIELD", "STRING_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
-    List<GanttColumn> stringLong = getDataGanttColumn("STRING_FIELD", "LONG_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
-    List<GanttColumn> stringDouble = getDataGanttColumn("STRING_FIELD", "DOUBLE_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
+    List<GanttColumnCount> longDouble = getDataGanttColumn("LONG_FIELD", "DOUBLE_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
+    List<GanttColumnCount> doubleLong = getDataGanttColumn("DOUBLE_FIELD", "LONG_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
+    List<GanttColumnCount> doubleString = getDataGanttColumn("DOUBLE_FIELD", "STRING_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
+    List<GanttColumnCount> longString = getDataGanttColumn("LONG_FIELD", "STRING_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
+    List<GanttColumnCount> stringLong = getDataGanttColumn("STRING_FIELD", "LONG_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
+    List<GanttColumnCount> stringDouble = getDataGanttColumn("STRING_FIELD", "DOUBLE_FIELD", Long.MIN_VALUE, Long.MAX_VALUE);
 
-    List<GanttColumn> expected = getGanttDataExpected("long_double_string_gantt.json");
-    List<GanttColumn> actual = Stream.of(longDouble.stream(),
-                                         doubleLong.stream(),
-                                         doubleString.stream(),
-                                         longString.stream(),
-                                         stringLong.stream(),
-                                         stringDouble.stream())
+    List<GanttColumnCount> expected = getGanttDataExpected("long_double_string_gantt.json");
+    List<GanttColumnCount> actual = Stream.of(longDouble.stream(),
+                                              doubleLong.stream(),
+                                              doubleString.stream(),
+                                              longString.stream(),
+                                              stringLong.stream(),
+                                              stringDouble.stream())
         .flatMap(Function.identity())
         .collect(Collectors.toList());
 

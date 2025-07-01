@@ -156,7 +156,6 @@ public class H2Database {
           .colName(rsmd.getColumnName(i).toUpperCase())
           .colDbTypeName(rsmd.getColumnTypeName(i).toUpperCase())
           .colSizeDisplay(rsmd.getColumnDisplaySize(i))
-          .colSizeSqlType(rsmd.getColumnType(i))
           .build());
     }
 

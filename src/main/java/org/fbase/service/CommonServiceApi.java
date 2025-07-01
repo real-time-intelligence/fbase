@@ -13,21 +13,27 @@ import static org.fbase.util.MapArrayUtil.parseStringToTypedMap;
 import java.nio.FloatBuffer;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.fbase.model.CompareFunction;
 import org.fbase.model.MetaModel;
-import org.fbase.model.output.GanttColumn;
+import org.fbase.model.output.GanttColumnCount;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.CType;
@@ -37,9 +43,14 @@ import org.fbase.model.profile.table.IType;
 import org.fbase.model.profile.table.TType;
 import org.fbase.service.mapping.Mapper;
 import org.fbase.service.store.HEntry;
+import org.fbase.storage.Converter;
+import org.fbase.storage.EnumDAO;
+import org.fbase.storage.HistogramDAO;
 import org.fbase.storage.RawDAO;
 import org.fbase.storage.bdb.entity.Metadata;
 import org.fbase.storage.bdb.entity.MetadataKey;
+import org.fbase.storage.bdb.entity.column.EColumn;
+import org.fbase.storage.helper.EnumHelper;
 import org.fbase.util.CachedLastLinkedHashMap;
 
 public abstract class CommonServiceApi {
@@ -256,6 +267,15 @@ public abstract class CommonServiceApi {
     return byteArray;
   }
 
+  public int[] getIntegerFromSet(Set<Integer> list) {
+    int[] values = new int[list.size()];
+    int index = 0;
+    for (Integer key : list) {
+      values[index++] = key;
+    }
+    return values;
+  }
+
   public String[] getStringFromList(List<String> list) {
     String[] stringArray = new String[list.size()];
     int index = 0;
@@ -317,10 +337,32 @@ public abstract class CommonServiceApi {
         .forEach(e -> mapping.add(iRawDataLongMapping.getAndAdd(1), e.getColId()));
   }
 
-  public String[] getStringArrayValue(RawDAO rawDAO,
-                                      byte tableId,
-                                      long blockId,
-                                      CProfile cProfile) {
+  protected String[] getStringArrayValues(RawDAO rawDAO,
+                                          EnumDAO enumDAO,
+                                          HistogramDAO histogramDAO,
+                                          Converter converter,
+                                          byte tableId,
+                                          CProfile cProfile,
+                                          long blockId,
+                                          long[] timestamps) {
+    MetadataKey metadataKey = MetadataKey.builder().tableId(tableId).blockId(blockId).build();
+    SType sType = getSType(cProfile.getColId(), rawDAO.getMetadata(metadataKey));
+
+    if (SType.RAW.equals(sType)) {
+      return getStringArrayValuesRaw(rawDAO, tableId, blockId, cProfile);
+    } else if (SType.ENUM.equals(sType)) {
+      return getStringArrayValuesEnum(enumDAO, converter, tableId, blockId, cProfile, timestamps);
+    } else if (SType.HISTOGRAM.equals(sType)) {
+      return getStringArrayValuesHist(histogramDAO, converter, tableId, blockId, cProfile, timestamps);
+    }
+
+    return new String[0];
+  }
+
+  public String[] getStringArrayValuesRaw(RawDAO rawDAO,
+                                          byte tableId,
+                                          long blockId,
+                                          CProfile cProfile) {
     int colId = cProfile.getColId();
     CType cType = Mapper.isCType(cProfile);
 
@@ -355,6 +397,223 @@ public abstract class CommonServiceApi {
     }
 
     return new String[0];
+  }
+
+  protected String[] getStringArrayValuesEnum(EnumDAO enumDAO,
+                                              Converter converter,
+                                              byte tableId,
+                                              long blockId,
+                                              CProfile cProfile,
+                                              long[] timestamps) {
+    String[] array = new String[timestamps.length];
+
+    EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
+
+    IntStream iRow = IntStream.range(0, timestamps.length);
+    iRow.forEach(iR -> {
+      byte valueByte = eColumn.getDataByte()[iR];
+      array[iR] = converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn.getValues(), valueByte), cProfile);
+    });
+
+    return array;
+  }
+
+  protected String[] getStringArrayValuesHist(HistogramDAO histogramDAO,
+                                              Converter converter,
+                                              byte tableId,
+                                              long blockId,
+                                              CProfile cProfile,
+                                              long[] timestamps) {
+    String[] array = new String[timestamps.length];
+
+    int[][] histograms = histogramDAO.get(tableId, blockId, cProfile.getColId());
+    int[] histogramsUnPack = getHistogramUnPack(timestamps, histograms);
+
+    IntStream iRow = IntStream.range(0, timestamps.length);
+
+    iRow.forEach(iR -> array[iR] = converter.convertIntToRaw(histogramsUnPack[iR], cProfile));
+
+    return array;
+  }
+
+  protected double[] getDoubleArrayValues(RawDAO rawDAO,
+                                          EnumDAO enumDAO,
+                                          HistogramDAO histogramDAO,
+                                          Converter converter,
+                                          byte tableId,
+                                          CProfile cProfile,
+                                          long blockId,
+                                          long[] timestamps) {
+    MetadataKey metadataKey = MetadataKey.builder().tableId(tableId).blockId(blockId).build();
+    SType sType = getSType(cProfile.getColId(), rawDAO.getMetadata(metadataKey));
+
+    if (SType.RAW.equals(sType)) {
+      return getDoubleArrayValuesRaw(rawDAO, tableId, blockId, cProfile);
+    } else if (SType.ENUM.equals(sType)) {
+      return getDoubleArrayValuesEnum(enumDAO, converter, tableId, blockId, cProfile, timestamps);
+    } else if (SType.HISTOGRAM.equals(sType)) {
+      return getDoubleArrayValuesHist(histogramDAO, converter, tableId, blockId, cProfile, timestamps);
+    }
+
+    return new double[0];
+  }
+
+  protected double[] getDoubleArrayValuesRaw(RawDAO rawDAO,
+                                             byte tableId,
+                                             long blockId,
+                                             CProfile cProfile) {
+    int colId = cProfile.getColId();
+    CType cType = Mapper.isCType(cProfile);
+
+    if (CType.INT == cType) {
+      int[] values = rawDAO.getRawInt(tableId, blockId, colId);
+      double[] result = new double[values.length];
+      for (int i = 0; i < values.length; i++) {
+        result[i] = values[i] == INT_NULL ? 0 : values[i];
+      }
+      return result;
+    } else if (CType.LONG == cType) {
+      long[] values = rawDAO.getRawLong(tableId, blockId, colId);
+      double[] result = new double[values.length];
+      for (int i = 0; i < values.length; i++) {
+        result[i] = values[i] == LONG_NULL ? 0 : values[i];
+      }
+      return result;
+    } else if (CType.FLOAT == cType) {
+      float[] values = rawDAO.getRawFloat(tableId, blockId, colId);
+      double[] result = new double[values.length];
+      for (int i = 0; i < values.length; i++) {
+        result[i] = values[i] == FLOAT_NULL ? 0 : values[i];
+      }
+      return result;
+    } else if (CType.DOUBLE == cType) {
+      double[] values = rawDAO.getRawDouble(tableId, blockId, colId);
+      double[] result = new double[values.length];
+      for (int i = 0; i < values.length; i++) {
+        result[i] = values[i] == DOUBLE_NULL ? 0 : values[i];
+      }
+      return result;
+    }
+
+    return new double[0];
+  }
+
+  protected double[] getDoubleArrayValuesEnum(EnumDAO enumDAO,
+                                              Converter converter,
+                                              byte tableId,
+                                              long blockId,
+                                              CProfile cProfile,
+                                              long[] timestamps) {
+    double[] array = new double[timestamps.length];
+
+    EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
+
+    IntStream.range(0, timestamps.length).forEach(iR -> {
+      byte valueByte = eColumn.getDataByte()[iR];
+      int intValue = EnumHelper.getIndexValue(eColumn.getValues(), valueByte);
+      array[iR] = converter.convertIntToDouble(intValue, cProfile);
+    });
+
+    return array;
+  }
+
+  protected double[] getDoubleArrayValuesHist(HistogramDAO histogramDAO,
+                                              Converter converter,
+                                              byte tableId,
+                                              long blockId,
+                                              CProfile cProfile,
+                                              long[] timestamps) {
+    double[] array = new double[timestamps.length];
+
+    int[][] histograms = histogramDAO.get(tableId, blockId, cProfile.getColId());
+    int[] histogramsUnPack = getHistogramUnPack(timestamps, histograms);
+
+    IntStream.range(0, timestamps.length).forEach(iR -> {
+      array[iR] = converter.convertIntToDouble(histogramsUnPack[iR], cProfile);
+    });
+
+    return array;
+  }
+
+  protected <T> void fillTimeSeriesColumnData(long[] timestamps, long begin, long end, List<T> columnData) {
+    if (timestamps.length != 0) {
+      IntStream iRow = IntStream.range(0, timestamps.length);
+      iRow.forEach(iR -> {
+        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+          columnData.add((T) Long.valueOf(timestamps[iR]));
+        }
+      });
+    }
+  }
+
+  protected <F, T> void fillTimeSeriesColumnDataFilter(Set<F> indexSetFilter, long[] timestamps, List<T> columnData) {
+    if (timestamps.length != 0) {
+      IntStream iRow = IntStream.range(0, timestamps.length);
+      iRow.forEach(iR -> {
+        if (indexSetFilter.contains(iR)) {
+          columnData.add((T) Long.valueOf(timestamps[iR]));
+        }
+      });
+    }
+  }
+
+  protected <V, T> void fillColumnData(V[] columValues, long[] timestamps, long begin, long end, List<T> columnData) {
+    if (columValues.length != 0) {
+      IntStream iRow = IntStream.range(0, timestamps.length);
+      iRow.forEach(iR -> {
+        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+          columnData.add((T) columValues[iR]);
+        }
+      });
+    }
+  }
+
+  protected <V, F, T> void fillColumnDataFilter(V[] columValues, Set<F> indexSetFilter, long[] timestamps, List<T> columnData) {
+    if (columValues.length != 0) {
+      IntStream iRow = IntStream.range(0, timestamps.length);
+      iRow.forEach(iR -> {
+        if (indexSetFilter.contains(iR)) {
+          columnData.add((T) columValues[iR]);
+        }
+      });
+    }
+  }
+
+  protected <V, T> void fillColumnDataSet(V[] columValues, long[] timestamps, long begin, long end, Set<T> columnData) {
+    if (columValues.length != 0) {
+      IntStream iRow = IntStream.range(0, timestamps.length);
+      iRow.forEach(iR -> {
+        if (timestamps[iR] >= begin && timestamps[iR] <= end) {
+          columnData.add((T) columValues[iR]);
+        }
+      });
+    }
+  }
+
+  protected <I, V> Set<I> getIndexSetByFilter(V[] columValues,
+                                              CProfile cProfileFilter,
+                                              String filter,
+                                              long[] timestamps,
+                                              long begin,
+                                              long end) {
+    if (cProfileFilter.getCsType().isTimeStamp()) {
+      throw new RuntimeException("Not supported for timestamp");
+    }
+
+    Set<I> setIndexRow = new HashSet<>();
+
+    if (timestamps.length != 0) {
+      IntStream iRow = IntStream.range(0, timestamps.length);
+      iRow.forEach(iR -> {
+        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
+          if (filter.equals(columValues[iR])) {
+            setIndexRow.add((I) Integer.valueOf(iR));
+          }
+        }
+      });
+    }
+
+    return setIndexRow;
   }
 
   public static <T> List<List<T>> transpose(List<List<T>> table) {
@@ -446,10 +705,10 @@ public abstract class CommonServiceApi {
     return sColumnListParsedMap;
   }
 
-  protected List<GanttColumn> handleMap(CProfile firstLevelGroupBy,
-                                        CProfile secondLevelGroupBy,
-                                        Map<String, Map<String, Integer>> mapFinalIn) {
-    List<GanttColumn> list = new ArrayList<>();
+  protected List<GanttColumnCount> handleMap(CProfile firstLevelGroupBy,
+                                             CProfile secondLevelGroupBy,
+                                             Map<String, Map<String, Integer>> mapFinalIn) {
+    List<GanttColumnCount> list = new ArrayList<>();
     Map<String, Map<String, Integer>> mapFinalOut = new HashMap<>();
 
     if (MAP.equals(firstLevelGroupBy.getCsType().getDType())) {
@@ -472,7 +731,7 @@ public abstract class CommonServiceApi {
       }
     }
 
-    mapFinalOut.forEach((key, value) -> list.add(GanttColumn.builder().key(key).gantt(value).build()));
+    mapFinalOut.forEach((key, value) -> list.add(GanttColumnCount.builder().key(key).gantt(value).build()));
 
     return list;
   }
@@ -602,7 +861,7 @@ public abstract class CommonServiceApi {
         iRow.forEach(iR -> histogramsUnPack[cntForHist.getAndIncrement()] = currHistogramValue);
       } else {
         for (int j = 0; j < timestamps.length; j++) {
-          histogramsUnPack[i] = histograms[1][0];
+          histogramsUnPack[j] = histograms[1][0]; // Fix for BUG in batch jdbc insert when block contains empty values
         }
       }
     }
@@ -645,5 +904,24 @@ public abstract class CommonServiceApi {
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
     Date dtDate = new Date(((long) longDate) * 1000L);
     return simpleDateFormat.format(dtDate);
+  }
+
+  protected boolean filter(String filterValue, String[] filterData, CompareFunction compareFunction) {
+    if (compareFunction == null || filterData == null || filterValue == null || filterData.length == 0) return true;
+
+    boolean result;
+    switch (compareFunction) {
+      case EQUAL -> result = Arrays.asList(filterData).contains(filterValue);
+      case CONTAIN -> result = Arrays.stream(filterData)
+          .map(String::toLowerCase)
+          .anyMatch(filter -> filterValue.toLowerCase().contains(filter));
+      default -> throw new IllegalArgumentException("Unsupported CompareFunction: " + compareFunction);
+    }
+
+    return result;
+  }
+
+  protected LocalDateTime toLocalDateTime(long ofEpochMilli) {
+    return LocalDateTime.ofInstant(Instant.ofEpochMilli(ofEpochMilli), TimeZone.getDefault().toZoneId());
   }
 }

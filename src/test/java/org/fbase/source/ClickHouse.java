@@ -20,6 +20,9 @@ public interface ClickHouse {
   String tableName = "ch_table_test";
   String select2016 = "SELECT * FROM datasets.trips_mergetree where toYear(pickup_date) = 2016";
 
+  String rootFolder = "C:\\Users\\.temp";
+  String folderName = "clickhouse_test";
+
   default Object getObject(String fullFileName) throws IOException, ClassNotFoundException {
     File f = new File(fullFileName);
     FileInputStream fis = new FileInputStream(f);
@@ -112,7 +115,7 @@ public interface ClickHouse {
     
     return sProfile;
   }
-  default String getTestDbFolder(String rootFolder, String folderName) {
+  default String getTestDbFolder() {
     return String.format("%s%s" + folderName, Paths.get(rootFolder).toAbsolutePath().normalize(), FILE_SEPARATOR);
   }
 }

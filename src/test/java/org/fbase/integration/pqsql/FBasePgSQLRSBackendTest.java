@@ -1,6 +1,7 @@
 package org.fbase.integration.pqsql;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
@@ -15,7 +16,9 @@ import org.fbase.common.AbstractBackendSQLTest;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.CompareFunction;
 import org.fbase.model.GroupFunction;
+import org.fbase.model.OrderBy;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -47,7 +50,7 @@ public class FBasePgSQLRSBackendTest extends AbstractBackendSQLTest {
                   pg_dt_bool bool,
                   pg_dt_char varchar,
                   pg_dt_char_empty varchar,
-                  pg_dt_clob varchar,
+                  pg_dt_clob text,
                   pg_dt_date date,
                   pg_dt_timestamp timestamp
                 )
@@ -109,16 +112,73 @@ public class FBasePgSQLRSBackendTest extends AbstractBackendSQLTest {
         ps.executeUpdate();
       }
     } catch (SQLException e) {
-      log.info(e);
+      log.error(e);
+      throw new RuntimeException(e);
     }
 
-    // Init FBase backend
     initMetaDataBackend(bType, basicDataSource);
 
     sProfile = getSProfileForBackend(tableName, basicDataSource, bType, select, tsName);
     tProfile = fStore.loadJdbcTableMetadata(basicDataSource.getConnection(), select, sProfile);
 
     log.info(tProfile);
+  }
+
+  @Test
+  public void getDistinctTest() throws BeginEndWrongOrderException {
+    CProfile cProfile = getCProfileByName(tProfile,"PG_DT_CHAR");
+    CProfile cProfileEmpty = getCProfileByName(tProfile,"PG_DT_CHAR_EMPTY");
+
+    List<String> listActual = fStore.getDistinct(tableName, cProfile, OrderBy.DESC, 100, 0L, 1697357130000L);
+    List<String> listEmptyActual = fStore.getDistinct(tableName, cProfileEmpty, OrderBy.DESC, 100, 0L, 1697357130000L);
+
+    assertEquals(List.of("A"), listActual);
+    assertEquals(List.of(""), listEmptyActual);
+  }
+
+  @Test
+  public void getDistinctTestWithFilter() throws BeginEndWrongOrderException {
+    CProfile intProfile = getCProfileByName(tProfile, "PG_DT_INT");
+    CProfile charProfile = getCProfileByName(tProfile, "PG_DT_CHAR");
+    CProfile clobProfile = getCProfileByName(tProfile, "PG_DT_CLOB");
+    CProfile emptyProfile = getCProfileByName(tProfile, "PG_DT_CHAR_EMPTY");
+
+    String[] filterValues = {"A"};
+    String[] multiFilterValues = {"A", ""};
+    String[] charFilter = {"A"};
+    String[] nonExistingFilter = {"NonExisting"};
+    String[] clobFilter = {"Lorem ipsum dolor sit amet"};
+
+    assertDistinctResults(intProfile, charProfile, filterValues, CompareFunction.EQUAL, List.of("6789"));
+
+    assertDistinctResults(charProfile, emptyProfile, filterValues, CompareFunction.EQUAL, List.of());
+
+    assertDistinctResults(charProfile, emptyProfile, multiFilterValues, CompareFunction.EQUAL, List.of("A"));
+
+    assertDistinctResults(charProfile, charProfile, charFilter, CompareFunction.EQUAL, List.of("A"));
+
+    assertDistinctResults(charProfile, emptyProfile, nonExistingFilter, CompareFunction.EQUAL, List.of());
+
+    assertDistinctResults(charProfile, emptyProfile, null, CompareFunction.EQUAL, List.of("A"));
+
+    assertDistinctResults(clobProfile, clobProfile, clobFilter, CompareFunction.EQUAL, List.of("Lorem ipsum dolor sit amet"));
+  }
+
+  private void assertDistinctResults(CProfile targetProfile, CProfile filterProfile,
+                                     String[] filterValues, CompareFunction compareFunction,
+                                     List<String> expectedResults) throws BeginEndWrongOrderException {
+    List<String> actualResults = fStore.getDistinct(
+        tableName,
+        targetProfile,
+        OrderBy.ASC,
+        100,
+        0L,
+        1697357130000L,
+        filterProfile,
+        filterValues,
+        compareFunction
+    );
+    assertEquals(expectedResults, actualResults);
   }
 
   @Test
@@ -163,6 +223,20 @@ public class FBasePgSQLRSBackendTest extends AbstractBackendSQLTest {
   }
 
   @Test
+  public void batchResultSingleEmptyDataTest() {
+    BatchResultSet batchResultSet = fStore.getBatchResultSet(tableName, 4394908640000L, Long.MAX_VALUE, 10);
+
+    int count = 0;
+    while (batchResultSet.next()) {
+      log.info(batchResultSet.getObject());
+
+      count++;
+    }
+
+    assertEquals(0, count);
+  }
+
+  @Test
   public void bugEmptyValueTest() throws BeginEndWrongOrderException, SqlColMetadataException {
     CProfile cProfile = tProfile.getCProfiles()
         .stream()
@@ -171,8 +245,9 @@ public class FBasePgSQLRSBackendTest extends AbstractBackendSQLTest {
         .orElseThrow();
 
     List<StackedColumn> stackedColumns =
-        fStore.getSColumnListByCProfileFilter(tableName, cProfile, GroupFunction.COUNT, null, null,
-                                              0, 4394908640000L);
+        fStore.getStacked(tableName, cProfile, GroupFunction.COUNT,
+                          null, null, null,
+                          0, 4394908640000L);
 
     assertEquals(4, stackedColumns.get(0).getKeyCount().get(""));
   }

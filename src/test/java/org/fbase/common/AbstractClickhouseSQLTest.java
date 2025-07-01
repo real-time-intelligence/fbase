@@ -10,8 +10,10 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.log4j.Log4j2;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.fbase.FBase;
 import org.fbase.backend.BerkleyDB;
+import org.fbase.backend.SqlDB;
 import org.fbase.config.FBaseConfig;
 import org.fbase.core.FStore;
 import org.fbase.model.profile.SProfile;
@@ -33,7 +35,9 @@ public abstract class AbstractClickhouseSQLTest implements JdbcSource {
   protected final String BERKLEY_DB_DIR = Paths.get(TEMP_DB_DIR).toAbsolutePath().normalize() + FILE_SEPARATOR + "ch_test";
   protected BerkleyDB berkleyDB;
 
-  protected final String DB_URL = "jdbc:clickhouse://localhost:8123";
+  protected final String dbUrl = "jdbc:clickhouse://localhost:8123";
+  private final String driverClassName = "com.clickhouse.jdbc.ClickHouseDriver";
+
   protected Connection dbConnection;
 
   protected FBaseConfig fBaseConfig;
@@ -47,13 +51,17 @@ public abstract class AbstractClickhouseSQLTest implements JdbcSource {
     try {
       berkleyDB = new BerkleyDB(BERKLEY_DB_DIR, false);
 
-      fBaseConfig = new FBaseConfig().setConfigDirectory(BERKLEY_DB_DIR).setBlockSize(16);
+      fBaseConfig = new FBaseConfig().setConfigDirectory(BERKLEY_DB_DIR);
       fBase = new FBase(fBaseConfig, berkleyDB.getStore());
       fStore = fBase.getFStore();
 
       System.getProperties().setProperty("oracle.jdbc.J2EE13Compliant", "true");
 
-      dbConnection = DriverManager.getConnection(DB_URL);
+      BType bType = BType.CLICKHOUSE;
+      SqlDB sqlDB = new SqlDB(bType, driverClassName, dbUrl, "admin", "admin");
+      BasicDataSource basicDataSource = sqlDB.getDatasource();
+
+      dbConnection = basicDataSource.getConnection();
     } catch (Exception e) {
       log.catching(e);
       throw new RuntimeException(e);

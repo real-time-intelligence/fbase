@@ -30,29 +30,45 @@ public class FBaseCHLoadDataTest implements ClickHouse {
   private FStore fStore;
   private List<CProfile> cProfiles;
 
-  private String url = "jdbc:clickhouse://localhost:8123";
+  private String url = "jdbc:clickhouse://localhost:8123/?user=admin&password=admin";
 
   private ClickHouseDatabase clickHouseDB;
   private BerkleyDB berkleyDB;
 
   @BeforeAll
   public void initialLoading() throws SQLException, IOException {
-    String dbFolder = getTestDbFolder("C:\\Users\\.temp", "clickhouse_test");
+    String dbFolder = getTestDbFolder();
 
     this.berkleyDB = new BerkleyDB(dbFolder, true);
 
     this.clickHouseDB = new ClickHouseDatabase(url);
 
-    FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(dbFolder).setBlockSize(16);
+    FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(dbFolder);
     FBase fBase = new FBase(fBaseConfig, berkleyDB.getStore());
     fStore = fBase.getFStore();
   }
 
   @Test
+  public void loadDataDirectParallel() {
+    try {
+      cProfiles = clickHouseDB.loadDataDirectParallel(ClickHouse.select2016, fStore,
+                                              TType.TIME_SERIES, IType.GLOBAL, true,2, 20000);
+    } catch (Exception e) {
+      log.catching(e);
+    }
+    assertEquals(1, 1);
+  }
+
+  @Test
   public void loadDataDirect() {
     try {
-      cProfiles = clickHouseDB.loadDataDirect(ClickHouse.select2016, fStore,
-          TType.TIME_SERIES, IType.GLOBAL, true,20000, 20000);
+      cProfiles = clickHouseDB.loadDataDirect(ClickHouse.select2016,
+                                              fStore,
+                                              TType.TIME_SERIES,
+                                              IType.GLOBAL,
+                                              true,
+                                              20000,
+                                              false);
     } catch (Exception e) {
       log.catching(e);
     }

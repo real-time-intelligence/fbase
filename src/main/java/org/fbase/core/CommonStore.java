@@ -4,7 +4,6 @@ import com.sleepycat.persist.EntityStore;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,14 +17,19 @@ import org.fbase.core.metamodel.MetaModelApi;
 import org.fbase.core.metamodel.MetaModelApiImpl;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.EnumByteExceedException;
+import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.handler.MetaModelHandler;
 import org.fbase.handler.MetadataHandler;
+import org.fbase.model.CompareFunction;
 import org.fbase.model.GroupFunction;
 import org.fbase.model.MetaModel;
 import org.fbase.model.MetaModel.TableMetadata;
-import org.fbase.model.output.GanttColumn;
+import org.fbase.model.OrderBy;
+import org.fbase.model.output.BlockKeyTail;
+import org.fbase.model.output.GanttColumnCount;
+import org.fbase.model.output.GanttColumnSum;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -39,7 +43,9 @@ import org.fbase.service.GroupByOneService;
 import org.fbase.service.GroupByService;
 import org.fbase.service.HistogramService;
 import org.fbase.service.RawService;
+import org.fbase.service.StatisticsService;
 import org.fbase.service.StoreService;
+import org.fbase.service.impl.StatisticsServiceImpl;
 import org.fbase.service.mapping.Mapper;
 import org.fbase.sql.BatchResultSet;
 import org.fbase.storage.Converter;
@@ -70,6 +76,7 @@ public abstract class CommonStore implements FStore {
   protected EnumService enumService;
 
   protected Converter converter;
+  protected StatisticsService statisticsService;
 
   public CommonStore(FBaseConfig fBaseConfig,
                      EntityStore store) {
@@ -80,6 +87,7 @@ public abstract class CommonStore implements FStore {
     try {
       this.metaModel = fileConfig.readObject() == null ? new MetaModel() : (MetaModel) fileConfig.readObject();
       this.metaModelApi = new MetaModelApiImpl(this.metaModel);
+      this.statisticsService = new StatisticsServiceImpl();
     } catch (IOException | ClassNotFoundException e) {
       log.catching(e);
       throw new RuntimeException(e);
@@ -108,7 +116,9 @@ public abstract class CommonStore implements FStore {
 
     TProfile tProfile = new TProfile().setTableName(tableName);
 
-    List<CProfile> cProfiles = getCProfileList(tableName);
+    checkTableInMetamodel(tableName);
+
+    List<CProfile> cProfiles = metaModel.getMetadata().get(tableName).getCProfiles();
 
     cProfiles.stream()
         .filter(cProfile -> cProfile.getCsType().isTimeStamp())
@@ -121,6 +131,13 @@ public abstract class CommonStore implements FStore {
                            tProfile.setTableType(TType.REGULAR);
                            tProfile.setCProfiles(cProfiles);
                          });
+
+    if (Objects.nonNull(metaModel.getMetadata().get(tableName))) {
+      MetaModel.TableMetadata tableMetadata = metaModel.getMetadata().get(tableName);
+      tProfile.setIndexType(tableMetadata.getIndexType());
+      tProfile.setBackendType(tableMetadata.getBackendType());
+      tProfile.setCompression(tableMetadata.getCompression());
+    }
 
     return tProfile;
   }
@@ -145,6 +162,18 @@ public abstract class CommonStore implements FStore {
   }
 
   @Override
+  public TProfile loadJdbcTableMetadata(Connection connection,
+                                        String sqlSchemaName,
+                                        String sqlTableName,
+                                        SProfile sProfile)
+      throws TableNameEmptyException {
+    checkAndInitializeMetaModel();
+    return loadTableMetadata(sProfile,
+                             () -> fetchMetadataFromJdbc(connection, sqlSchemaName, sqlTableName, sProfile),
+                             () -> updateTimestampMetadata(sProfile.getTableName(), sProfile));
+  }
+
+  @Override
   public TProfile loadCsvTableMetadata(String fileName,
                                        String csvSplitBy,
                                        SProfile sProfile)
@@ -152,7 +181,48 @@ public abstract class CommonStore implements FStore {
     checkAndInitializeMetaModel();
     return loadTableMetadata(sProfile,
                              () -> fetchMetadataFromCsv(fileName, csvSplitBy, sProfile),
-                             () -> {});
+                             () -> {
+                             });
+  }
+
+  @Override
+  public void setTimestampColumn(String tableName,
+                                 String timestampColumnName)
+      throws TableNameEmptyException {
+
+    checkTableInMetamodel(tableName);
+
+    if (timestampColumnName.isBlank()) {
+      log.warn("Empty timestamp column name");
+      return;
+    }
+
+    Optional<CProfile> optionalTsCProfile = metaModel.getMetadata().get(tableName)
+        .getCProfiles()
+        .stream()
+        .filter(cProfile -> cProfile.getCsType().isTimeStamp())
+        .findAny();
+
+    log.info("Set timestamp column: " + timestampColumnName + " for table: " + tableName);
+
+    if (optionalTsCProfile.isPresent()) {
+      for (CProfile cProfile : metaModel.getMetadata().get(tableName).getCProfiles()) {
+        if (cProfile != null && optionalTsCProfile.get().getColName().equals(cProfile.getColName())) {
+          cProfile.getCsType().setTimeStamp(false);
+        }
+
+        if (cProfile != null && timestampColumnName.equals(cProfile.getColName())) {
+          cProfile.getCsType().setTimeStamp(true);
+        }
+      }
+    } else {
+      for (CProfile cProfile : metaModel.getMetadata().get(tableName).getCProfiles()) {
+        if (cProfile != null && timestampColumnName.equals(cProfile.getColName())) {
+          cProfile.getCsType().setTimeStamp(true);
+          break;
+        }
+      }
+    }
   }
 
   private void checkAndInitializeMetaModel() {
@@ -191,7 +261,8 @@ public abstract class CommonStore implements FStore {
     return tableMetadata != null && tableMetadata.getTableId() != null;
   }
 
-  private boolean metaModelColumModelNotTheSame(String tableName, SProfile sProfile) {
+  private boolean metaModelColumModelNotTheSame(String tableName,
+                                                SProfile sProfile) {
     TableMetadata tableMetadata = metaModel.getMetadata().get(tableName);
     return tableMetadata.getCProfiles().size() != sProfile.getCsTypeMap().size();
   }
@@ -259,6 +330,45 @@ public abstract class CommonStore implements FStore {
   }
 
   private void fetchMetadataFromJdbc(Connection connection,
+                                     String sqlSchemaName,
+                                     String sqlTableName,
+                                     SProfile sProfile) {
+    if (!BType.ORACLE.equals(sProfile.getBackendType())) {
+      throw new RuntimeException("Not supported backend type: " + sProfile.getBackendType());
+    }
+    byte tableId = MetaModelHandler.getNextInternalTableId(metaModel);
+    String tableName = sProfile.getTableName();
+
+    try {
+      List<CProfile> cProfileList = MetadataHandler.getJdbcCProfileList(connection, sqlSchemaName, sqlTableName);
+
+      Map<String, CSType> csTypeMap = sProfile.getCsTypeMap();
+
+      cProfileList.forEach(cProfile -> {
+        CSType csType = csTypeMap.getOrDefault(cProfile.getColName(), defaultCSType());
+        csType.setCType(Mapper.isCType(cProfile));
+        csType.setDType(Mapper.isDBType(cProfile));
+        cProfile.setCsType(csType);
+        log.info(cProfile);
+      });
+
+      metaModel.getMetadata().put(tableName, new TableMetadata()
+          .setTableId(tableId)
+          .setTableType(sProfile.getTableType())
+          .setIndexType(sProfile.getIndexType())
+          .setBackendType(sProfile.getBackendType())
+          .setCompression(sProfile.getCompression())
+          .setCProfiles(cProfileList));
+
+      if (!BType.BERKLEYDB.equals(sProfile.getBackendType())) {
+        putMetadataNonBdb(sProfile, tableId, cProfileList);
+      }
+    } catch (Exception e) {
+      log.catching(e);
+    }
+  }
+
+  private void fetchMetadataFromJdbc(Connection connection,
                                      String select,
                                      SProfile sProfile) {
     byte tableId = MetaModelHandler.getNextInternalTableId(metaModel);
@@ -266,6 +376,7 @@ public abstract class CommonStore implements FStore {
 
     try {
       List<CProfile> cProfileList = MetadataHandler.getJdbcCProfileList(connection, select);
+
       Map<String, CSType> csTypeMap = sProfile.getCsTypeMap();
 
       cProfileList.forEach(cProfile -> {
@@ -405,17 +516,14 @@ public abstract class CommonStore implements FStore {
     }
   }
 
-  private List<CProfile> getCProfileList(String tableName) throws TableNameEmptyException {
+  private void checkTableInMetamodel(String tableName) throws TableNameEmptyException {
     if (Objects.isNull(metaModel.getMetadata().get(tableName))) {
       log.warn("Metamodel for table name: " + tableName + " not found");
-      return Collections.emptyList();
     }
 
     if (Objects.isNull(metaModel.getMetadata().get(tableName).getCProfiles())) {
       throw new TableNameEmptyException("Metamodel for table name: " + tableName + " not found");
     }
-
-    return metaModel.getMetadata().get(tableName).getCProfiles();
   }
 
   @Override
@@ -471,11 +579,22 @@ public abstract class CommonStore implements FStore {
   }
 
   @Override
-  public List<StackedColumn> getSColumnListByCProfile(String tableName,
-                                                      CProfile cProfile,
-                                                      GroupFunction groupFunction,
-                                                      long begin,
-                                                      long end)
+  public List<BlockKeyTail> getBlockKeyTailList(String tableName,
+                                                long begin,
+                                                long end) throws BeginEndWrongOrderException, SqlColMetadataException {
+    if (begin > end) {
+      throw new BeginEndWrongOrderException("Begin value must be less the end one..");
+    }
+
+    return rawService.getBlockKeyTailList(tableName, begin, end);
+  }
+
+  @Override
+  public List<StackedColumn> getStacked(String tableName,
+                                        CProfile cProfile,
+                                        GroupFunction groupFunction,
+                                        long begin,
+                                        long end)
       throws SqlColMetadataException, BeginEndWrongOrderException {
 
     if (begin > end) {
@@ -485,24 +604,26 @@ public abstract class CommonStore implements FStore {
     return this.groupByOneService.getListStackedColumn(tableName, cProfile, groupFunction, begin, end);
   }
 
+
   @Override
-  public List<StackedColumn> getSColumnListByCProfileFilter(String tableName,
-                                                            CProfile cProfile,
-                                                            GroupFunction groupFunction,
-                                                            CProfile cProfileFilter,
-                                                            String filter,
-                                                            long begin,
-                                                            long end)
+  public List<StackedColumn> getStacked(String tableName,
+                                        CProfile cProfile,
+                                        GroupFunction groupFunction,
+                                        CProfile cProfileFilter,
+                                        String[] filterData,
+                                        CompareFunction compareFunction,
+                                        long begin,
+                                        long end)
       throws SqlColMetadataException, BeginEndWrongOrderException {
-    return this.groupByOneService.getListStackedColumnFilter(tableName, cProfile, groupFunction, cProfileFilter, filter, begin, end);
+    return this.groupByOneService.getListStackedColumnFilter(tableName, cProfile, groupFunction, cProfileFilter, filterData, compareFunction, begin, end);
   }
 
   @Override
-  public List<GanttColumn> getGColumnListTwoLevelGroupBy(String tableName,
-                                                         CProfile firstGrpBy,
-                                                         CProfile secondGrpBy,
-                                                         long begin,
-                                                         long end)
+  public List<GanttColumnCount> getGantt(String tableName,
+                                         CProfile firstGrpBy,
+                                         CProfile secondGrpBy,
+                                         long begin,
+                                         long end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
 
     if (firstGrpBy.getCsType().isTimeStamp() | secondGrpBy.getCsType().isTimeStamp()) {
@@ -520,6 +641,129 @@ public abstract class CommonStore implements FStore {
   }
 
   @Override
+  public List<GanttColumnCount> getGantt(String tableName,
+                                         CProfile firstGrpBy,
+                                         CProfile secondGrpBy,
+                                         int batchSize,
+                                         long begin,
+                                         long end)
+      throws BeginEndWrongOrderException, SqlColMetadataException {
+
+    BType backendType = metaModel.getMetadata().get(tableName).getBackendType();
+
+    if (!BType.BERKLEYDB.equals(backendType)) {
+      throw new RuntimeException("Not supported for backend type: " + backendType);
+    }
+
+    return groupByService.getListGanttColumn(tableName, firstGrpBy, secondGrpBy, batchSize, begin, end);
+  }
+
+  @Override
+  public List<GanttColumnCount> getGantt(String tableName,
+                                         CProfile firstGrpBy,
+                                         CProfile secondGrpBy,
+                                         CProfile cProfileFilter,
+                                         String[] filterData,
+                                         CompareFunction compareFunction,
+                                         long begin,
+                                         long end)
+      throws SqlColMetadataException, BeginEndWrongOrderException, GanttColumnNotSupportedException {
+
+    if (firstGrpBy.getCsType().isTimeStamp() | secondGrpBy.getCsType().isTimeStamp()) {
+      throw new SqlColMetadataException("Group by not supported for timestamp column..");
+    }
+
+    if (begin > end) {
+      throw new BeginEndWrongOrderException("Begin value must be less the end one..");
+    }
+
+    log.info("First column profile: " + firstGrpBy);
+    log.info("Second column profile: " + secondGrpBy);
+
+    return this.groupByService.getListGanttColumn(tableName, firstGrpBy, secondGrpBy,
+                                                  cProfileFilter, filterData, compareFunction, begin, end);
+  }
+
+  @Override
+  public List<GanttColumnSum> getGanttSum(String tableName,
+                                          CProfile firstGrpBy,
+                                          CProfile secondGrpBy,
+                                          long begin,
+                                          long end)
+      throws SqlColMetadataException, BeginEndWrongOrderException, GanttColumnNotSupportedException {
+    if (firstGrpBy.getCsType().isTimeStamp() | secondGrpBy.getCsType().isTimeStamp()) {
+      throw new SqlColMetadataException("Group by not supported for timestamp column..");
+    }
+
+    if (begin > end) {
+      throw new BeginEndWrongOrderException("Begin value must be less the end one..");
+    }
+
+    log.info("First column profile: " + firstGrpBy);
+    log.info("Second column profile: " + secondGrpBy);
+
+    return this.groupByService.getListGanttSumColumn(tableName, firstGrpBy, secondGrpBy, begin, end);
+  }
+
+  @Override
+  public List<GanttColumnSum> getGanttSum(String tableName,
+                                          CProfile firstGrpBy,
+                                          CProfile secondGrpBy,
+                                          CProfile cProfileFilter,
+                                          String[] filterData,
+                                          CompareFunction compareFunction,
+                                          long begin,
+                                          long end)
+      throws SqlColMetadataException, BeginEndWrongOrderException, GanttColumnNotSupportedException {
+    if (firstGrpBy.getCsType().isTimeStamp() | secondGrpBy.getCsType().isTimeStamp()) {
+      throw new SqlColMetadataException("Group by not supported for timestamp column..");
+    }
+
+    if (begin > end) {
+      throw new BeginEndWrongOrderException("Begin value must be less the end one..");
+    }
+
+    log.info("First column profile: " + firstGrpBy);
+    log.info("Second column profile: " + secondGrpBy);
+
+    return this.groupByService.getListGanttSumColumn(tableName, firstGrpBy, secondGrpBy,
+                                                     cProfileFilter, filterData, compareFunction, begin, end);
+  }
+
+  @Override
+  public List<String> getDistinct(String tableName,
+                                  CProfile cProfile,
+                                  OrderBy orderBy,
+                                  int limit,
+                                  long begin,
+                                  long end)
+      throws BeginEndWrongOrderException {
+    if (begin > end) {
+      throw new BeginEndWrongOrderException("Begin value must be less the end one..");
+    }
+
+    return groupByService.getDistinct(tableName, cProfile, orderBy, limit, begin, end);
+  }
+
+  @Override
+  public List<String> getDistinct(String tableName,
+                                  CProfile cProfile,
+                                  OrderBy orderBy,
+                                  int limit,
+                                  long begin,
+                                  long end,
+                                  CProfile cProfileFilter,
+                                  String[] filterData,
+                                  CompareFunction compareFunction)
+      throws BeginEndWrongOrderException {
+    if (begin > end) {
+      throw new BeginEndWrongOrderException("Begin value must be less the end one..");
+    }
+
+    return groupByService.getDistinct(tableName, cProfile, orderBy, limit, begin, end, cProfileFilter, filterData, compareFunction);
+  }
+
+  @Override
   public List<List<Object>> getRawDataByColumn(String tableName,
                                                CProfile cProfile,
                                                long begin,
@@ -532,6 +776,15 @@ public abstract class CommonStore implements FStore {
                                           long begin,
                                           long end) {
     return rawService.getRawDataAll(tableName, begin, end);
+  }
+
+  @Override
+  public List<List<Object>> getRawDataAll(String tableName,
+                                          CProfile cProfileFilter,
+                                          String filter,
+                                          long begin,
+                                          long end) {
+    return rawService.getRawDataAll(tableName, cProfileFilter, filter, begin, end);
   }
 
   @Override
@@ -559,10 +812,17 @@ public abstract class CommonStore implements FStore {
   }
 
   @Override
-  public long getLastTimestamp(String tableName,
-                               long begin,
-                               long end) {
-    return rawService.getLastTimestamp(tableName, begin, end);
+  public long getFirst(String tableName,
+                       long begin,
+                       long end) {
+    return rawService.getFirst(tableName, begin, end);
+  }
+
+  @Override
+  public long getLast(String tableName,
+                      long begin,
+                      long end) {
+    return rawService.getLast(tableName, begin, end);
   }
 
   @Override

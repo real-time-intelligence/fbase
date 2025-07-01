@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
@@ -40,7 +41,7 @@ public class ClickHouseHelper {
       String[] keyValue = pair.split(" = ");
       String key = keyValue[0].substring(1, keyValue[0].length() - 1);
       Integer value = Integer.parseInt(keyValue[1]);
-      enumMap.put(key, value);
+      enumMap.put(key.toLowerCase(), value);
     }
 
      return enumMap;

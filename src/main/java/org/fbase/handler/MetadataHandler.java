@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -54,30 +55,52 @@ public class MetadataHandler {
                                                    String select) throws SQLException {
     List<CProfile> cProfileList = new ArrayList<>();
 
-    Statement s;
-    ResultSet rs;
-    ResultSetMetaData rsmd;
+    try (Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(select)) { // Try-with-resources for automatic closing
 
-    s = connection.createStatement();
-    s.executeQuery(select);
-    rs = s.getResultSet();
-    rsmd = rs.getMetaData();
+      ResultSetMetaData metaData = resultSet.getMetaData();
+      int columnCount = metaData.getColumnCount();
 
-    for (int i = 1; i <= rsmd.getColumnCount(); i++) {
-      cProfileList.add(i - 1,
-          CProfile.builder()
-              .colId(i - 1)
-              .colIdSql(i)
-              .colName(rsmd.getColumnName(i).toUpperCase())
-              .colDbTypeName(rsmd.getColumnTypeName(i).toUpperCase())
-              .colSizeDisplay(rsmd.getColumnDisplaySize(i))
-              .colSizeSqlType(rsmd.getColumnType(i))
-              .build());
+      for (int i = 1; i <= columnCount; i++) {
+        cProfileList.add(i - 1,
+                         CProfile.builder()
+                             .colId(i - 1)
+                             .colIdSql(i)
+                             .colName(metaData.getColumnName(i).toUpperCase())
+                             .colDbTypeName(metaData.getColumnTypeName(i).toUpperCase())
+                             .colSizeDisplay(metaData.getColumnDisplaySize(i))
+                             .build());
+      }
     }
 
-    rs.close();
-    s.close();
+    return cProfileList;
+  }
 
+  public static List<CProfile> getJdbcCProfileList(Connection connection, String sqlSchemaName, String sqlTableName) throws SQLException {
+    List<CProfile> cProfileList = new ArrayList<>();
+
+    String query = """
+        SELECT COLUMN_NAME, DATA_TYPE, DATA_LENGTH 
+        FROM ALL_TAB_COLUMNS 
+        WHERE OWNER = ? AND TABLE_NAME = ?
+        """;
+
+    try (PreparedStatement statement = connection.prepareStatement(query)) {
+      statement.setString(1, sqlSchemaName.toUpperCase());
+      statement.setString(2, sqlTableName.toUpperCase());
+      try (ResultSet resultSet = statement.executeQuery()) {
+        int colId = 0;
+        while (resultSet.next()) {
+          cProfileList.add(CProfile.builder()
+                               .colId(colId++)
+                               .colIdSql(colId)
+                               .colName(resultSet.getString("COLUMN_NAME").toUpperCase())
+                               .colDbTypeName(resultSet.getString("DATA_TYPE").toUpperCase())
+                               .colSizeDisplay(resultSet.getInt("DATA_LENGTH"))
+                               .build());
+        }
+      }
+    }
     return cProfileList;
   }
 

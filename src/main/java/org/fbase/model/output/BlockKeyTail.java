@@ -1,7 +1,5 @@
 package org.fbase.model.output;
 
-import java.util.HashMap;
-import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,10 +11,15 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder(toBuilder = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class GanttColumn {
+public class BlockKeyTail implements Comparable<BlockKeyTail>{
 
   @EqualsAndHashCode.Include
-  private String key;
+  private long key;
 
-  private Map<String, Integer> gantt = new HashMap<>();
+  private long tail;
+
+  @Override
+  public int compareTo(BlockKeyTail o) {
+    return Long.compare(this.key, o.key);
+  }
 }

@@ -2,29 +2,37 @@ package org.fbase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.fbase.common.AbstractH2Test;
 import org.fbase.exception.BeginEndWrongOrderException;
+import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
+import org.fbase.exception.TableNameEmptyException;
+import org.fbase.model.OrderBy;
 import org.fbase.model.output.StackedColumn;
+import org.fbase.model.profile.CProfile;
+import org.fbase.model.profile.TProfile;
 import org.fbase.model.profile.cstype.SType;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 
 public class FBase01StackedDirectTest extends AbstractH2Test {
 
   @BeforeAll
   public void init() {
-    Map<String, SType> csTypeMap = new HashMap<>();
+    Map<String, SType> csTypeMap = new LinkedHashMap<>();
     csTypeMap.put("ID", SType.RAW);
     csTypeMap.put("FIRSTNAME", SType.RAW);
     csTypeMap.put("LASTNAME", SType.RAW);
     csTypeMap.put("HOUSE", SType.RAW);
     csTypeMap.put("CITY", SType.RAW);
 
-    putDataDirect(csTypeMap);
+    putDataJdbcBatch(csTypeMap);
   }
 
   @Test
@@ -108,7 +116,7 @@ public class FBase01StackedDirectTest extends AbstractH2Test {
     List<StackedColumn> listNotIndexed = getDataStackedColumn("FIRSTNAME", 2, 9);
 
     assertEquals(firstListStackedKey(listIndexed), "Ivanov");
-    assertEquals(firstListStackedValue(listIndexed), 3);
+    assertEquals(firstListStackedValue(listIndexed, "Ivanov"), 3);
 
     assertEquals(firstListStackedKey(listNotIndexed), "Ivan");
     assertEquals(firstListStackedValue(listNotIndexed), 1);
@@ -124,7 +132,7 @@ public class FBase01StackedDirectTest extends AbstractH2Test {
     List<StackedColumn> firstNameFilter = getDataStackedColumnFilter("FIRSTNAME", "LASTNAME", "Petrov", 0, 10);
 
     assertEquals(firstListStackedKey(lastName), "Ivanov");
-    assertEquals(firstListStackedValue(lastName), 4);
+    assertEquals(firstListStackedValue(lastName, "Ivanov"), 4);
 
     assertEquals(firstListStackedKey(firstName), "Alex");
     assertEquals(firstListStackedValue(firstName), 1);
@@ -164,4 +172,28 @@ public class FBase01StackedDirectTest extends AbstractH2Test {
     assertEquals(lastListStackedKey(listNotIndexed), "Ivan");
   }
 
+  @Test
+  public void getDistinct() throws BeginEndWrongOrderException {
+    CProfile cProfile = tProfile.getCProfiles().stream()
+        .filter(k -> k.getColName().equalsIgnoreCase("LASTNAME"))
+        .findAny()
+        .orElseThrow();
+
+    List<String> expectedFirstNameDescAll = List.of("Tan", "Vedel", "Mirko", "Semenov", "Пирогов", "Шаляпин", "Тихий", "Sui", "Petrov", "Ivanov");
+    List<String> expectedFirstNameDescThree = List.of("Tan", "Vedel", "Mirko");
+    List<String> expectedFirstNameAscFour = List.of("Ivanov", "Petrov", "Sui");
+
+    List<String> actualFirstNameDescAll =
+        fStore.getDistinct(tProfile.getTableName(), cProfile, OrderBy.DESC, 10, 1, 50);
+
+    List<String> actualFirstNameDescThree =
+        fStore.getDistinct(tProfile.getTableName(), cProfile, OrderBy.DESC, 3, 1, 50);
+
+    List<String> actualFirstNameAscFour =
+        fStore.getDistinct(tProfile.getTableName(), cProfile, OrderBy.ASC, 3, 1, 50);
+
+    assertEquals(expectedFirstNameDescAll, actualFirstNameDescAll);
+    assertEquals(expectedFirstNameDescThree, actualFirstNameDescThree);
+    assertEquals(expectedFirstNameAscFour, actualFirstNameAscFour);
+  }
 }

@@ -29,7 +29,7 @@ import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.GroupFunction;
-import org.fbase.model.output.GanttColumn;
+import org.fbase.model.output.GanttColumnCount;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -48,7 +48,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 @Disabled
-public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
+public class FBaseMsSQLTest extends AbstractMicrosoftSQLTest {
 
   private final String selectAshLike = "SELECT getdate() as dt, s.session_id, s.login_time, s.host_name, s.program_name,\n" +
           "s.login_name, s.nt_user_name, s.is_user_process,\n" +
@@ -116,11 +116,11 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     CProfile cProfileRaw = cProfiles.stream().filter(f -> f.getColName().equals("VALUE_RAW")).findAny().get();
 
     List<StackedColumn> stackedColumnsHistogram =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileHistogram, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileHistogram, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsEnum =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileEnum, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileEnum, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsRaw =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileRaw, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileRaw, GroupFunction.COUNT, 0, Long.MAX_VALUE);
 
     System.out.println(stackedColumnsHistogram);
     System.out.println(stackedColumnsEnum);
@@ -148,13 +148,13 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     CProfile cProfileIsUserProcess = cProfiles.stream().filter(f -> f.getColName().equals("IS_USER_PROCESS")).findAny().get();
 
     List<StackedColumn> stackedColumnsBySampleTime =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileLoginName, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileLoginName, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsBySqlId =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileSessId, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileSessId, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsByEvent =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileProgramName, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileProgramName, GroupFunction.COUNT, 0, Long.MAX_VALUE);
     List<StackedColumn> stackedColumnsByIsUserProcess =
-        fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfileIsUserProcess, GroupFunction.COUNT, 0, Long.MAX_VALUE);
+        fStore.getStacked(tProfile.getTableName(), cProfileIsUserProcess, GroupFunction.COUNT, 0, Long.MAX_VALUE);
 
     List<List<Object>> rawData = fStore.getRawDataAll(tProfile.getTableName(), 0, Long.MAX_VALUE);
 
@@ -422,51 +422,51 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     assertEquals(uniqueIdentifierValue, getStackedColumnKey(tableName, mssqlDtUniqueidentifier));
 
     /* Test GanttColumn API */
-    List<GanttColumn> mssqlDtBitInt = getGanttColumn(tableName, mssqlDtBit, mssqlDtInt);
+    List<GanttColumnCount> mssqlDtBitInt = getGanttColumn(tableName, mssqlDtBit, mssqlDtInt);
     assertEquals(bitValue, mssqlDtBitInt.get(0).getKey());
     assertEquals(intValue, Integer.valueOf(getGanttKey(mssqlDtBitInt, String.valueOf(intValue))));
 
-    List<GanttColumn> mssqlDtIntChar = getGanttColumn(tableName, mssqlDtInt, mssqlDtChar);
+    List<GanttColumnCount> mssqlDtIntChar = getGanttColumn(tableName, mssqlDtInt, mssqlDtChar);
     assertEquals(intValue, Integer.valueOf(mssqlDtIntChar.get(0).getKey()));
     assertEquals(charValue, getGanttKey(mssqlDtIntChar, charValue));
 
-    List<GanttColumn> mssqlDtCharDate = getGanttColumn(tableName, mssqlDtChar, mssqlDtDate);
+    List<GanttColumnCount> mssqlDtCharDate = getGanttColumn(tableName, mssqlDtChar, mssqlDtDate);
     assertEquals(charValue, mssqlDtCharDate.get(0).getKey());
     assertEquals(dateValue.getTime(), Long.valueOf(getGanttKey(mssqlDtCharDate, String.valueOf(dateValue.getTime()))));
 
-    List<GanttColumn> mssqlDtDateReal = getGanttColumn(tableName, mssqlDtDate, mssqlDtReal);
+    List<GanttColumnCount> mssqlDtDateReal = getGanttColumn(tableName, mssqlDtDate, mssqlDtReal);
     assertEquals(dateValue.getTime(), Long.valueOf(mssqlDtDateReal.get(0).getKey()));
     assertEquals(floatValue, Float.valueOf(getGanttKeyFloat(mssqlDtDateReal, String.format("%.2f", floatValue))));
 
-    List<GanttColumn> mssqlDtRealText = getGanttColumn(tableName, mssqlDtReal, mssqlDtText);
+    List<GanttColumnCount> mssqlDtRealText = getGanttColumn(tableName, mssqlDtReal, mssqlDtText);
     assertEquals(floatValue, Float.valueOf(mssqlDtRealText.get(0).getKey()));
     assertEquals(textValue, getGanttKey(mssqlDtRealText, textValue));
 
-    List<GanttColumn> mssqlDtTextTime = getGanttColumn(tableName, mssqlDtText, mssqlDtTime);
+    List<GanttColumnCount> mssqlDtTextTime = getGanttColumn(tableName, mssqlDtText, mssqlDtTime);
     assertEquals(textValue, mssqlDtTextTime.get(0).getKey());
     assertEquals(timeValueInt, Integer.parseInt(getGanttKey(mssqlDtTextTime, String.valueOf(timeValueInt))));
 
-    List<GanttColumn> mssqlDtTimeFloat = getGanttColumn(tableName, mssqlDtTime, mssqlDtFloat);
+    List<GanttColumnCount> mssqlDtTimeFloat = getGanttColumn(tableName, mssqlDtTime, mssqlDtFloat);
     assertEquals(timeValueInt, Integer.parseInt(mssqlDtTimeFloat.get(0).getKey()));
     assertEquals(doubleValue, Double.valueOf(getGanttKey(mssqlDtTimeFloat, String.valueOf(doubleValue))));
 
-    List<GanttColumn> mssqlDtFloatDec = getGanttColumn(tableName, mssqlDtFloat, mssqlDtDecimal);
+    List<GanttColumnCount> mssqlDtFloatDec = getGanttColumn(tableName, mssqlDtFloat, mssqlDtDecimal);
     assertEquals(doubleValue, Double.valueOf(mssqlDtFloatDec.get(0).getKey()));
     assertEquals(decimalValue1, new BigDecimal(getGanttKey(mssqlDtFloatDec, decimalValue1.toPlainString())).setScale(2, RoundingMode.HALF_UP));
 
-    List<GanttColumn> mssqlDtDecimalNChar = getGanttColumn(tableName, mssqlDtDecimal, mssqlDtNchar);
+    List<GanttColumnCount> mssqlDtDecimalNChar = getGanttColumn(tableName, mssqlDtDecimal, mssqlDtNchar);
     assertEquals(decimalValue1, new BigDecimal(mssqlDtDecimalNChar.get(0).getKey()).setScale(2, RoundingMode.HALF_UP));
     assertEquals(ncharValue, getGanttKey(mssqlDtDecimalNChar, ncharValue));
 
-    List<GanttColumn> mssqlDtNcharNText = getGanttColumn(tableName, mssqlDtNchar, mssqlDtNtext);
+    List<GanttColumnCount> mssqlDtNcharNText = getGanttColumn(tableName, mssqlDtNchar, mssqlDtNtext);
     assertEquals(ncharValue, mssqlDtNcharNText.get(0).getKey());
     assertEquals(ntextValue, getGanttKey(mssqlDtNcharNText, ntextValue));
 
-    List<GanttColumn> mssqlDtNtextBigInt = getGanttColumn(tableName, mssqlDtNtext, mssqlDtBigint);
+    List<GanttColumnCount> mssqlDtNtextBigInt = getGanttColumn(tableName, mssqlDtNtext, mssqlDtBigint);
     assertEquals(ntextValue, mssqlDtNtextBigInt.get(0).getKey());
     assertEquals(bigintValue, Long.valueOf(getGanttKey(mssqlDtNtextBigInt, String.valueOf(bigintValue))));
 
-    List<GanttColumn> mssqlDtBigintBinary = getGanttColumn(tableName, mssqlDtBigint, mssqlDtBinary);
+    List<GanttColumnCount> mssqlDtBigintBinary = getGanttColumn(tableName, mssqlDtBigint, mssqlDtBinary);
     assertEquals(bigintValue, Long.valueOf(mssqlDtBigintBinary.get(0).getKey()));
     assertEquals(new String(binaryValue, StandardCharsets.UTF_8).trim(), getGanttKey(mssqlDtBigintBinary, new String(binaryValue, StandardCharsets.UTF_8).trim()).trim());
 
@@ -539,8 +539,8 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
     }
   }
 
-  private String getGanttKey(List<GanttColumn> ganttColumnList, String filter) {
-    return ganttColumnList.get(0).getGantt()
+  private String getGanttKey(List<GanttColumnCount> ganttColumnCountList, String filter) {
+    return ganttColumnCountList.get(0).getGantt()
         .entrySet()
         .stream()
         .filter(f -> f.getKey().trim().equalsIgnoreCase(filter))
@@ -549,8 +549,8 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
         .getKey();
   }
 
-  private String getGanttKeyFloat(List<GanttColumn> ganttColumnList, String filter) {
-    return ganttColumnList.get(0).getGantt()
+  private String getGanttKeyFloat(List<GanttColumnCount> ganttColumnCountList, String filter) {
+    return ganttColumnCountList.get(0).getGantt()
         .entrySet()
         .stream()
         .filter(f -> {
@@ -563,14 +563,14 @@ public class FBaseMicrosoftSQLTest extends AbstractMicrosoftSQLTest {
         .getKey();
   }
 
-  private List<GanttColumn> getGanttColumn(String tableName, CProfile cProfileFirst, CProfile cProfileSecond)
+  private List<GanttColumnCount> getGanttColumn(String tableName, CProfile cProfileFirst, CProfile cProfileSecond)
       throws BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
-    return fStore.getGColumnListTwoLevelGroupBy(tableName, cProfileFirst, cProfileSecond, 0, Long.MAX_VALUE);
+    return fStore.getGantt(tableName, cProfileFirst, cProfileSecond, 0, Long.MAX_VALUE);
   }
 
   private String getStackedColumnKey(String tableName, CProfile cProfile)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
+    return fStore.getStacked(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
         .stream()
         .findAny()
         .orElseThrow()

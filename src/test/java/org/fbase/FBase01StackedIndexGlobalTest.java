@@ -3,6 +3,7 @@ package org.fbase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.fbase.common.AbstractH2Test;
@@ -19,14 +20,15 @@ public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
 
   @BeforeAll
   public void init() {
-    Map<String, SType> csTypeMap = new HashMap<>();
+    Map<String, SType> csTypeMap = new LinkedHashMap<>();
     csTypeMap.put("ID", SType.RAW);
-    csTypeMap.put("FIRSTNAME", SType.RAW);
+    csTypeMap.put("FIRSTNAME", SType.HISTOGRAM);
     csTypeMap.put("LASTNAME", SType.RAW);
     csTypeMap.put("HOUSE", SType.RAW);
-    csTypeMap.put("CITY", SType.RAW);
+    csTypeMap.put("CITY", SType.HISTOGRAM);
+    csTypeMap.put("BIRTHDAY", SType.RAW);
 
-    putDataJdbc(csTypeMap, TType.TIME_SERIES, IType.GLOBAL, true);
+    putDataDirect(csTypeMap);
   }
 
   @Test
@@ -110,7 +112,7 @@ public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
     List<StackedColumn> listNotIndexed = getDataStackedColumn("FIRSTNAME", 2, 9);
 
     assertEquals(firstListStackedKey(listIndexed), "Ivanov");
-    assertEquals(firstListStackedValue(listIndexed), 3);
+    assertEquals(firstListStackedValue(listIndexed, "Ivanov"), 3);
 
     assertEquals(firstListStackedKey(listNotIndexed), "Ivan");
     assertEquals(firstListStackedValue(listNotIndexed), 1);
@@ -126,7 +128,7 @@ public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
     List<StackedColumn> firstNameFilter = getDataStackedColumnFilter("FIRSTNAME", "LASTNAME", "Petrov", 0, 10);
 
     assertEquals(firstListStackedKey(lastName), "Ivanov");
-    assertEquals(firstListStackedValue(lastName), 4);
+    assertEquals(firstListStackedValue(lastName, "Ivanov"), 4);
 
     assertEquals(firstListStackedKey(firstName), "Alex");
     assertEquals(firstListStackedValue(firstName), 1);
@@ -141,28 +143,28 @@ public class FBase01StackedIndexGlobalTest extends AbstractH2Test {
 
   @Test
   public void computeBeginEnd11Test() throws BeginEndWrongOrderException, SqlColMetadataException {
-    List<StackedColumn> listIndexed = getDataStackedColumn("LASTNAME", 11, 11);
-    List<StackedColumn> listNotIndexed = getDataStackedColumn("FIRSTNAME", 11, 11);
+    List<StackedColumn> lastName = getDataStackedColumn("LASTNAME", 11, 11);
+    List<StackedColumn> firstName = getDataStackedColumn("FIRSTNAME", 11, 11);
 
-    assertEquals(firstListStackedKey(listIndexed), "Semenov");
-    assertEquals(firstListStackedValue(listIndexed), 1);
+    assertEquals(firstListStackedKey(lastName), "Semenov");
+    assertEquals(firstListStackedValue(lastName, "Semenov"), 1);
 
-    assertEquals(firstListStackedKey(listNotIndexed), "Oleg");
-    assertEquals(firstListStackedValue(listNotIndexed), 1);
+    assertEquals(firstListStackedKey(firstName), "Oleg");
+    assertEquals(firstListStackedValue(firstName, "Oleg"), 1);
   }
 
   @Test
   public void computeBeginEnd2527Test() throws BeginEndWrongOrderException, SqlColMetadataException {
-    List<StackedColumn> listIndexed = getDataStackedColumn("LASTNAME", 25, 27);
-    List<StackedColumn> listNotIndexed = getDataStackedColumn("FIRSTNAME", 25, 27);
+    List<StackedColumn> lastName = getDataStackedColumn("LASTNAME", 25, 27);
+    List<StackedColumn> firstName = getDataStackedColumn("FIRSTNAME", 25, 27);
 
-    assertEquals(firstListStackedKey(listIndexed), "Semenov");
-    assertEquals(firstListStackedValue(listIndexed), 1);
+    assertEquals(firstListStackedKey(lastName), "Semenov");
+    assertEquals(firstListStackedValue(lastName, "Semenov"), 1);
 
-    assertEquals(firstListStackedKey(listNotIndexed), "Egor");
-    assertEquals(firstListStackedValue(listNotIndexed), 1);
+    assertEquals(firstListStackedKey(firstName), "Egor");
+    assertEquals(firstListStackedValue(firstName, "Egor"), 1);
 
-    assertEquals(lastListStackedKey(listIndexed), "Ivanov");
-    assertEquals(lastListStackedKey(listNotIndexed), "Ivan");
+    assertEquals(lastListStackedKey(lastName), "Ivanov");
+    assertEquals(lastListStackedKey(firstName), "Ivan");
   }
 }

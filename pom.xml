@@ -4,7 +4,7 @@
 
   <groupId>ru.real-time-intelligence</groupId>
   <artifactId>fbase</artifactId>
-  <version>0.4.0</version>
+  <version>1.0.0</version>
   <packaging>jar</packaging>
 
   <name>FBase</name>
@@ -60,10 +60,10 @@
     <slf4j.version>2.0.6</slf4j.version>
     <log4j2.version>2.19.0</log4j2.version>
     <snappy-java.version>1.1.10.5</snappy-java.version>
-    <commons-dbcp2-version>2.9.0</commons-dbcp2-version>
+    <commons-dbcp2-version>2.12.0</commons-dbcp2-version>
 
     <junit-version>5.7.0</junit-version>
-    <querydsl.version>4.4.0</querydsl.version>
+    <querydsl.version>5.1.0</querydsl.version>
     <clickhouse.version>0.3.2</clickhouse.version>
     <h2.version>1.4.200</h2.version>
     <ojdbc10.version>19.15.0.0.1</ojdbc10.version>
@@ -145,6 +145,13 @@
       <version>${junit-version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <version>${junit-version}</version>
+      <scope>test</scope>
+    </dependency>
+
 
     <dependency>
       <groupId>com.h2database</groupId>
@@ -220,8 +227,16 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${maven.compile.plugin.version}</version>
         <configuration>
-          <source>17</source>
-          <target>17</target>
+          <source>21</source>
+          <target>21</target>
+          <release>21</release>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok-version}</version>
+            </path>
+          </annotationProcessorPaths>
         </configuration>
       </plugin>
 

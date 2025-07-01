@@ -76,7 +76,7 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
     AtomicReference<Entry<Long, Integer>> pointerLocal
         = new AtomicReference<>(Map.entry(isStarted ? 0L : pointer.getKey(), isStarted ? 0 : pointer.getValue()));
 
-    Optional<CProfile> optionalCProfile = cProfiles.stream()
+    Optional<CProfile> tsCProfile = cProfiles.stream()
         .filter(k -> k.getCsType().isTimeStamp())
         .findAny();
 
@@ -88,7 +88,7 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
 
           Map.Entry<Map.Entry<Long, Integer>, List<Object>> columnData =
               rawService.getColumnData(tableId, cProfile.getColId(),
-                                       optionalCProfile.map(CProfile::getColId).orElse(-1),
+                                       tsCProfile.map(CProfile::getColId).orElse(-1),
                                        cProfile, fetchSize, isStarted, maxBlockId, pointer, fetchCounter);
 
           pointerLocal.set(columnData.getKey());
@@ -109,6 +109,32 @@ public class BatchResultSetImpl extends CommonServiceApi implements BatchResultS
 
   @Override
   public boolean next() {
+    // Check if data exist in first call
+    Optional<CProfile> tsCProfile = cProfiles.stream()
+        .filter(k -> k.getCsType().isTimeStamp())
+        .findAny();
+
+    Optional<CProfile> anyCProfile = cProfiles.stream()
+        .filter(k -> !k.getCsType().isTimeStamp())
+        .findAny();
+
+    AtomicInteger fetchCounter = new AtomicInteger(fetchSize);
+
+    if (isStarted) {
+      Map.Entry<Map.Entry<Long, Integer>, List<Object>> columnData =
+          rawService.getColumnData(tableId,
+                                   anyCProfile.orElseThrow().getColId(),
+                                   tsCProfile.map(CProfile::getColId).orElse(-1),
+                                   anyCProfile.orElseThrow(),
+                                   fetchSize, isStarted, maxBlockId, pointer, fetchCounter);
+
+      if (columnData.getValue().isEmpty()) {
+        isNext = false;
+      }
+
+      isStarted = true; // Return it back
+    }
+
     return isNext;
   }
 

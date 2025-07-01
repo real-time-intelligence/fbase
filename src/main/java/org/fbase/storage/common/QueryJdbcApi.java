@@ -12,15 +12,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.fbase.model.CompareFunction;
 import org.fbase.model.GroupFunction;
-import org.fbase.model.output.GanttColumn;
+import org.fbase.model.OrderBy;
+import org.fbase.model.output.GanttColumnCount;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.sql.BatchResultSet;
 import org.fbase.sql.BatchResultSetSqlImpl;
 import org.fbase.storage.dialect.DatabaseDialect;
 
+@Log4j2
 public abstract class QueryJdbcApi {
 
   private final BasicDataSource basicDataSource;
@@ -29,22 +33,23 @@ public abstract class QueryJdbcApi {
     this.basicDataSource = basicDataSource;
   }
 
-  protected List<StackedColumn> getListStackedColumn(String tableName,
-                                                     CProfile tsCProfile,
-                                                     CProfile cProfile,
-                                                     GroupFunction groupFunction,
-                                                     CProfile cProfileFilter,
-                                                     String filter,
-                                                     long begin,
-                                                     long end,
-                                                     DatabaseDialect databaseDialect) {
+  protected List<StackedColumn> getStackedCommon(String tableName,
+                                                 CProfile tsCProfile,
+                                                 CProfile cProfile,
+                                                 GroupFunction groupFunction,
+                                                 CProfile cProfileFilter,
+                                                 String[] filterData,
+                                                 CompareFunction compareFunction,
+                                                 long begin,
+                                                 long end,
+                                                 DatabaseDialect databaseDialect) {
     List<StackedColumn> results = new ArrayList<>();
 
     String colName = cProfile.getColName().toLowerCase();
 
     String query = getQueryStacked(tableName, colName, groupFunction,
                                    databaseDialect.getSelectClassStacked(groupFunction, cProfile),
-                                   databaseDialect.getWhereClass(tsCProfile, cProfileFilter, filter));
+                                   databaseDialect.getWhereClass(tsCProfile, cProfileFilter, filterData, compareFunction));
 
     try (Connection conn = basicDataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(query)) {
 
@@ -78,7 +83,7 @@ public abstract class QueryJdbcApi {
       return selectClass +
           "FROM " + tableName + " " +
           whereClass +
-          "GROUP BY " + colName;
+          " GROUP BY " + colName;
     } else if (GroupFunction.SUM.equals(groupFunction)) {
       return selectClass +
           "FROM " + tableName + " " +
@@ -97,7 +102,9 @@ public abstract class QueryJdbcApi {
                            StackedColumn column) throws SQLException {
     String key = rs.getString(1);
 
-    if (Objects.isNull(key)) key = "";
+    if (Objects.isNull(key)) {
+      key = "";
+    }
 
     if (GroupFunction.COUNT.equals(groupFunction)) {
       int count = rs.getInt(2);
@@ -113,23 +120,27 @@ public abstract class QueryJdbcApi {
     }
   }
 
-  protected List<GanttColumn> getListGanttColumn(String tableName,
-                                                 CProfile tsCProfile,
-                                                 CProfile firstGrpBy,
-                                                 CProfile secondGrpBy,
-                                                 long begin,
-                                                 long end,
-                                                 DatabaseDialect databaseDialect) {
-    List<GanttColumn> ganttColumns = new ArrayList<>();
+  protected List<GanttColumnCount> getGantt(String tableName,
+                                            CProfile tsCProfile,
+                                            CProfile firstGrpBy,
+                                            CProfile secondGrpBy,
+                                            CProfile cProfileFilter,
+                                            String[] filterData,
+                                            CompareFunction compareFunction,
+                                            long begin,
+                                            long end,
+                                            DatabaseDialect databaseDialect) {
+    List<GanttColumnCount> ganttColumnCounts = new ArrayList<>();
 
     String firstColName = firstGrpBy.getColName().toLowerCase();
     String secondColName = secondGrpBy.getColName().toLowerCase();
 
     String query =
-            databaseDialect.getSelectClassGantt(firstGrpBy, secondGrpBy) +
+        databaseDialect.getSelectClassGantt(firstGrpBy, secondGrpBy) +
             "FROM " + tableName + " " +
-            databaseDialect.getWhereClass(tsCProfile, null, null) +
-            "GROUP BY " + firstColName + ", " + secondColName;
+            databaseDialect.getWhereClass(tsCProfile, cProfileFilter, filterData, compareFunction) +
+            " GROUP BY " + firstColName + ", " + secondColName;
+    log.info("Query: " + query);
 
     Map<String, Map<String, Integer>> map = new LinkedHashMap<>();
 
@@ -145,8 +156,12 @@ public abstract class QueryJdbcApi {
         String keyGantt = rs.getString(2);
         int countGantt = rs.getInt(3);
 
-        if (Objects.isNull(key)) key = "";
-        if (Objects.isNull(keyGantt)) keyGantt = "";
+        if (Objects.isNull(key)) {
+          key = "";
+        }
+        if (Objects.isNull(keyGantt)) {
+          keyGantt = "";
+        }
 
         map.computeIfAbsent(key, k -> new HashMap<>()).put(keyGantt, countGantt);
       }
@@ -155,11 +170,93 @@ public abstract class QueryJdbcApi {
     }
 
     for (Map.Entry<String, Map<String, Integer>> entry : map.entrySet()) {
-      GanttColumn column = new GanttColumn(entry.getKey(), new LinkedHashMap<>(entry.getValue()));
-      ganttColumns.add(column);
+      GanttColumnCount column = new GanttColumnCount(entry.getKey(), new LinkedHashMap<>(entry.getValue()));
+      ganttColumnCounts.add(column);
     }
 
-    return ganttColumns;
+    return ganttColumnCounts;
+  }
+
+  public List<String> getDistinctCommon(String tableName,
+                                        CProfile tsCProfile,
+                                        CProfile cProfile,
+                                        OrderBy orderBy,
+                                        int limit,
+                                        long begin,
+                                        long end,
+                                        DatabaseDialect databaseDialect) {
+
+    String colName = cProfile.getColName().toLowerCase();
+
+    String query =
+        "SELECT DISTINCT " + colName +
+            " FROM " + tableName + " " +
+            databaseDialect.getWhereClass(tsCProfile, null, null, null) +
+            databaseDialect.getOrderByClass(cProfile, orderBy) +
+            databaseDialect.getLimitClass(limit);
+    log.info("Query: " + query);
+
+    List<String> distinctValues = new ArrayList<>();
+
+    try (Connection conn = basicDataSource.getConnection();
+        PreparedStatement ps = conn.prepareStatement(query)) {
+
+      databaseDialect.setDateTime(tsCProfile, ps, 1, begin);
+      databaseDialect.setDateTime(tsCProfile, ps, 2, end);
+
+      ResultSet rs = ps.executeQuery();
+
+      while (rs.next()) {
+        String val = rs.getString(1);
+        distinctValues.add(Objects.requireNonNullElse(val, ""));
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException("Error getting distinct values: " + e.getMessage(), e);
+    }
+
+    return distinctValues;
+  }
+
+  protected List<String> getDistinctWithFilterCommon(String tableName,
+                                                     CProfile tsCProfile,
+                                                     CProfile cProfile,
+                                                     OrderBy orderBy,
+                                                     int limit,
+                                                     long begin,
+                                                     long end,
+                                                     CProfile cProfileFilter,
+                                                     String[] filterData,
+                                                     CompareFunction compareFunction,
+                                                     DatabaseDialect databaseDialect) {
+    String colName = cProfile.getColName().toLowerCase();
+
+    String query =
+        "SELECT DISTINCT " + colName +
+            " FROM " + tableName + " " +
+            databaseDialect.getWhereClass(tsCProfile, cProfileFilter, filterData, compareFunction) +
+            databaseDialect.getOrderByClass(cProfile, orderBy) +
+            databaseDialect.getLimitClass(limit);
+    log.info("Query: " + query);
+
+    List<String> distinctValues = new ArrayList<>();
+
+    try (Connection conn = basicDataSource.getConnection();
+        PreparedStatement ps = conn.prepareStatement(query)) {
+
+      databaseDialect.setDateTime(tsCProfile, ps, 1, begin);
+      databaseDialect.setDateTime(tsCProfile, ps, 2, end);
+
+      ResultSet rs = ps.executeQuery();
+
+      while (rs.next()) {
+        String val = rs.getString(1);
+        distinctValues.add(Objects.requireNonNullElse(val, ""));
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException("Error getting distinct values: " + e.getMessage(), e);
+    }
+
+    return distinctValues;
   }
 
   protected BatchResultSet getBatchResultSetCommon(String tableName,
@@ -176,6 +273,51 @@ public abstract class QueryJdbcApi {
     long maxBlockId = getLastBlockIdLocal(tableName, tsCProfile, begin, end, databaseDialect);
 
     return new BatchResultSetSqlImpl(tableName, fetchSize, begin, end, maxBlockId, cProfiles, basicDataSource, databaseDialect);
+  }
+
+  protected long getFirstBlockIdLocal(String tableName,
+                                      CProfile tsCProfile,
+                                      long begin,
+                                      long end,
+                                      DatabaseDialect databaseDialect) {
+    long lastBlockId = 0L;
+
+    String query = "";
+
+    String colName = tsCProfile.getColName().toLowerCase();
+    if (Long.MIN_VALUE == begin) {
+      query =
+          "SELECT MIN(" + colName + ") " +
+              "FROM " + tableName;
+    } else {
+      query =
+          "SELECT MIN(" + colName + ") " +
+              "FROM " + tableName + " " +
+              databaseDialect.getWhereClass(tsCProfile, null, null, null);
+    }
+
+    try (Connection conn = basicDataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(query)) {
+
+      if (Long.MIN_VALUE == begin) {
+
+      } else {
+        databaseDialect.setDateTime(tsCProfile, ps, 1, begin);
+        databaseDialect.setDateTime(tsCProfile, ps, 2, end);
+      }
+
+      ResultSet rs = ps.executeQuery();
+
+      while (rs.next()) {
+        Object object = rs.getObject(1);
+
+        lastBlockId = convertRawToLong(object, tsCProfile);
+      }
+
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+
+    return lastBlockId;
   }
 
   protected long getLastBlockIdLocal(String tableName,
@@ -196,7 +338,7 @@ public abstract class QueryJdbcApi {
       query =
           "SELECT MAX(" + colName + ") " +
               "FROM " + tableName + " " +
-              databaseDialect.getWhereClass(tsCProfile, null, null);
+              databaseDialect.getWhereClass(tsCProfile, null, null, null);
     }
 
     try (Connection conn = basicDataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(query)) {
@@ -221,5 +363,19 @@ public abstract class QueryJdbcApi {
     }
 
     return lastBlockId;
+  }
+
+
+  protected static void checkDataType(CProfile cProfile, String dataType) {
+    boolean containsIgnoreCase = cProfile.getColDbTypeName()
+        .regionMatches(true,
+                       cProfile.getColDbTypeName().indexOf(dataType),
+                       dataType,
+                       0,
+                       dataType.length());
+
+    if (containsIgnoreCase) {
+      throw new RuntimeException("Not supported for " + dataType);
+    }
   }
 }

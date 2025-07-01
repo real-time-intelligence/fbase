@@ -3,6 +3,7 @@ package org.fbase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.fbase.common.AbstractH2Test;
@@ -18,12 +19,12 @@ public class FBase12StackedHistogramTest extends AbstractH2Test {
 
   @BeforeAll
   public void init() {
-    Map<String, SType> csTypeMap = new HashMap<>();
+    Map<String, SType> csTypeMap = new LinkedHashMap<>();
     csTypeMap.put("ID", SType.RAW);
     csTypeMap.put("FIRSTNAME", SType.HISTOGRAM);
     csTypeMap.put("LASTNAME", SType.HISTOGRAM);
     csTypeMap.put("HOUSE", SType.RAW);
-    csTypeMap.put("CITY", SType.ENUM);
+    csTypeMap.put("CITY", SType.HISTOGRAM);
 
     putDataDirect(csTypeMap);
   }

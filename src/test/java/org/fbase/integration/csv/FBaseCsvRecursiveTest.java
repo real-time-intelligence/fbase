@@ -55,7 +55,7 @@ public class FBaseCsvRecursiveTest {
     String dbDir = databaseDir.getAbsolutePath() + FILE_SEPARATOR + "csv";
     this.berkleyDB = new BerkleyDB(dbDir, true);
 
-    FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(dbDir).setBlockSize(16);
+    FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(dbDir);
 
     try {
       FBase fBase = new FBase(fBaseConfig, berkleyDB.getStore());

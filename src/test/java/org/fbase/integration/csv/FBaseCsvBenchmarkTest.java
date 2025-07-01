@@ -52,7 +52,7 @@ public class FBaseCsvBenchmarkTest {
 
     this.berkleyDB = new BerkleyDB(targetFBase, false);
 
-    FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(targetFBase).setBlockSize(16);
+    FBaseConfig fBaseConfig = new FBaseConfig().setConfigDirectory(targetFBase);
 
     try {
       FBase fBase = new FBase(fBaseConfig, berkleyDB.getStore());

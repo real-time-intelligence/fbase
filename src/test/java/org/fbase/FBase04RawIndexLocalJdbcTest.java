@@ -1,5 +1,6 @@
 package org.fbase;
 
+import java.util.LinkedHashMap;
 import org.fbase.common.AbstractH2Test;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
@@ -25,7 +26,7 @@ public class FBase04RawIndexLocalJdbcTest extends AbstractH2Test {
   public void init() {
     loadExpected(expected);
 
-    Map<String, SType> csTypeMap = new HashMap<>();
+    Map<String, SType> csTypeMap = new LinkedHashMap<>();
     csTypeMap.put("ID", SType.RAW);
 
     putDataJdbc(csTypeMap, TType.TIME_SERIES, IType.LOCAL, false);

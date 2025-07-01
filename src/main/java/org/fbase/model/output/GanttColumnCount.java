@@ -1,6 +1,7 @@
 package org.fbase.model.output;
 
-import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,9 +13,10 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder(toBuilder = true)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class GroupByColumn {
+public class GanttColumnCount {
 
   @EqualsAndHashCode.Include
   private String key;
-  private BigDecimal value;
+
+  private Map<String, Integer> gantt = new HashMap<>();
 }

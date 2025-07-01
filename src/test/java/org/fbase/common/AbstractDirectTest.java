@@ -1,10 +1,10 @@
 package org.fbase.common;
 
-import static org.fbase.config.FileConfig.FILE_SEPARATOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -26,7 +26,7 @@ import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.metadata.DataType;
 import org.fbase.model.GroupFunction;
-import org.fbase.model.output.GanttColumn;
+import org.fbase.model.output.GanttColumnCount;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
@@ -35,11 +35,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.io.TempDir;
 
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class AbstractDirectTest {
-  protected final String BERKLEY_DB_DIR = Paths.get(".").toAbsolutePath().normalize() + FILE_SEPARATOR + "database";
+  @TempDir
+  static File databaseDir;
+
   protected BerkleyDB berkleyDB;
 
   protected FBaseConfig fBaseConfig;
@@ -73,9 +76,9 @@ public abstract class AbstractDirectTest {
 
   @BeforeAll
   public void initBackendAndLoad() throws IOException {
-    berkleyDB = new BerkleyDB(BERKLEY_DB_DIR, true);
+    berkleyDB = new BerkleyDB(databaseDir.getAbsolutePath(), true);
 
-    fBaseConfig = new FBaseConfig().setConfigDirectory(BERKLEY_DB_DIR).setBlockSize(16);
+    fBaseConfig = new FBaseConfig().setConfigDirectory(databaseDir.getAbsolutePath());
     fBase = new FBase(fBaseConfig, berkleyDB.getStore());
     fStore = fBase.getFStore();
 
@@ -223,7 +226,7 @@ public abstract class AbstractDirectTest {
     return null;
   }
 
-  protected List<GanttColumn> getDataGanttColumn(String firstColName, String secondColName, long begin, long end)
+  protected List<GanttColumnCount> getDataGanttColumn(String firstColName, String secondColName, long begin, long end)
       throws BeginEndWrongOrderException, GanttColumnNotSupportedException, SqlColMetadataException {
     CProfile firstLevelGroupBy = cProfiles.stream()
         .filter(k -> k.getColName().equalsIgnoreCase(firstColName))
@@ -235,10 +238,10 @@ public abstract class AbstractDirectTest {
     return getListGanttColumnTwoLevelGrouping(fStore, tProfile, firstLevelGroupBy, secondLevelGroupBy, begin, end);
   }
 
-  public List<GanttColumn> getListGanttColumnTwoLevelGrouping(FStore fStore, TProfile tProfile,
-      CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
+  public List<GanttColumnCount> getListGanttColumnTwoLevelGrouping(FStore fStore, TProfile tProfile,
+                                                                   CProfile firstLevelGroupBy, CProfile secondLevelGroupBy, long begin, long end)
       throws BeginEndWrongOrderException, GanttColumnNotSupportedException, SqlColMetadataException {
-    return fStore.getGColumnListTwoLevelGroupBy(tProfile.getTableName(), firstLevelGroupBy, secondLevelGroupBy, begin, end);
+    return fStore.getGantt(tProfile.getTableName(), firstLevelGroupBy, secondLevelGroupBy, begin, end);
   }
 
   protected void compareKeySetForMapDataType(Map<String, Integer> expectedMap, List<StackedColumn> listMapActual) {
@@ -254,7 +257,7 @@ public abstract class AbstractDirectTest {
   public List<StackedColumn> getListStackedDataBySqlCol(FStore fStore, TProfile tProfile,
       List<CProfile> cProfiles, String colName, GroupFunction groupFunction, long begin, long end)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tProfile.getTableName(), cProfiles.stream()
+    return fStore.getStacked(tProfile.getTableName(), cProfiles.stream()
         .filter(k -> k.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow(), groupFunction, begin, end);
   }
 
@@ -289,7 +292,7 @@ public abstract class AbstractDirectTest {
     return fStore.getRawDataAll(tProfile.getTableName(), begin, end);
   }
 
-  protected List<GanttColumn> getGanttDataExpected(String fileName) throws IOException {
+  protected List<GanttColumnCount> getGanttDataExpected(String fileName) throws IOException {
     return objectMapper.readValue(getStringData(fileName), new TypeReference<>() {});
   }
 

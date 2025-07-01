@@ -23,7 +23,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 @TestInstance(Lifecycle.PER_CLASS)
-public class FBase00UtilTest {
+public class FBase00MetamodelTest {
   private MetaModel metaModel;
 
   @BeforeAll
@@ -48,7 +48,7 @@ public class FBase00UtilTest {
 
     FBaseConfig fBaseConfig = new FBaseConfig();
     fBaseConfig.setConfigDirectory(absPath);
-    fBaseConfig.setConfigFileName("config.obj");
+    fBaseConfig.setConfigFileName("metamodel.obj");
 
     // save
     FileConfig fileConfig = new FileConfig(fBaseConfig);

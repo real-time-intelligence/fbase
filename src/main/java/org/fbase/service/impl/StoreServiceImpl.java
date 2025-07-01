@@ -26,6 +26,8 @@ import org.fbase.model.profile.cstype.CType;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.model.profile.table.IType;
 import org.fbase.service.CommonServiceApi;
+import org.fbase.service.StatisticsService;
+import org.fbase.service.StoreLocalService;
 import org.fbase.service.StoreService;
 import org.fbase.service.mapping.Mapper;
 import org.fbase.service.store.EStore;
@@ -50,18 +52,29 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
 
   private final HistogramDAO histogramDAO;
 
+  private final StatisticsService statisticsService;
+  private final StoreLocalService storeLocalService;
+
   public StoreServiceImpl(MetaModelApi metaModelApi,
+                          StatisticsService statisticsService,
                           Converter converter,
                           RawDAO rawDAO,
                           EnumDAO enumDAO,
                           HistogramDAO histogramDAO) {
     this.metaModelApi = metaModelApi;
-
+    this.statisticsService = statisticsService;
     this.converter = converter;
 
     this.rawDAO = rawDAO;
     this.enumDAO = enumDAO;
     this.histogramDAO = histogramDAO;
+
+    this.storeLocalService = new StoreLocalServiceImpl(metaModelApi,
+                                                       statisticsService,
+                                                       converter,
+                                                       rawDAO,
+                                                       enumDAO,
+                                                       histogramDAO);
   }
 
   @Override
@@ -158,112 +171,10 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
     IType indexType = metaModelApi.getIndexType(tableName);
     if (IType.LOCAL.equals(indexType)) {
       log.info(IType.LOCAL);
-      return putDataJdbcLocal(tableName, resultSet);
+      return storeLocalService.putDataJdbc(tableName, resultSet);
     }
 
-    byte tableId = metaModelApi.getTableId(tableName);
-    boolean compression = metaModelApi.getTableCompression(tableName);
-
-    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
-    int colCount = cProfiles.size();
-
-    Map<Integer, SType> colIdSTypeMap = new HashMap<>();
-
-    cProfiles.stream().filter(isNotTimestamp)
-        .forEach(e -> colIdSTypeMap.put(e.getColId(), e.getCsType().getSType()));
-
-    /* Timestamp */
-    TStore tStore = new TStore(1, cProfiles);
-
-    /* Raw */
-    RStore rStore = new RStore(converter, cProfiles, colIdSTypeMap);
-
-    /* Enum */
-    EStore eStore = new EStore(cProfiles, colIdSTypeMap);
-
-    /* Histogram */
-    Map<Integer, HEntry> histograms = new HashMap<>();
-    cProfiles.stream()
-        .filter(isNotTimestamp)
-        .forEach(e -> histograms.put(e.getColId(), new HEntry(new ArrayList<>(), new ArrayList<>())));
-
-    List<Integer> iColumn = IntStream.range(0, colCount).boxed().toList();
-
-    try {
-      final AtomicInteger iRow = new AtomicInteger(0);
-
-      while (resultSet.next()) {
-        int iR = iRow.getAndAdd(1);
-
-        iColumn.forEach(iC -> {
-          try {
-            CProfile cProfile = cProfiles.get(iC);
-            CSType csType = cProfile.getCsType();
-            int colId = cProfile.getColId();
-
-            Object currObject = resultSet.getObject(cProfile.getColIdSql());
-
-            // Fill timestamps
-            if (csType.isTimeStamp()) {
-              if (csType.getSType() == SType.RAW) {
-                tStore.add(iC, iR, this.converter.getKeyValue(currObject, cProfile));
-              }
-            }
-
-            // Fill raw data
-            if (csType.getSType() == SType.RAW) {
-              if (!csType.isTimeStamp()) {
-                rStore.add(cProfile, iR, currObject);
-              }
-            }
-
-            // Fill enum data
-            if (csType.getSType() == SType.ENUM) {
-              int curValue = this.converter.convertRawToInt(currObject, cProfile);
-              int iMapping = eStore.getMapping().get(colId);
-              try {
-                eStore.add(iMapping, iR, curValue);
-              } catch (EnumByteExceedException e) {
-                throw new RuntimeException(e);
-              }
-            }
-
-            // Fill histogram data
-            if (csType.getSType() == SType.HISTOGRAM) {
-              int prevInt = getPrevValue(histograms, colId);
-              int currInt = this.converter.convertRawToInt(currObject, cProfile);
-
-              if (prevInt != currInt) {
-                histograms.get(colId).getIndex().add(iR);
-                histograms.get(colId).getValue().add(currInt);
-              } else if (iR == 0) {
-                histograms.get(colId).getIndex().add(iR);
-                histograms.get(colId).getValue().add(currInt);
-              }
-            }
-
-          } catch (SQLException e) {
-            log.catching(e);
-            throw new RuntimeException(e);
-          }
-        });
-      }
-
-      if (tStore.size() == 0) {
-        return -1;
-      }
-
-      long blockId = tStore.getBlockId();
-
-      this.storeDataGlobal(tableId, compression, blockId, cProfiles, colIdSTypeMap, tStore, rStore, eStore, histograms);
-
-      return tStore.getTail();
-
-    } catch (Exception e) {
-      log.catching(e);
-      throw new RuntimeException(e);
-    }
-
+    return storeLocalService.putDataJdbc(tableName, resultSet);
   }
 
   private long putDataJdbcLocal(String tableName,
@@ -327,8 +238,6 @@ public class StoreServiceImpl extends CommonServiceApi implements StoreService {
           }
         });
       }
-
-      log.info("Rows: " + iRow.get());
 
       if (tStore.size() == 0) {
         return -1;

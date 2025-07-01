@@ -23,7 +23,6 @@ public class CProfile implements Serializable {
   private String colName;
   private String colDbTypeName;
   private int colSizeDisplay;
-  private int colSizeSqlType;
 
   private CSType csType;
 }

@@ -3,7 +3,7 @@ package org.fbase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -16,7 +16,7 @@ import org.fbase.model.profile.cstype.SType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class FBase05EnumTest extends AbstractH2Test {
+public class FBase05RawEnumTest extends AbstractH2Test {
   
   private List<List<Object>> expected = new ArrayList<>();
 
@@ -24,12 +24,13 @@ public class FBase05EnumTest extends AbstractH2Test {
   public void init() {
     loadExpected(expected);
 
-    Map<String, SType> csTypeMap = new HashMap<>();
+    Map<String, SType> csTypeMap = new LinkedHashMap<>();
     csTypeMap.put("ID", SType.RAW);
     csTypeMap.put("FIRSTNAME", SType.RAW);
     csTypeMap.put("LASTNAME", SType.ENUM);
     csTypeMap.put("HOUSE", SType.ENUM);
     csTypeMap.put("CITY", SType.ENUM);
+    csTypeMap.put("BIRTHDAY", SType.RAW);
 
     putDataDirect(csTypeMap);
   }

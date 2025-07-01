@@ -48,7 +48,7 @@ public abstract class AbstractOrientDBTest implements JdbcSource {
     try {
       berkleyDB = new BerkleyDB(BERKLEY_DB_DIR, false);
 
-      fBaseConfig = new FBaseConfig().setConfigDirectory(BERKLEY_DB_DIR).setBlockSize(16);
+      fBaseConfig = new FBaseConfig().setConfigDirectory(BERKLEY_DB_DIR);
       fBase = new FBase(fBaseConfig, berkleyDB.getStore());
       fStore = fBase.getFStore();
 

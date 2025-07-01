@@ -1,16 +1,25 @@
 package org.fbase.service.impl;
 
 import com.sleepycat.persist.EntityCursor;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TimeZone;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 import lombok.extern.log4j.Log4j2;
 import org.fbase.core.metamodel.MetaModelApi;
-import org.fbase.model.output.StackedColumn;
+import org.fbase.exception.BeginEndWrongOrderException;
+import org.fbase.exception.SqlColMetadataException;
+import org.fbase.model.output.BlockKeyTail;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.cstype.SType;
 import org.fbase.model.profile.table.BType;
@@ -18,7 +27,6 @@ import org.fbase.service.CommonServiceApi;
 import org.fbase.service.RawService;
 import org.fbase.sql.BatchResultSet;
 import org.fbase.sql.BatchResultSetImpl;
-import org.fbase.sql.BatchResultSetSqlImpl;
 import org.fbase.storage.Converter;
 import org.fbase.storage.EnumDAO;
 import org.fbase.storage.HistogramDAO;
@@ -54,6 +62,16 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
                                           long end) {
     List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
     return getRawData(tableName, cProfiles, begin, end);
+  }
+
+  @Override
+  public List<List<Object>> getRawDataAll(String tableName,
+                                          CProfile cProfileFilter,
+                                          String filter,
+                                          long begin,
+                                          long end) {
+    List<CProfile> cProfiles = metaModelApi.getCProfiles(tableName);
+    return getRawData(tableName, cProfiles, cProfileFilter, filter, begin, end);
   }
 
   @Override
@@ -153,7 +171,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
           if (SType.RAW.equals(sType) & !cProfile.getCsType().isTimeStamp()) { // raw data
             int startPoint = isStarted ? 0 : isPointerFirst ? pointer.getValue() : 0;
 
-            String[] column = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
+            String[] column = getStringArrayValuesRaw(rawDAO, tableId, blockId, cProfile);
 
             for (int i = startPoint; i < column.length; i++) {
               columnData.add(column[i]);
@@ -224,6 +242,7 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
       }
     } catch (Exception e) {
       log.error(e.getMessage());
+      log.catching(e);
     }
 
     cursor.close();
@@ -237,12 +256,76 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
   }
 
   @Override
-  public long getLastTimestamp(String tableName,
-                               long begin,
-                               long end) {
+  public long getFirst(String tableName,
+                       long begin,
+                       long end) {
+    byte tableId = metaModelApi.getTableId(tableName);
+    int tsColId = metaModelApi.getTimestampCProfile(tableName).getColId();
+
+    return this.rawDAO.getFirstBlockId(tableId, tsColId, begin, end);
+  }
+
+  @Override
+  public long getLast(String tableName,
+                      long begin,
+                      long end) {
+    byte tableId = metaModelApi.getTableId(tableName);
+    int tsColId = metaModelApi.getTimestampCProfile(tableName).getColId();
+
+    return this.rawDAO.getLastBlockId(tableId, tsColId, begin, end);
+  }
+
+  @Override
+  public List<BlockKeyTail> getBlockKeyTailList(String tableName,
+                                               long begin,
+                                               long end) throws SqlColMetadataException {
     byte tableId = metaModelApi.getTableId(tableName);
 
-    return this.rawDAO.getLastBlockId(tableId, begin, end);
+    CProfile tsProfile = metaModelApi.getTimestampCProfile(tableName);
+
+    if (!tsProfile.getCsType().isTimeStamp()) {
+      throw new SqlColMetadataException("Timestamp column not defined..");
+    }
+
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    Map.Entry<MetadataKey, MetadataKey> keyEntry = getMetadataKeyPair(tableId, begin, end, previousBlockId);
+
+    List<BlockKeyTail> blockKeyTails = new ArrayList<>();
+
+    try (EntityCursor<Metadata> cursor = rawDAO.getMetadataEntityCursor(keyEntry.getKey(), keyEntry.getValue())) {
+      Metadata columnKey;
+
+      while ((columnKey = cursor.next()) != null) {
+        long blockId = columnKey.getMetadataKey().getBlockId();
+
+        long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsProfile.getColId());
+
+        long tail = timestamps[timestamps.length - 1];
+
+        if (blockId >= begin & tail <= end) {
+          blockKeyTails.add(new BlockKeyTail(blockId, tail));
+        } else {
+          if (blockId >= begin & tail > end) {
+            for (int i = timestamps.length - 1; i >= 0; i--) {
+              if (timestamps[i] <= end) {
+                blockKeyTails.add(new BlockKeyTail(blockId, timestamps[i]));
+                break;
+              }
+            }
+          }
+          if (blockId < begin & tail <= end) {
+            for (long timestamp : timestamps) {
+              if (timestamp >= begin) {
+                blockKeyTails.add(new BlockKeyTail(timestamp, tail));
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return blockKeyTails;
   }
 
   private List<List<Object>> getRawData(String tableName,
@@ -266,6 +349,29 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     return columnDataList;
   }
 
+  private List<List<Object>> getRawData(String tableName,
+                                        List<CProfile> cProfiles,
+                                        CProfile cProfileFilter,
+                                        String filter,
+                                        long begin,
+                                        long end) {
+    byte tableId = metaModelApi.getTableId(tableName);
+    CProfile tsProfile = metaModelApi.getTimestampCProfile(tableName);
+
+    List<List<Object>> columnDataList = new ArrayList<>();
+
+    long previousBlockId = this.rawDAO.getPreviousBlockId(tableId, begin);
+    if (previousBlockId != begin & previousBlockId != 0) {
+      this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, cProfileFilter, filter, previousBlockId, begin, end, columnDataList);
+    }
+
+    this.rawDAO.getListBlockIds(tableId, begin, end)
+        .forEach(blockId ->
+                     this.computeRawDataBeginEnd(tableId, tsProfile, cProfiles, cProfileFilter, filter, blockId, begin, end, columnDataList));
+
+    return columnDataList;
+  }
+
   private void computeRawDataBeginEnd(byte tableId,
                                       CProfile tsProfile,
                                       List<CProfile> cProfiles,
@@ -280,12 +386,68 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
     cProfiles.forEach(cProfile -> {
 
       List<Object> columnData = new ArrayList<>();
+
+      if (cProfile.getCsType().isTimeStamp()) { // timestamp
+        fillTimeSeriesColumnData(timestamps, begin, end, columnData);
+
+        columnDataListLocal.add(cProfiles.size() == 2 ? 0 : cProfile.getColId(), columnData);
+      } else {
+
+        MetadataKey metadataKey = MetadataKey.builder().tableId(tableId).blockId(blockId).build();
+
+        SType sType = getSType(cProfile.getColId(), rawDAO.getMetadata(metadataKey));
+
+        if (SType.ENUM.equals(sType) || SType.HISTOGRAM.equals(sType)) {
+          // Fix for BUG to pass DType to convertIntToRaw for ENUM and HISTOGRAM
+          cProfile.setColDbTypeName(cProfile.getCsType().getDType().getValue());
+        }
+
+        String[] columValues = getStringArrayValues(rawDAO, enumDAO, histogramDAO, converter, tableId, cProfile, blockId, timestamps);
+
+        fillColumnData(columValues, timestamps, begin, end, columnData);
+
+        columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
+      }
+
+    });
+
+    columnDataListOut.addAll(transpose(columnDataListLocal));
+  }
+
+  private void computeRawDataBeginEnd(byte tableId,
+                                      CProfile tsProfile,
+                                      List<CProfile> cProfiles,
+                                      CProfile cProfileFilter,
+                                      String filter,
+                                      long blockId,
+                                      long begin,
+                                      long end,
+                                      List<List<Object>> columnDataListOut) {
+    List<List<Object>> columnDataListLocal = new ArrayList<>();
+
+    long[] timestamps = rawDAO.getRawLong(tableId, blockId, tsProfile.getColId());
+
+    String[] columValuesFilter = getStringArrayValues(rawDAO, enumDAO, histogramDAO, converter, tableId, cProfileFilter, blockId, timestamps);
+
+    Set<Integer> indexSetFilter = getIndexSetByFilter(columValuesFilter, cProfileFilter, filter, timestamps, begin, end);
+
+    if (indexSetFilter.isEmpty()) {
+      columnDataListOut.addAll(transpose(columnDataListLocal));
+      return;
+    }
+
+    boolean isAllValuesFiltered = indexSetFilter.size() == columValuesFilter.length;
+
+    cProfiles.forEach(cProfile -> {
+
+      List<Object> columnData = new ArrayList<>();
+
       if (cProfile.getCsType().isTimeStamp()) { // timestamp
 
-        for (int i = 0; i < timestamps.length; i++) {
-          if (timestamps[i] >= begin & timestamps[i] <= end) {
-            columnData.add(timestamps[i]);
-          }
+        if (isAllValuesFiltered) {
+          fillTimeSeriesColumnData(timestamps, begin, end, columnData);
+        } else {
+          fillTimeSeriesColumnDataFilter(indexSetFilter, timestamps, columnData);
         }
 
         columnDataListLocal.add(cProfiles.size() == 2 ? 0 : cProfile.getColId(), columnData);
@@ -295,85 +457,24 @@ public class RawServiceImpl extends CommonServiceApi implements RawService {
 
         SType sType = getSType(cProfile.getColId(), rawDAO.getMetadata(metadataKey));
 
-        if (SType.RAW.equals(sType) & !cProfile.getCsType().isTimeStamp()) { // raw data
-
-          String[] column = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
-
-          if (column.length != 0) {
-            IntStream iRow = IntStream.range(0, timestamps.length);
-            iRow.forEach(iR -> {
-              if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-                columnData.add(column[iR]);
-              }
-            });
-          }
-
-          columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
+        if (SType.ENUM.equals(sType) || SType.HISTOGRAM.equals(sType)) {
+          // Fix for BUG to pass DType to convertIntToRaw for ENUM and HISTOGRAM
+          cProfile.setColDbTypeName(cProfile.getCsType().getDType().getValue());
         }
 
-        if (SType.HISTOGRAM.equals(sType)) { // indexed data
-          int[][] h = histogramDAO.get(tableId, blockId, cProfile.getColId());
+        String[] columValues = getStringArrayValues(rawDAO, enumDAO, histogramDAO, converter, tableId, cProfile, blockId, timestamps);
 
-          for (int i = 0; i < timestamps.length; i++) {
-            if (timestamps[i] >= begin & timestamps[i] <= end) {
-              columnData.add(this.converter.convertIntToRaw(getHistogramValue(i, h, timestamps), cProfile));
-            }
-          }
-
-          columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
+        if (isAllValuesFiltered) {
+          fillColumnData(columValues, timestamps, begin, end, columnData);
+        } else {
+          fillColumnDataFilter(columValues, indexSetFilter, timestamps, columnData);
         }
 
-        if (SType.ENUM.equals(sType)) { // enum data
-
-          EColumn eColumn = enumDAO.getEColumnValues(tableId, blockId, cProfile.getColId());
-
-          IntStream iRow = IntStream.range(0, timestamps.length);
-
-          iRow.forEach(iR -> {
-            if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-              columnData.add(converter.convertIntToRaw(EnumHelper.getIndexValue(eColumn.getValues(), eColumn.getDataByte()[iR]), cProfile));
-            }
-          });
-
-          columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
-        }
+        columnDataListLocal.add(cProfiles.size() == 2 ? 1 : cProfile.getColId(), columnData);
       }
 
     });
 
     columnDataListOut.addAll(transpose(columnDataListLocal));
-  }
-
-  private void computeNoIndexBeginEnd(byte tableId,
-                                      CProfile tProfile,
-                                      CProfile cProfile,
-                                      long blockId,
-                                      long begin,
-                                      long end,
-                                      List<StackedColumn> list) {
-
-    Map<String, Integer> map = new LinkedHashMap<>();
-
-    long[] timestamps = this.rawDAO.getRawLong(tableId, blockId, tProfile.getColId());
-
-    String[] column = getStringArrayValue(rawDAO, tableId, blockId, cProfile);
-
-    long tail = timestamps[timestamps.length - 1];
-
-    if (column.length != 0) {
-      IntStream iRow = IntStream.range(0, timestamps.length);
-      iRow.forEach(iR -> {
-        if (timestamps[iR] >= begin & timestamps[iR] <= end) {
-          map.compute(column[iR], (k, val) -> val == null ? 1 : val + 1);
-        }
-      });
-    }
-
-    if (!map.isEmpty()) {
-      list.add(StackedColumn.builder()
-                   .key(blockId)
-                   .tail(tail)
-                   .keyCount(map).build());
-    }
   }
 }

@@ -4,6 +4,8 @@ import static org.fbase.util.MapArrayUtil.mapToJsonRaw;
 import static org.fbase.util.MapArrayUtil.parseStringToTypedMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.InetAddress;
@@ -34,27 +36,50 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
-import org.fbase.common.AbstractClickhouseSQLTest;
+import org.apache.commons.dbcp2.BasicDataSource;
+import org.fbase.FBase;
+import org.fbase.backend.BerkleyDB;
+import org.fbase.backend.SqlDB;
+import org.fbase.common.AbstractBackendSQLTest;
+import org.fbase.config.FBaseConfig;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.GanttColumnNotSupportedException;
 import org.fbase.exception.SqlColMetadataException;
 import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.GroupFunction;
-import org.fbase.model.output.GanttColumn;
+import org.fbase.model.output.GanttColumnCount;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.CProfile;
 import org.fbase.model.profile.SProfile;
 import org.fbase.model.profile.TProfile;
+import org.fbase.model.profile.cstype.CSType;
+import org.fbase.model.profile.cstype.SType;
+import org.fbase.model.profile.table.BType;
+import org.fbase.model.profile.table.IType;
+import org.fbase.model.profile.table.TType;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.io.TempDir;
 
 @Log4j2
 @TestInstance(Lifecycle.PER_CLASS)
 @Disabled
-public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
+public class FBaseClickHouseSQLTest extends AbstractBackendSQLTest {
+  @TempDir
+  static File databaseDir;
+
+  private final String dbUrl = "jdbc:clickhouse://localhost:8124";
+  private final String driverClassName = "com.clickhouse.jdbc.ClickHouseDriver";
+  private final String tableNameDataType = "ch_table_ch_dt";
+
+  protected BerkleyDB berkleyDB;
+
+  private Connection dbConnection;
 
   // TODO ClickHouse Data Types: https://clickhouse.com/docs/en/sql-reference/data-types
   List<String> includeList = List.of(/*"bit",*/ "dec", /*"decimal", "numeric",*/
@@ -74,6 +99,20 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
       "ipv4", "ipv6");
 
   private final String selectDataType = "SELECT * FROM default.ch_data_types";
+
+  @BeforeAll
+  public void setUp() throws SQLException, IOException {
+    BType bType = BType.CLICKHOUSE;
+    SqlDB sqlDB = new SqlDB(bType, driverClassName, dbUrl, "admin", "admin");
+    BasicDataSource basicDataSource = sqlDB.getDatasource();
+
+    dbConnection = basicDataSource.getConnection();
+
+    fBaseConfig = new FBaseConfig().setConfigDirectory(databaseDir.getAbsolutePath());
+    berkleyDB = new BerkleyDB(databaseDir.getAbsolutePath(), false);
+    fBase = new FBase(fBaseConfig, berkleyDB.getStore());
+    fStore = fBase.getFStore();
+  }
 
   @Test
   public void loadDataTypes() throws SQLException {
@@ -445,7 +484,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     assertEquals(ch_dt_clob, getStackedColumnKey(tableName, chDtClob));*/
 
     CProfile chDtDate = getCProfile(cProfiles, "ch_dt_date");
-    LocalDate ch_dt_date_ld = Instant.ofEpochMilli(Long.parseLong(getStackedColumnKey(tableName, chDtDate)) * 1000).atZone(ZoneId.systemDefault()).toLocalDate();
+    LocalDate ch_dt_date_ld = Instant.ofEpochMilli(Long.parseLong(getStackedColumnKey(tableName, chDtDate))).atZone(ZoneId.systemDefault()).toLocalDate();
     assertEquals(ch_dt_date, ch_dt_date_ld);
 
     CProfile chDtEnum8 = getCProfile(cProfiles, "ch_dt_enum8");
@@ -494,7 +533,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     assertEquals(ch_dt_double, Double.valueOf(getStackedColumnKey(tableName, chDtDouble)));
 
     CProfile chDtDate32 = getCProfile(cProfiles, "ch_dt_date32");
-    LocalDate ch_dt_date_32 = Instant.ofEpochMilli(Long.parseLong(getStackedColumnKey(tableName, chDtDate32)) * 1000).atZone(ZoneId.systemDefault()).toLocalDate();
+    LocalDate ch_dt_date_32 = Instant.ofEpochMilli(Long.parseLong(getStackedColumnKey(tableName, chDtDate32))).atZone(ZoneId.systemDefault()).toLocalDate();
     assertEquals(ch_dt_date32, ch_dt_date_32);
 
     CProfile chDtEnum16_2 = getCProfile(cProfiles, "ch_dt_enum16_2");
@@ -572,19 +611,19 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     assertEquals(ch_dt_string_int_map, stackedColumnMap.orElseThrow().getKeyCount());
 
     /* Test GanttColumn API */
-    List<GanttColumn> chDtDecInt = getGanttColumn(tableName, chDtDec, chDtInt);
+    List<GanttColumnCount> chDtDecInt = getGanttColumn(tableName, chDtDec, chDtInt);
     assertEquals(ch_dt_dec, new BigDecimal(chDtDecInt.get(0).getKey()).setScale(2, RoundingMode.HALF_UP));
     assertEquals(ch_dt_int, Integer.valueOf(getGanttKey(chDtDecInt, String.valueOf(ch_dt_int))));
 
-    List<GanttColumn> chDtIntByte = getGanttColumn(tableName, chDtInt, chDtByte);
+    List<GanttColumnCount> chDtIntByte = getGanttColumn(tableName, chDtInt, chDtByte);
     assertEquals(ch_dt_int, Integer.valueOf(chDtIntByte.get(0).getKey()));
     assertEquals(ch_dt_byte, Byte.valueOf(getGanttKey(chDtIntByte, String.valueOf(ch_dt_byte))));
 
-    List<GanttColumn> chDtByteBool = getGanttColumn(tableName, chDtByte, chDtBool);
+    List<GanttColumnCount> chDtByteBool = getGanttColumn(tableName, chDtByte, chDtBool);
     assertEquals(ch_dt_byte, Byte.valueOf(chDtByteBool.get(0).getKey()));
     assertEquals(ch_dt_bool, Boolean.valueOf(getGanttKey(chDtByteBool, String.valueOf(ch_dt_bool))));
 
-    List<GanttColumn> chDtBoolChar = getGanttColumn(tableName, chDtBool, chDtChar);
+    List<GanttColumnCount> chDtBoolChar = getGanttColumn(tableName, chDtBool, chDtChar);
     assertEquals(ch_dt_bool, Boolean.valueOf(chDtBoolChar.get(0).getKey()));
     assertEquals(ch_dt_char, getGanttKey(chDtBoolChar, ch_dt_char));
 
@@ -597,23 +636,23 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     assertEquals(ch_dt_clob, chDtClobDate.get(0).getKey());
     assertEquals(ch_dt_date, Instant.ofEpochMilli(Long.parseLong(getGanttKey(chDtClobDate, String.valueOf(Long.parseLong(getStackedColumnKey(tableName, chDtDate))))) * 1000).atZone(ZoneId.systemDefault()).toLocalDate());*/
 
-    List<GanttColumn> chDtDateEnum8 = getGanttColumn(tableName, chDtDate, chDtEnum8);
-    assertEquals(ch_dt_date, Instant.ofEpochMilli(Long.parseLong(String.valueOf(Long.parseLong(chDtDateEnum8.get(0).getKey()))) * 1000).atZone(ZoneId.systemDefault()).toLocalDate());
+    List<GanttColumnCount> chDtDateEnum8 = getGanttColumn(tableName, chDtDate, chDtEnum8);
+    assertEquals(ch_dt_date, Instant.ofEpochMilli(Long.parseLong(String.valueOf(Long.parseLong(chDtDateEnum8.get(0).getKey())))).atZone(ZoneId.systemDefault()).toLocalDate());
     assertEquals(ch_dt_enum8, getGanttKey(chDtDateEnum8, ch_dt_enum8));
 
-    List<GanttColumn> chDtEnum8Enum16 = getGanttColumn(tableName, chDtEnum8, chDtEnum16);
+    List<GanttColumnCount> chDtEnum8Enum16 = getGanttColumn(tableName, chDtEnum8, chDtEnum16);
     assertEquals(ch_dt_enum8, chDtEnum8Enum16.get(0).getKey());
     assertEquals(ch_dt_enum16, getGanttKey(chDtEnum8Enum16, ch_dt_enum16));
 
-    List<GanttColumn> chDtEnum16Int1 = getGanttColumn(tableName, chDtEnum16, chDtInt1);
+    List<GanttColumnCount> chDtEnum16Int1 = getGanttColumn(tableName, chDtEnum16, chDtInt1);
     assertEquals(ch_dt_enum16, chDtEnum16Int1.get(0).getKey());
     assertEquals(ch_dt_int1, Byte.valueOf(getGanttKey(chDtEnum16Int1, String.valueOf(ch_dt_int1))));
 
-    List<GanttColumn> chDtInt1Int8 = getGanttColumn(tableName, chDtInt1, chDtInt8);
+    List<GanttColumnCount> chDtInt1Int8 = getGanttColumn(tableName, chDtInt1, chDtInt8);
     assertEquals(ch_dt_int1, Byte.valueOf(chDtInt1Int8.get(0).getKey()));
     assertEquals(ch_dt_int8, Byte.valueOf(getGanttKey(chDtInt1Int8, String.valueOf(ch_dt_int8))));
 
-    List<GanttColumn> chDtInt8Real = getGanttColumn(tableName, chDtInt8, chDtReal);
+    List<GanttColumnCount> chDtInt8Real = getGanttColumn(tableName, chDtInt8, chDtReal);
     assertEquals(ch_dt_int8, Byte.valueOf(chDtInt8Real.get(0).getKey()));
     assertEquals(ch_dt_real, Float.parseFloat(getGanttKey(chDtInt8Real, getStackedColumnKey(tableName, chDtReal))));
 
@@ -622,46 +661,46 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     assertEquals(ch_dt_real, Float.parseFloat(chDtRealText.get(0).getKey()));
     assertEquals(ch_dt_text, getGanttKey(chDtRealText, ch_dt_text));*/
 
-    List<GanttColumn> chDtTimeUuid = getGanttColumn(tableName, chDtTime, chDtUuid);
+    List<GanttColumnCount> chDtTimeUuid = getGanttColumn(tableName, chDtTime, chDtUuid);
     Date dateTimeGC = formatter.parse(chDtTimeUuid.get(0).getKey());
     LocalDateTime localDateTimeTimeGC = new java.sql.Timestamp(dateTimeGC.getTime()).toLocalDateTime();
     assertEquals(ch_dt_time, localDateTimeTimeGC); // TODO Done
     assertEquals(ch_dt_uuid, UUID.fromString(getGanttKey(chDtTimeUuid, ch_dt_uuid.toString())));
 
-    List<GanttColumn> chDtUint8Enum8_2 = getGanttColumn(tableName, chDtUint8, chDtEnum8_2);
+    List<GanttColumnCount> chDtUint8Enum8_2 = getGanttColumn(tableName, chDtUint8, chDtEnum8_2);
     assertEquals(ch_dt_uint8, Short.valueOf(chDtUint8Enum8_2.get(0).getKey()));
     assertEquals(ch_dt_enum8_2, getGanttKey(chDtUint8Enum8_2, ch_dt_enum8_2));
 
-    List<GanttColumn> chDtInt16Int32 = getGanttColumn(tableName, chDtInt16, chDtInt32);
+    List<GanttColumnCount> chDtInt16Int32 = getGanttColumn(tableName, chDtInt16, chDtInt32);
     assertEquals(ch_dt_int16, Short.valueOf(chDtInt16Int32.get(0).getKey()));
     assertEquals(ch_dt_int32, Long.valueOf(getGanttKey(chDtInt16Int32, String.valueOf(ch_dt_int32))));
 
-    List<GanttColumn> chDtInt32Int64 = getGanttColumn(tableName, chDtInt32, chDtINT64);
+    List<GanttColumnCount> chDtInt32Int64 = getGanttColumn(tableName, chDtInt32, chDtINT64);
     assertEquals(ch_dt_int32, Long.valueOf(chDtInt32Int64.get(0).getKey()));
     assertEquals(ch_dt_int64, Long.valueOf(getGanttKey(chDtInt32Int64, String.valueOf(ch_dt_int64))));
 
-    List<GanttColumn> chDtDoubleDate32 = getGanttColumn(tableName, chDtDouble, chDtDate32);
+    List<GanttColumnCount> chDtDoubleDate32 = getGanttColumn(tableName, chDtDouble, chDtDate32);
     assertEquals(ch_dt_double, Double.parseDouble(chDtDoubleDate32.get(0).getKey()));
-    LocalDate ch_dt_date_32GC = Instant.ofEpochMilli(Long.parseLong(getGanttKey(chDtDoubleDate32, getStackedColumnKey(tableName, chDtDate32))) * 1000).atZone(ZoneId.systemDefault()).toLocalDate();
+    LocalDate ch_dt_date_32GC = Instant.ofEpochMilli(Long.parseLong(getGanttKey(chDtDoubleDate32, getStackedColumnKey(tableName, chDtDate32)))).atZone(ZoneId.systemDefault()).toLocalDate();
     assertEquals(ch_dt_date32, ch_dt_date_32GC);
 
-    List<GanttColumn> chDtEnum16_2Int128 = getGanttColumn(tableName, chDtEnum16_2, chDtInt128);
+    List<GanttColumnCount> chDtEnum16_2Int128 = getGanttColumn(tableName, chDtEnum16_2, chDtInt128);
     assertEquals(ch_dt_enum16_2, chDtEnum16_2Int128.get(0).getKey());
     assertEquals(ch_dt_int128, getGanttKey(chDtEnum16_2Int128, ch_dt_int128));
 
-    List<GanttColumn> chDtInt256Uint16 = getGanttColumn(tableName, chDtInt256, chDtUint16);
+    List<GanttColumnCount> chDtInt256Uint16 = getGanttColumn(tableName, chDtInt256, chDtUint16);
     assertEquals(ch_dt_int256, chDtInt256Uint16.get(0).getKey());
     assertEquals(ch_dt_uint16, Integer.valueOf(getGanttKey(chDtInt256Uint16, String.valueOf(ch_dt_uint16))));
 
-    List<GanttColumn> chDtUint32Decimal = getGanttColumn(tableName, chDtUint32, chDtDecimal);
+    List<GanttColumnCount> chDtUint32Decimal = getGanttColumn(tableName, chDtUint32, chDtDecimal);
     assertEquals(ch_dt_uint32, Long.valueOf(chDtUint32Decimal.get(0).getKey()));
     assertEquals(ch_dt_decimal, new BigDecimal(getGanttKey(chDtUint32Decimal, ch_dt_decimal.toString())).setScale(2, RoundingMode.HALF_UP));
 
-    List<GanttColumn> chDtFloat32Float64 = getGanttColumn(tableName, chDtFloat32, chDtFloat64);
+    List<GanttColumnCount> chDtFloat32Float64 = getGanttColumn(tableName, chDtFloat32, chDtFloat64);
     assertEquals(ch_dt_float32, Float.parseFloat(chDtFloat32Float64.get(0).getKey()));
     assertEquals(String.format("%.2f", ch_dt_float64), String.format("%.2f", Double.parseDouble(getGanttKey(chDtFloat32Float64, getStackedColumnKey(tableName, chDtFloat64)))));
 
-    List<GanttColumn> chDtIntegerNumeric = getGanttColumn(tableName, chDtInteger, chDtNumeric);
+    List<GanttColumnCount> chDtIntegerNumeric = getGanttColumn(tableName, chDtInteger, chDtNumeric);
     assertEquals(ch_dt_integer, Integer.valueOf(chDtIntegerNumeric.get(0).getKey()));
     assertEquals(ch_dt_numeric, new BigDecimal(getGanttKey(chDtIntegerNumeric, ch_dt_numeric.toString())).setScale(2, RoundingMode.HALF_UP));
 
@@ -670,40 +709,40 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     assertEquals(ch_dt_varchar, chDtVarcharBoolean.get(0).getKey());
     assertEquals(ch_dt_boolean, Boolean.valueOf(getGanttKey(chDtVarcharBoolean, String.valueOf(ch_dt_boolean))));*/
 
-    List<GanttColumn> chDtDatetimeNvarchar = getGanttColumn(tableName, chDtDatetime, chDtNvarchar);
+    List<GanttColumnCount> chDtDatetimeNvarchar = getGanttColumn(tableName, chDtDatetime, chDtNvarchar);
     Date dateTimeVarcharGC = formatter.parse(chDtDatetimeNvarchar.get(0).getKey());
     LocalDateTime localDateTimeTimeVarcharGC = new java.sql.Timestamp(dateTimeVarcharGC.getTime()).toLocalDateTime();
     assertEquals(ch_dt_datetime, localDateTimeTimeVarcharGC);
     assertEquals(ch_dt_nvarchar, getGanttKey(chDtDatetimeNvarchar, ch_dt_nvarchar));
 
-    List<GanttColumn> chDtSmallintTimestamp = getGanttColumn(tableName, chDtSmallint, chDtFixedstring);
+    List<GanttColumnCount> chDtSmallintTimestamp = getGanttColumn(tableName, chDtSmallint, chDtFixedstring);
     assertEquals(ch_dt_smallint, Short.valueOf(chDtSmallintTimestamp.get(0).getKey()));
     assertEquals(ch_dt_fixedstring, getGanttKey(chDtSmallintTimestamp, ch_dt_fixedstring).trim());
 
-    List<GanttColumn> chDtFixedStringIpv4 = getGanttColumn(tableName, chDtFixedstring, chDtIpv4);
+    List<GanttColumnCount> chDtFixedStringIpv4 = getGanttColumn(tableName, chDtFixedstring, chDtIpv4);
     assertEquals(ch_dt_fixedstring, chDtFixedStringIpv4.get(0).getKey().trim());
     assertEquals(ch_dt_ipv4, getGanttKey(chDtFixedStringIpv4, ch_dt_ipv4).trim());
 
-    List<GanttColumn> chDtIpv4tIpv6 = getGanttColumn(tableName, chDtIpv4, chDtIpv6);
+    List<GanttColumnCount> chDtIpv4tIpv6 = getGanttColumn(tableName, chDtIpv4, chDtIpv6);
     assertEquals(ch_dt_ipv4, chDtIpv4tIpv6.get(0).getKey());
     assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(), getGanttKey(chDtIpv4tIpv6, InetAddress.getByName(ch_dt_ipv6).getHostAddress()));
 
-    List<GanttColumn> chDtIpv6NumberArray = getGanttColumn(tableName, chDtIpv6, chDtNumberArray);
+    List<GanttColumnCount> chDtIpv6NumberArray = getGanttColumn(tableName, chDtIpv6, chDtNumberArray);
     assertEquals(InetAddress.getByName(ch_dt_ipv6).getHostAddress(), chDtIpv6NumberArray.get(0).getKey());
     //assertEquals(Arrays.toString(ch_dt_number_array), getGanttKey(chDtIpv6NumberArray, Arrays.toString(ch_dt_number_array)));
     //TODO Investigate it
 
-    List<GanttColumn> chDtNumberStringArray = getGanttColumn(tableName, chDtNumberArray, chDtStringArray);
+    List<GanttColumnCount> chDtNumberStringArray = getGanttColumn(tableName, chDtNumberArray, chDtStringArray);
     assertEquals(String.valueOf(123), chDtNumberStringArray.get(0).getKey());
     //assertEquals(Arrays.toString(ch_dt_string_array), getGanttKey(chDtNumberStringArray, Arrays.toString(ch_dt_string_array)));
     //TODO Investigate it
 
-    List<GanttColumn> chDtStringArrayMap = getGanttColumn(tableName, chDtStringArray, chDtStringLongMap);
+    List<GanttColumnCount> chDtStringArrayMap = getGanttColumn(tableName, chDtStringArray, chDtStringLongMap);
     assertEquals(String.valueOf(1234), chDtStringArrayMap.get(0).getKey());
     //assertEquals(String.valueOf(ch_dt_string_int_map), getGanttKey(chDtStringArrayMap, String.valueOf(ch_dt_string_int_map)));
     //TODO Investigate it
 
-    List<GanttColumn> chDtStringMapArray = getGanttColumn(tableName, chDtStringLongMap, chDtStringArray);
+    List<GanttColumnCount> chDtStringMapArray = getGanttColumn(tableName, chDtStringLongMap, chDtStringArray);
     assertEquals("KeyOne", chDtStringMapArray.get(0).getKey());
     //assertEquals(Arrays.toString(ch_dt_string_array), getGanttKey(chDtStringMapArray, Arrays.toString(ch_dt_string_array)));
     //TODO Investigate it
@@ -726,7 +765,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
         } else if (cProfile.equals(chDtChar)) {
           assertEquals(ch_dt_char, getStackedColumnKey(tableName, chDtChar));
         } else if (cProfile.equals(chDtDate)) {
-          LocalDate ch_dt_date_ld_raw = Instant.ofEpochMilli(Long.parseLong(getStackedColumnKey(tableName, chDtDate)) * 1000)
+          LocalDate ch_dt_date_ld_raw = Instant.ofEpochMilli(Long.parseLong(getStackedColumnKey(tableName, chDtDate)))
               .atZone(ZoneId.systemDefault()).toLocalDate();
           assertEquals(ch_dt_date, ch_dt_date_ld_raw);
         } else if (cProfile.equals(chDtEnum8)) {
@@ -758,7 +797,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
         } else if (cProfile.equals(chDtDouble)) {
           assertEquals(ch_dt_double, Double.valueOf(getStackedColumnKey(tableName, chDtDouble)));
         } else if (cProfile.equals(chDtDate32)) {
-          LocalDate ch_dt_date_32_raw = Instant.ofEpochMilli(Long.parseLong(getStackedColumnKey(tableName, chDtDate32)) * 1000).atZone(ZoneId.systemDefault()).toLocalDate();
+          LocalDate ch_dt_date_32_raw = Instant.ofEpochMilli(Long.parseLong(getStackedColumnKey(tableName, chDtDate32))).atZone(ZoneId.systemDefault()).toLocalDate();
           assertEquals(ch_dt_date32, ch_dt_date_32_raw);
         } else if (cProfile.equals(chDtIpv4)) {
           assertEquals(ch_dt_ipv4, getStackedColumnKey(tableName, chDtIpv4));
@@ -782,7 +821,8 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     }));
   }
 
-  private static void dropTable(Connection connection, String tableName) throws SQLException {
+  protected static void dropTable(Connection connection,
+                                  String tableName) throws SQLException {
     String sql = "DROP TABLE IF EXISTS " + tableName;
 
     try (Statement statement = connection.createStatement()) {
@@ -791,8 +831,8 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
     }
   }
 
-  private String getGanttKey(List<GanttColumn> ganttColumnList, String filter) {
-    return ganttColumnList.get(0).getGantt()
+  private String getGanttKey(List<GanttColumnCount> ganttColumnCountList, String filter) {
+    return ganttColumnCountList.get(0).getGantt()
         .entrySet()
         .stream()
         .filter(f -> f.getKey().trim().equalsIgnoreCase(filter))
@@ -801,28 +841,35 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
         .getKey();
   }
 
-  private String getGanttKeyFloat(List<GanttColumn> ganttColumnList, String filter) {
-    return ganttColumnList.get(0).getGantt()
-        .entrySet()
-        .stream()
-        .filter(f -> {
-              Float val = Float.valueOf(f.getKey());
-              String valStr = String.format("%.2f", val);
-              return valStr.equals(filter);
-        })
-        .findAny()
-        .orElseThrow()
-        .getKey();
+  protected SProfile getSProfileForDataTypeTest(String select) throws SQLException {
+    Map<String, CSType> csTypeMap = new HashMap<>();
+
+    getSProfileForSelect(select, dbConnection).getCsTypeMap().forEach((key, value) -> {
+      if (key.equalsIgnoreCase("ch_dt_timestamp")) {
+        csTypeMap.put(key, new CSType().toBuilder().isTimeStamp(true).sType(SType.RAW).build());
+      } else if (key.equalsIgnoreCase("pg_dt_bytea")) {
+        csTypeMap.put(key, new CSType().toBuilder().sType(SType.HISTOGRAM).build());
+      } else {
+        csTypeMap.put(key, new CSType().toBuilder().sType(SType.RAW).build());
+      }
+    });
+
+    return new SProfile().setTableName(tableNameDataType)
+        .setTableType(TType.TIME_SERIES)
+        .setIndexType(IType.GLOBAL)
+        .setBackendType(BType.BERKLEYDB)
+        .setCompression(false)
+        .setCsTypeMap(csTypeMap);
   }
 
-  private List<GanttColumn> getGanttColumn(String tableName, CProfile cProfileFirst, CProfile cProfileSecond)
+  private List<GanttColumnCount> getGanttColumn(String tableName, CProfile cProfileFirst, CProfile cProfileSecond)
       throws BeginEndWrongOrderException, SqlColMetadataException, GanttColumnNotSupportedException {
-    return fStore.getGColumnListTwoLevelGroupBy(tableName, cProfileFirst, cProfileSecond, 0, Long.MAX_VALUE);
+    return fStore.getGantt(tableName, cProfileFirst, cProfileSecond, 0, Long.MAX_VALUE);
   }
 
   private String getStackedColumnKey(String tableName, CProfile cProfile)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
+    return fStore.getStacked(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
         .stream()
         .findAny()
         .orElseThrow()
@@ -836,7 +883,7 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
 
   private Optional<StackedColumn> getStackedColumn(String tableName, CProfile cProfile)
       throws BeginEndWrongOrderException, SqlColMetadataException {
-    return fStore.getSColumnListByCProfile(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
+    return fStore.getStacked(tableName, cProfile, GroupFunction.COUNT, 0, Long.MAX_VALUE)
         .stream()
         .findAny();
   }
@@ -849,5 +896,11 @@ public class FBaseClickHouseSQLTest extends AbstractClickhouseSQLTest {
 
   private CProfile getCProfile(List<CProfile> cProfiles, String colName) {
     return cProfiles.stream().filter(f -> f.getColName().equalsIgnoreCase(colName)).findAny().orElseThrow();
+  }
+
+  @AfterAll
+  public void closeDb() throws IOException {
+    berkleyDB.closeDatabase();
+    databaseDir.deleteOnExit();
   }
 }

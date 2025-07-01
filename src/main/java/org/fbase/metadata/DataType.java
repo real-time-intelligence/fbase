@@ -81,6 +81,11 @@ public enum DataType {
   ARRAY(71, "ARRAY"),
   MAP(72, "MAP"),
 
+  /* Postgres */
+  JSONB(73, "JSONB"),
+  POINT(74, "POINT"),
+  INTERVAL(75, "INTERVAL"),
+
   INTEGER(122, "INTEGER"),
   OID(123, "OID"),
   NAME(124, "NAME"),

@@ -3,11 +3,13 @@ package org.fbase;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.fbase.common.AbstractH2Test;
 import org.fbase.exception.BeginEndWrongOrderException;
 import org.fbase.exception.SqlColMetadataException;
+import org.fbase.exception.TableNameEmptyException;
 import org.fbase.model.output.StackedColumn;
 import org.fbase.model.profile.cstype.SType;
 import org.junit.jupiter.api.BeforeAll;
@@ -17,7 +19,7 @@ public class FBase10StackedBugTest extends AbstractH2Test {
 
   @BeforeAll
   public void init() {
-    Map<String, SType> csTypeMap = new HashMap<>();
+    Map<String, SType> csTypeMap = new LinkedHashMap<>();
     csTypeMap.put("ID", SType.RAW);
     csTypeMap.put("FIRSTNAME", SType.RAW);
     csTypeMap.put("LASTNAME", SType.HISTOGRAM);
@@ -28,8 +30,8 @@ public class FBase10StackedBugTest extends AbstractH2Test {
   }
 
   @Test
-  public void computeNotEmptyBugTest() {
-    cProfiles.forEach(e -> {
+  public void computeNotEmptyBugTest() throws TableNameEmptyException {
+    fStore.getTProfile(tableName).getCProfiles().forEach(e -> {
       if (!e.getCsType().isTimeStamp()) {
         try {
           failIfEmpty(getDataStackedColumn(e.getColName(), 1, 25));
